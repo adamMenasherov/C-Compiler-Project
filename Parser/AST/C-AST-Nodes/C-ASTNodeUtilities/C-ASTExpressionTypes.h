@@ -6,22 +6,16 @@ typedef enum {
 } expType;
 
 typedef enum {
-    COMPLEMENT,
-    NEGATE,
-    NOT_UNARY_OP
+    UNARY_COMPLEMENT,
+    UNARY_NEGATE,
+    UNARY_NOT_UNARY_OP
 } unaryType;
 
 typedef struct {
     int val; 
 } CConstant;
 
-/* Forward declaration */
-typedef struct CExpression CExpression;
-
-typedef struct {
-    CExpression * exp;
-    unaryType type;
-} CUnary;
+typedef struct CUnary CUnary;
 
 typedef struct CExpression {
     expType type;
@@ -30,3 +24,11 @@ typedef struct CExpression {
         CUnary * unary;
     } exp;
 } CExpression; 
+
+
+typedef struct CUnary {
+    CExpression * exp;
+    unaryType type;
+} CUnary;
+
+

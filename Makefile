@@ -26,6 +26,8 @@ SOURCES = EntryPoint/main.c \
           Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.c \
           Parser/AST/ASM-AST-Nodes/ASM-ASTNodes.c \
           Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.c \
+          Parser/TACKY/TACKY_AST.c \
+          Parser/TACKY/TACKY_AST_PRINTER.c \
           ASM-File-Generation/ASMGenerator.c
 
 # Object files (derived from sources, placed in OBJ_DIR)

@@ -7,6 +7,8 @@
 #include "Lexer/lex.h"
 #include "Parser/Parser.h"
 #include "ASM-File-Generation/ASMGenerator.h"
+#include "Parser/TACKY/TACKY_AST.h"
+#include "Parser/TACKY/TACKY_AST_PRINTER.h"
 
 
 int main(int argc, char* argv[]) {
@@ -44,6 +46,8 @@ int main(int argc, char* argv[]) {
     createTokenList(&tokenList);
     lex(&sourcePtr, &tokenList);
     AST* ast = parse(&tokenList);
+    TACKY_AST* tacky_ast = astToTACKY_AST(ast);
+    printTACKYProgram(tacky_ast->prog);
     /*ASM_AST* asm_ast = astToASM_AST(ast);
     generateASMFile(asm_ast, asmFileName);
     commandForExecutable(asmFileName, execFileName);*/

@@ -27,6 +27,25 @@ ASM_AST* astToASM_AST(AST* ast) {
 }
 
 
+TACKY_AST* astToTACKY_AST(AST* ast) {
+    TACKY_AST* tacky_ast = malloc(sizeof(TACKY_AST));
+    if (!tacky_ast) return NULL;
+    tacky_ast->prog = parseTACKYProgram(ast->prog);
+    if (!tacky_ast->prog) {
+        free(tacky_ast);
+        return NULL;
+    }
+    return tacky_ast;
+}
+
+
+void freeTACKY_AST(TACKY_AST* tacky_ast) {
+    if (tacky_ast) {
+        free(tacky_ast->prog);
+        free(tacky_ast);
+    }
+}
+
 void freeASM_AST(ASM_AST* asm_ast) {
     if (asm_ast) {
         free(asm_ast->prog);

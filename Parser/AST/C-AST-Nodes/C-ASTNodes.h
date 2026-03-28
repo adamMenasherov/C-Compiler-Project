@@ -2,8 +2,9 @@
 #include "../../../Lexer/Tokens/tokenList.h"
 #include "../../../Lexer/Tokens/token.h"
 #include "C-ASTNodeUtilities/C-ASTExpressionTypes.h"
+#include "C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 
-/* Forward declarations */
+/* Type definitions */
 typedef struct {
     CExpression* exp;
 } CReturn;
@@ -17,7 +18,6 @@ typedef struct {
     CFunction* function_def;
 } CProgram;
 
-#include "C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 #include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
 #include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
 #include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"

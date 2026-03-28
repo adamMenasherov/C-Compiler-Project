@@ -111,9 +111,9 @@ char* tokenTypetoToken(TokenType type) {
 unaryType tokenTypeToUnaryType(TokenType type) {
     switch(type) {
         case HYPHEN:
-            return NEGATE;
+            return UNARY_NEGATE;
         case TILDE:
-            return COMPLEMENT;
+            return UNARY_COMPLEMENT;
         default:
             fprintf(stderr, "Error: Invalid unary operator token type %s\n", tokenTypetoToken(type));
             exit(1);
