@@ -1,0 +1,50 @@
+#include "Parser.h"
+#include <stdlib.h>
+#include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
+#include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
+
+
+AST* parse(TokenList* tokens) {
+    AST* ast = malloc(sizeof(AST));
+    if (!ast) return NULL;
+    ast->prog = C_parseProgram(tokens);
+    if (!ast->prog) return NULL;
+    printf("Parsing completed successfully.\n");
+    printAST(ast);
+
+    return ast;
+}
+
+ASM_AST* astToASM_AST(AST* ast) {
+    ASM_AST* asm_ast = malloc(sizeof(ASM_AST));
+    if (!asm_ast) return NULL;
+    asm_ast->prog = parseProgram(ast->prog);
+    if (!asm_ast->prog) {
+        free(asm_ast);
+        return NULL;
+    }
+    return asm_ast;
+}
+
+
+void freeASM_AST(ASM_AST* asm_ast) {
+    if (asm_ast) {
+        free(asm_ast->prog);
+        free(asm_ast);
+    }
+}
+
+void freeAST(AST* ast) {
+    if (ast) {
+        C_freeProgram(ast->prog);
+        free(ast);
+    }
+}
+
+void printAST(AST* ast) {
+    C_printProgram(ast->prog);
+}
+
+void printASM_AST(ASM_AST* asm_ast) {
+    printProgram(asm_ast->prog);
+}
