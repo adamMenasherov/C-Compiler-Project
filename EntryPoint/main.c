@@ -8,18 +8,18 @@
 #include "Parser/Parser.h"
 #include "ASM-File-Generation/ASMGenerator.h"
 #include "Parser/TACKY/TACKY_AST.h"
-#include "Parser/TACKY/TACKY_AST_PRINTER.h"
+#include "Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
+#include "Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
+#include "ASM-File-Generation/ASM_AST_fix.h"
+
 
 
 int main(int argc, char* argv[]) {
     char* filename = NULL, *execFileName;
-    int stop_at_lex = 0;
     TokenList tokenList;
    
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--lex") == 0) {
-            stop_at_lex = 1;
-        } 
+        if (strcmp(argv[i], "--lex") == 0) {} 
         else if (argv[i][0] == '-') {} 
         else {
             filename = argv[i]; 
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
     }
 
     char* preprocessFileName = generatePreprocessedFileName(filename, &execFileName);
-    char* asmFileName = generateASMFileName(filename);
+    //char* asmFileName = generateASMFileName(filename);
     commandForPreprocessing(filename, preprocessFileName);
 
     char* source = readSourceFile(preprocessFileName);
@@ -47,17 +47,18 @@ int main(int argc, char* argv[]) {
     lex(&sourcePtr, &tokenList);
     AST* ast = parse(&tokenList);
     TACKY_AST* tacky_ast = astToTACKY_AST(ast);
-    printTACKYProgram(tacky_ast->prog);
-    /*ASM_AST* asm_ast = astToASM_AST(ast);
-    generateASMFile(asm_ast, asmFileName);
-    commandForExecutable(asmFileName, execFileName);*/
+    printTACKY_AST(tacky_ast);
+    ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
+    printASM_AST(asm_ast);
+    /*generateASMFile(asm_ast, asmFileName);
+    commandForExecutable(asmFileName, execFileName);
     
-    /*freeASM_AST(asm_ast);*/
+    freeASM_AST(asm_ast);
     freeAST(ast);
+    freeTACKY_AST(tacky_ast);*/
     free(source); 
     free(preprocessFileName);
     freeTokenList(&tokenList);
-
     return 0;
 }
 

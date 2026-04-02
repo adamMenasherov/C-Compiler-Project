@@ -1,4 +1,5 @@
 #include "C-ASTNodeFree.h"
+#include <stdlib.h>
 
 
 void C_freeProgram(CProgram* prog) {

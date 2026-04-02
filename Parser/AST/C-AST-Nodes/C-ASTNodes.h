@@ -4,9 +4,10 @@
 #include "C-ASTNodeUtilities/C-ASTExpressionTypes.h"
 #include "C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 
+
 /* Type definitions */
 typedef struct {
-    CExpression* exp;
+    CFactor* exp;
 } CReturn;
 
 typedef struct {
@@ -18,14 +19,11 @@ typedef struct {
     CFunction* function_def;
 } CProgram;
 
-#include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
-#include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
-#include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
-
 
 CConstant* C_parseConstant(TokenList* tokens);
 CReturn* C_parseReturn(TokenList* tokens);
 CFunction* C_parseFunction(TokenList* tokens);
 CProgram* C_parseProgram(TokenList* tokens);
-CExpression* C_parseExpression(TokenList* tokens);
+CFactor* C_parseFactor(TokenList* tokens);
+CFactor* C_parseExpression(TokenList* tokens, int min_prec);
 

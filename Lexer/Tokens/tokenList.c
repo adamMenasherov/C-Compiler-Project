@@ -23,6 +23,7 @@ void addToken(TokenList* tokenList, Token* token) {
 }
 
 void freeTokenList(TokenList* tokenList) {
+    if (!tokenList || !tokenList->tokens) return;
     for (int i = 0; i < tokenList->currSize; i++) {
         freeToken(tokenList->tokens[i]);
     }

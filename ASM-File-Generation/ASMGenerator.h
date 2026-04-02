@@ -7,5 +7,5 @@ void printAsmFileFromAst(ASM_AST *ast, FILE *fp);
 
 void printProgramToASMFile(ASMProgram* prog, FILE *fp);
 void printFunctionToASMFile(ASMFunction* func, FILE *fp);
-void printInstructionsToASMFile(Instruction* inst, FILE *fp);
-void printOperandToASMFile(Operand* op, FILE *fp);
+void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp);
+void printOperandToASMFile(ASMOperand* op, FILE *fp);

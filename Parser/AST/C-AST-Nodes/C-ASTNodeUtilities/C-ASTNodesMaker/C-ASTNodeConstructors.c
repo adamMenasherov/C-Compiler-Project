@@ -13,7 +13,7 @@ CConstant* C_CreateConstant(int val) {
 }
 
 
-CReturn* C_CreateReturn(CExpression* exp) {
+CReturn* C_CreateReturn(CFactor* exp) {
     CReturn* returnNode = malloc(sizeof(CReturn));
     if (!returnNode) return NULL;
     returnNode->exp = exp;
@@ -40,7 +40,7 @@ CProgram* C_CreateProgram(CFunction* function_def) {
 }
 
 
-CUnary* C_CreateUnary(unaryType type, CExpression* exp) {
+CUnary* C_CreateUnary(unaryType type, CFactor* exp) {
     CUnary* unary = malloc(sizeof(CUnary));
     if (!unary) return NULL;
     unary->exp = exp;
@@ -49,27 +49,49 @@ CUnary* C_CreateUnary(unaryType type, CExpression* exp) {
     return unary;
 }
 
-CExpression* C_CreateExpression(expType type, void * expVal) {
-    CExpression* new_exp = calloc(1, sizeof(CExpression));
+CFactor* C_CreateFactor(factorType type, void * expVal) {
+    CFactor* new_exp = calloc(1, sizeof(CFactor));
     if (!new_exp) return NULL;
     switch(type) {
-        case EXP_UNARY:
-            new_exp->type = EXP_UNARY;
+        case FACTOR_UNARY: {
+            new_exp->type = FACTOR_UNARY;
             new_exp->exp.unary = (CUnary*)expVal;
             break;
-        case EXP_CONSTANT:
-            new_exp->type = EXP_CONSTANT;
+        }
+            
+        case FACTOR_CONSTANT: {
+            new_exp->type = FACTOR_CONSTANT;
             new_exp->exp.cnst = (CConstant*)expVal;
             break;
+        }
+        case FACTOR_BINARY: {
+            new_exp->type = FACTOR_BINARY;
+            new_exp->exp.binary = (CBinary*)expVal;
+            break;
+        }       
     }
     return new_exp;
 }
 
 
-CExpression* C_CreateExpressionFromConstant(CConstant * exp) {
-    return C_CreateExpression(EXP_CONSTANT, exp);
+CFactor* C_CreateFactorFromConstant(CConstant * exp) {
+    return C_CreateFactor(FACTOR_CONSTANT, exp);
 }
 
-CExpression* C_CreateExpressionFromUnary(CUnary * exp) {
-    return C_CreateExpression(EXP_UNARY, exp);
+CFactor* C_CreateFactorFromUnary(CUnary * exp) {
+    return C_CreateFactor(FACTOR_UNARY, exp);
+}
+
+CFactor* C_CreateFactorFromBinary(CBinary * exp) {
+    return C_CreateFactor(FACTOR_BINARY, exp);
+}
+
+
+CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {
+    CBinary* binary = malloc(sizeof(CBinary));
+    if (!binary) return NULL;
+    binary->type = type;
+    binary->left = left;
+    binary->right = right;
+    return binary;
 }

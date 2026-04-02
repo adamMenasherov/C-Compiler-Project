@@ -5,6 +5,29 @@
 #include <ctype.h>
 
 
+const char *tokenTypeStr[] = {
+    "IDENTIFIER", 
+    "CONSTANT",
+    "INT_KEYWORD",
+    "VOID_KEYWORD",
+    "RETURN_KEYWORD",
+    "OPEN_PAREN",
+    "CLOSE_PAREN",
+    "OPEN_BRACE",
+    "CLOSE_BRACE",
+    "SEMICOLON",
+    "TILDE",
+    "HYPHEN",
+    "TWO_HYPHENS",
+    "PLUS", 
+    "ASTERISK",
+    "SLASH",
+    "PERCENT",
+    "ERROR"
+};
+
+
+
 Token* createToken(char** tokenSource) {
     while(isspace(**tokenSource)) (*tokenSource)++;
     if (**tokenSource == '\0') return NULL; // No more tokens
@@ -38,6 +61,10 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
         case ';': type = SEMICOLON; break;
         case '~': type = TILDE; break;
         case '-': type = HYPHEN; break;
+        case '+': type = PLUS; break;
+        case '*': type = ASTERISK; break;
+        case '/': type = SLASH; break;
+        case '%': type = PERCENT; break;
         default: type = ERROR;
     }
     *tokenStr = strdup(tokenSource);
@@ -79,6 +106,7 @@ TokenType isConstant(char* tokenSource, char ** tokenStr) {
 }
 
 void freeToken(Token* tok) {
+    if (!tok) return;
     free(tok->value);
     free(tok);
 }
@@ -102,6 +130,8 @@ char* tokenTypetoToken(TokenType type) {
             return "}";
         case SEMICOLON:
             return ";";
+        default:
+            break;
     }
 
     return "";

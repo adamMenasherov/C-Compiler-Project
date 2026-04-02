@@ -22,7 +22,7 @@ char* readSourceFile(char* fileName) {
 
 
 char* generatePreprocessedFileName(char* originalFileName, char **execFileName) {
-    char* fileNameCopy = strdup(originalFileName), *finalSlash;
+    char* fileNameCopy = strdup(originalFileName);
     if (!fileNameCopy) exit(1);
 
     char* newFileName = malloc(strlen(originalFileName) + 1);
@@ -51,7 +51,7 @@ char* generatePreprocessedFileName(char* originalFileName, char **execFileName) 
 
 
 char* generateASMFileName(char* originalFileName) {
-    char* fileNameCopy = strdup(originalFileName), *finalSlash;
+    char* fileNameCopy = strdup(originalFileName);
     if (!fileNameCopy) exit(1);
 
     char* newFileName = malloc(strlen(originalFileName) + 1);

@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
+#include "TACKY/TACKYUtils/TACKY_AST_FREE.h"
+#include "AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
+#include <stdio.h>
+#include "TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
 
 
 AST* parse(TokenList* tokens) {
@@ -15,10 +19,10 @@ AST* parse(TokenList* tokens) {
     return ast;
 }
 
-ASM_AST* astToASM_AST(AST* ast) {
+ASM_AST* tackyAstToASM_AST(TACKY_AST* ast) {
     ASM_AST* asm_ast = malloc(sizeof(ASM_AST));
     if (!asm_ast) return NULL;
-    asm_ast->prog = parseProgram(ast->prog);
+    asm_ast->prog = parseASMprogram(ast->prog);
     if (!asm_ast->prog) {
         free(asm_ast);
         return NULL;
@@ -41,7 +45,7 @@ TACKY_AST* astToTACKY_AST(AST* ast) {
 
 void freeTACKY_AST(TACKY_AST* tacky_ast) {
     if (tacky_ast) {
-        free(tacky_ast->prog);
+        freeTackyProgram(tacky_ast->prog);
         free(tacky_ast);
     }
 }
@@ -65,5 +69,9 @@ void printAST(AST* ast) {
 }
 
 void printASM_AST(ASM_AST* asm_ast) {
-    printProgram(asm_ast->prog);
+    printASMProgram(asm_ast->prog);
+}
+
+void printTACKY_AST(TACKY_AST* tacky_ast) {
+    printTACKYProgram(tacky_ast->prog);
 }

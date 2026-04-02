@@ -19,16 +19,17 @@ void C_printFunction(CFunction* func) {
 void C_printReturn(CReturn* returnNode) {
     printf("Return(\n\t\t\t");
     depth = 3;
-    C_printExpression(returnNode->exp);
+    C_printFactor(returnNode->exp);
     printf("\n\t\t)");
 }
 
-void C_printExpression(CExpression* exp) {
+void C_printFactor(CFactor* exp) {
     if (!exp) return;
 
     switch (exp->type) {
-        case EXP_CONSTANT: C_printConstant(exp->exp.cnst);  break;
-        case EXP_UNARY:    C_printUnary(exp->exp.unary);    break;
+        case FACTOR_CONSTANT: C_printConstant(exp->exp.cnst);  break;
+        case FACTOR_UNARY:    C_printUnary(exp->exp.unary);    break;
+        case FACTOR_BINARY:   C_printBinary(exp->exp.binary);  break;
     }
 }
 
@@ -46,7 +47,7 @@ void C_printUnary(CUnary* unary) {
     printf("Unary(%s,\n", op_name);
     depth++;
     for (int i = 0; i < depth; i++) printf("\t");
-    C_printExpression(unary->exp);
+    C_printFactor(unary->exp);
     printf(")");
     depth--;
 }
@@ -54,3 +55,29 @@ void C_printUnary(CUnary* unary) {
 void C_printConstant(CConstant* constant) {
     printf("Constant(%d)", constant->val);
 }
+
+void C_printBinary(CBinary* binary) {
+    if (!binary) return;
+
+    const char* op_name;
+    switch (binary->type) {
+        case BIN_ADD:       op_name = "Add";      break;
+        case BIN_SUBTRACT:  op_name = "Subtract"; break;
+        case BIN_MULTIPLY:  op_name = "Multiply"; break;
+        case BIN_DIVIDE:    op_name = "Divide";   break;
+        case BIN_MODULO:    op_name = "Modulo";   break;
+        default:           op_name = "Unknown";
+    }
+
+    printf("Binary(%s,\n", op_name);
+    depth++;
+    for (int i = 0; i < depth; i++) printf("\t");
+    C_printFactor(binary->left);
+    printf(",\n");
+    for (int i = 0; i < depth; i++) printf("\t");
+    C_printFactor(binary->right);
+    printf(")");
+    depth--;
+}
+
+

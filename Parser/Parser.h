@@ -17,7 +17,7 @@ typedef struct {
 } TACKY_AST;
 
 AST* parse(TokenList* tokens);
-ASM_AST* astToASM_AST(AST* ast);
+ASM_AST* tackyAstToASM_AST(TACKY_AST* ast);
 TACKY_AST* astToTACKY_AST(AST* ast);
 void freeASM_AST(ASM_AST* asm_ast);
 void freeTACKY_AST(TACKY_AST* tacky_ast);

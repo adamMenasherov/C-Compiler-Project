@@ -1,22 +1,23 @@
 #include "C-ASTNodes.h"
+#include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
 
-CExpression* C_parseExpression(TokenList* tokens) {
+CFactor* C_parseFactor(TokenList* tokens) {
     if (check(tokens, CONSTANT)) {
-        return C_CreateExpressionFromConstant(C_parseConstant(tokens));
+        return C_CreateFactorFromConstant(C_parseConstant(tokens));
     }
     else if (isUnaryOp(tokens->tokens[tokens->cursor])) {
         unaryType type = expectUnaryOp(tokens);
-        CExpression* inner_exp = C_parseExpression(tokens);
-        return C_CreateExpressionFromUnary(C_CreateUnary(type, inner_exp));
+        CFactor* inner_exp = C_parseFactor(tokens);
+        return C_CreateFactorFromUnary(C_CreateUnary(type, inner_exp));
     }
 
     else if (check(tokens, OPEN_PAREN)) {
         expect(tokens, OPEN_PAREN);
-        CExpression* inner_exp = C_parseExpression(tokens);
+        CFactor* inner_exp = C_parseExpression(tokens, 0);
         expect(tokens, CLOSE_PAREN);
         return inner_exp;
     }
@@ -29,6 +30,22 @@ CExpression* C_parseExpression(TokenList* tokens) {
 }
 
 
+CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
+    CFactor* left = C_parseFactor(tokens);
+    if (!left) return NULL;
+    int isBinary = checkBinaryOp(tokens), previous_prec; 
+    while (isBinary && (previous_prec = precedence(tokens->tokens[tokens->cursor])) >= min_prec) {
+        binType type = expectBinaryOp(tokens);
+        CFactor* right = C_parseExpression(tokens, previous_prec + 1);
+        if (!right) return NULL;
+        CBinary* new_left = C_CreateBinary(type, left, right);
+        left = C_CreateFactorFromBinary(new_left);
+        isBinary = checkBinaryOp(tokens);
+    }
+    return left;
+    
+}
+
 CConstant* C_parseConstant(TokenList* tokens) {
     int val = expectConstant(tokens);
     return C_CreateConstant(val);
@@ -37,7 +54,7 @@ CConstant* C_parseConstant(TokenList* tokens) {
 
 CReturn* C_parseReturn(TokenList* tokens) {
     expect(tokens, RETURN_KEYWORD);
-    CExpression* return_exp = C_parseExpression(tokens);
+    CFactor* return_exp = C_parseExpression(tokens, 0);
     if (!return_exp) return NULL;
 
     expect(tokens, SEMICOLON);

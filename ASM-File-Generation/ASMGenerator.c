@@ -1,6 +1,9 @@
 #include "../Parser/Parser.h"
 #include <stdio.h>
 #include "ASMGenerator.h"
+#include <stdlib.h>
+#include "ASM_AST_fix.h"
+#include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
 
 
 void generateASMFile(ASM_AST* ast, char* asm_file_name) {
@@ -23,38 +26,70 @@ void printProgramToASMFile(ASMProgram* prog, FILE *fp) {
     printFunctionToASMFile(prog->function_def, fp);
 }
 
+
 void printFunctionToASMFile(ASMFunction* func, FILE *fp) {
     fprintf(fp, "   .globl %s\n%s:\n", func->function_name, func->function_name);
-    Instruction* p = func->inst;
-    while (p != NULL) {
-        printInstructionsToASMFile(p, fp);
-        p = p->next;
+    fprintf(fp, "\tpushq %%rbp\n\tmovq %%rsp, %%rbp\n");
+    ASMInstructionList* p = func->inst;
+    ASMInstruction* current;
+    for (current = p->head; current; current = current->next) {
+        printInstructionsToASMFile(current, fp);
     }
 }
 
-void printInstructionsToASMFile(Instruction* inst, FILE *fp) {
+void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp) {
     switch(inst->type) {
-        case MOV:
-            fputs("   movl   ", fp);
-            printOperandToASMFile(inst->operand1, fp);
+        case ASM_MOV:
+        {
+            fputs("\tmovl ", fp);
+            printOperandToASMFile(inst->instValue.mov.operand1, fp);
             fputs(", ", fp);
-            printOperandToASMFile(inst->operand2, fp);
+            printOperandToASMFile(inst->instValue.mov.operand2, fp);
             fputc('\n', fp);
             break;
-        case RET:
-            fputs("   ret\n", fp);
+        }
+        case ASM_UNARY: {
+            if (inst->instValue.unary.type == ASM_UNARY_NEG) {
+                fputs("\tnegl ", fp);
+                printOperandToASMFile(inst->instValue.unary.op, fp);
+                fputc('\n', fp);
+            }
+            else if (inst->instValue.unary.type == ASM_UNARY_NOT) {
+                fputs("\tnotl ", fp);
+                printOperandToASMFile(inst->instValue.unary.op, fp);
+                fputc('\n', fp);
+            }
             break;
+        }
+        case ASM_ALLOCATESTACK: {
+            fprintf(fp, "\tsubq $%d, %%rsp\n", inst->instValue.allocatestack.size);
+            break;
+        }
+        case ASM_RET: {
+            fputs("\tmovq %rbp, %rsp\n\tpopq %rbp\n", fp);
+            fputs("\tret\n", fp);
+            break;
+        }
     }
 }
 
-void printOperandToASMFile(Operand* op, FILE *fp) {
+void printOperandToASMFile(ASMOperand* op, FILE *fp) {
     if (!op) return;
     switch(op->type) {
-        case REGISTER:
-            fputs("%eax", fp);
+        case ASM_OP_REGISTER: {
+            fprintf(fp, "%%%s", getRegisterName(op->OperandValue.reg));
             break;
-        case IMMEDIATE:
-            fprintf(fp, "$%d", op->OperandValue);
+        }
+            
+        case ASM_OP_IMMEDIATE: {
+            fprintf(fp, "$%d", op->OperandValue.immediate);
             break;
+        }
+            
+        case ASM_OP_STACK: {
+            fprintf(fp, "%d(%%rbp)", op->OperandValue.immediate);
+            break;
+        }
+        default: break;
     }
 }

@@ -2,7 +2,8 @@
 #include "../AST/C-AST-Nodes/C-ASTNodes.h"
 
 typedef enum {
-    TACKY_UNARY
+    TACKY_UNARY,
+    TACKY_BINARY
 } TACKYInstructionType;
 
 typedef enum {
@@ -28,6 +29,12 @@ typedef struct TACKYInstruction {
             TACKYValue* src;
             TACKYValue* dest;
         } unaryOp;
+        struct {
+            binType binaryOpType;
+            TACKYValue* src1;
+            TACKYValue* src2;
+            TACKYValue* dest;
+        } binaryOp;
     } instValue;
 } TACKYInstruction;
 
@@ -81,7 +88,7 @@ TACKYReturn* parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instruc
  * @param instruction_list The list to add generated instructions to
  * @return A TACKYValue representing the result of the expression
  */
-TACKYValue* emit_TACKY(CExpression* exp, TACKYInstructionList* instruction_list);
+TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list);
 
 /**
  * Creates a unary operation instruction.
@@ -91,6 +98,17 @@ TACKYValue* emit_TACKY(CExpression* exp, TACKYInstructionList* instruction_list)
  * @return A pointer to the created TACKYInstruction
  */
 TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYValue* dest);
+
+
+/**
+ * @brief Creates a binary operation instruction.
+ * @param type The type of binary operation
+ * @param src1 The first source operand
+ * @param src2 The second source operand
+ * @param dest The destination operand where result is stored
+ * @return A pointer to the created TACKYInstruction
+ */
+TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest);
 
 /**
  * @brief Create a Tacky Value From C Constant Node object
@@ -136,3 +154,11 @@ void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruct
  * @return char* temp var name
  */
 char* generateTempName();
+
+/**
+ * @brief Creates a deep copy of a TACKYValue
+ * 
+ * @param original The TACKYValue to copy
+ * @return TACKYValue* A new copy, or NULL if original is NULL
+ */
+TACKYValue* copyTackyValue(TACKYValue* original);

@@ -3,10 +3,12 @@
 #include "../../C-ASTNodes.h"
 
 CConstant* C_CreateConstant(int val);
-CReturn* C_CreateReturn(CExpression* exp);
+CReturn* C_CreateReturn(CFactor* exp);
 CFunction* C_CreateFunction(char* function_name, CReturn* body);
 CProgram* C_CreateProgram(CFunction* function_def);
-CUnary* C_CreateUnary(unaryType type, CExpression* exp);
-CExpression* C_CreateExpressionFromConstant(CConstant * exp);
-CExpression* C_CreateExpressionFromUnary(CUnary * exp);
-CExpression* C_CreateExpression(expType type, void * expVal);
+CUnary* C_CreateUnary(unaryType type, CFactor* exp);
+CFactor* C_CreateFactor(factorType type, void * expVal);
+CFactor* C_CreateFactorFromConstant(CConstant * exp);
+CFactor* C_CreateFactorFromUnary(CUnary * exp);
+CFactor* C_CreateFactorFromBinary(CBinary * exp);
+CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right);

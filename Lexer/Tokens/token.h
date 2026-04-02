@@ -1,6 +1,8 @@
 #pragma once
 #include "../../Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTExpressionTypes.h"
 
+extern const char *tokenTypeStr[];
+
 typedef enum {
     IDENTIFIER, 
     CONSTANT,
@@ -15,25 +17,12 @@ typedef enum {
     TILDE,
     HYPHEN,
     TWO_HYPHENS,
+    PLUS, 
+    ASTERISK,
+    SLASH,
+    PERCENT,
     ERROR
 } TokenType; 
-
-static const char *tokenTypeStr[] = {
-    "IDENTIFIER",
-    "CONSTANT",
-    "INT_KEYWORD",
-    "VOID_KEYWORD",
-    "RETURN_KEYWORD",
-    "OPEN_PAREN",
-    "CLOSE_PAREN",
-    "OPEN_BRACE",
-    "CLOSE_BRACE",
-    "SEMICOLON",
-    "TILDE",
-    "HYPHEN",
-    "TWO_HYPHENS",
-    "ERROR"
-};
 
 typedef struct {
     TokenType type;

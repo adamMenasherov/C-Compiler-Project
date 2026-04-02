@@ -1,4 +1,5 @@
 #pragma once
+#include "../C-ASTExpressionTypes.h"
 #include "../../C-ASTNodes.h"
 
 void C_freeProgram(CProgram* prog);

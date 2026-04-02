@@ -2,7 +2,7 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -g -Wall -Wextra
+CFLAGS = -g -Wall -Wextra 
 LDFLAGS =
 
 # Build directory structure
@@ -26,9 +26,14 @@ SOURCES = EntryPoint/main.c \
           Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.c \
           Parser/AST/ASM-AST-Nodes/ASM-ASTNodes.c \
           Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.c \
+          Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.c \
           Parser/TACKY/TACKY_AST.c \
-          Parser/TACKY/TACKY_AST_PRINTER.c \
-          ASM-File-Generation/ASMGenerator.c
+          Parser/TACKY/TACKYUtils/TACKY_AST_FREE.c \
+          Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.c \
+		  ASM-File-Generation/ASMGenerator.c \
+		  ASM-File-Generation/ASM_AST_fix.c \
+		  DataStructures/HashTable.c
+
 
 # Object files (derived from sources, placed in OBJ_DIR)
 OBJECTS = $(SOURCES:%.c=$(OBJ_DIR)/%.o)
