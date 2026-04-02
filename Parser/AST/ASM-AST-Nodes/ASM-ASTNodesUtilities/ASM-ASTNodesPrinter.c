@@ -1,9 +1,6 @@
 #include "ASM-ASTNodesPrinter.h"
 #include <stdio.h>
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                             */
-/* ------------------------------------------------------------------ */
 
 static const char* asmUnaryOperatorToString(ASMUnaryOperator op) {
     switch (op) {
@@ -22,7 +19,7 @@ static const char * asmBinaryOperatorToString(ASMBinaryOperator op) {
     }
 }
 
-char* getRegisterName(Register reg) {
+static const char* getRegisterNameForASM_AST(Register reg) {
     switch (reg) {
         case AX: return "AX";
         case DX: return "DX";
@@ -32,9 +29,6 @@ char* getRegisterName(Register reg) {
     }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Public printers                                                     */
-/* ------------------------------------------------------------------ */
 
 void printASMOperand(const ASMOperand* operand) {
     if (!operand) {
@@ -48,7 +42,7 @@ void printASMOperand(const ASMOperand* operand) {
             break;
 
         case ASM_OP_REGISTER:
-            printf("Reg(%s)", getRegisterName(operand->OperandValue.reg));
+            printf("Reg(%s)", getRegisterNameForASM_AST(operand->OperandValue.reg));
             break;
 
         case ASM_OP_PSEUDO:

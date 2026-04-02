@@ -9,3 +9,8 @@ void printProgramToASMFile(ASMProgram* prog, FILE *fp);
 void printFunctionToASMFile(ASMFunction* func, FILE *fp);
 void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp);
 void printOperandToASMFile(ASMOperand* op, FILE *fp);
+const char* getRegisterNameForCodeEmission(Register reg);
+const char * asmUnaryOperatorToString(ASMUnaryOperator op);
+const char * asmBinaryOperatorToString(ASMBinaryOperator op);
+void printFunctionPrologueToASMFile(ASMFunction* func, FILE *fp);
+void printFunctionEpilogueToASMFile(FILE* fp);

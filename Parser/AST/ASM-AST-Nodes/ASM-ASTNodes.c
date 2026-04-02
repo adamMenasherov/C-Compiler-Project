@@ -61,7 +61,7 @@ void parseASMReturn(TACKYReturn* tacky_ret, ASMInstructionList* instruction_list
                         (tackyValueToASMOperand(tacky_ret->val), createRegisterOperand(AX));
     addASMInstructionAtEnd(instruction_list, mov_inst);
 
-    ASMInstruction* ret_inst = malloc(sizeof(ASMInstruction));
+    ASMInstruction* ret_inst = calloc(1, sizeof(ASMInstruction));
     if (!ret_inst) return;
     ret_inst->type = ASM_RET;
     addASMInstructionAtEnd(instruction_list, ret_inst);
@@ -86,16 +86,16 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
             break;
         }
         case TACKY_BINARY: {
-            ASMInstruction* mov_inst = createMovInstruction(
-                tackyValueToASMOperand(instruction->instValue.binaryOp.src1), 
-                tackyValueToASMOperand(instruction->instValue.binaryOp.dest));
-            addASMInstructionAtEnd(asmInstructionList, mov_inst);
-
             if (instruction->instValue.binaryOp.binaryOpType == BIN_DIVIDE 
                     || instruction->instValue.binaryOp.binaryOpType == BIN_MODULO) {
                 handleDivideModuloCase(instruction, asmInstructionList);
                 break;
             }
+
+            ASMInstruction* mov_inst = createMovInstruction(
+                tackyValueToASMOperand(instruction->instValue.binaryOp.src1), 
+                tackyValueToASMOperand(instruction->instValue.binaryOp.dest));
+            addASMInstructionAtEnd(asmInstructionList, mov_inst);
             
             ASMInstruction* binary_inst = createASMBinaryInstruction(
                 instruction->instValue.binaryOp.binaryOpType,
@@ -109,7 +109,13 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
 }
 
 void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
-    ASMInstruction* cdq_inst = malloc(sizeof(ASMInstruction));
+    ASMInstruction* mov_inst = createMovInstruction(
+                tackyValueToASMOperand(instruction->instValue.binaryOp.src1), 
+                createRegisterOperand(AX));
+    addASMInstructionAtEnd(asmInstructionList, mov_inst);
+
+
+    ASMInstruction* cdq_inst = calloc(1, sizeof(ASMInstruction));
     if (!cdq_inst) return;
     cdq_inst->type = ASM_CDQ;
     addASMInstructionAtEnd(asmInstructionList, cdq_inst);
@@ -139,7 +145,7 @@ ASMInstruction* CreateIdivInstruction(ASMOperand* divisor) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_IDIV;
-    inst->instValue.mov.operand1 = divisor; // Using mov struct to store operand for simplicity
+    inst->instValue.idiv.divisor = divisor;  // Use correct idiv union member
     return inst;
 }
 

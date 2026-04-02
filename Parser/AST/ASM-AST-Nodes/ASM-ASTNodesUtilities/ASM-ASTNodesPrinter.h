@@ -36,4 +36,3 @@ void printASMFunction(const ASMFunction* func);
  */
 void printASMProgram(const ASMProgram* program);
 
-char* getRegisterName(Register reg);

@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
     }
 
     char* preprocessFileName = generatePreprocessedFileName(filename, &execFileName);
-    //char* asmFileName = generateASMFileName(filename);
+    char* asmFileName = generateASMFileName(filename);
     commandForPreprocessing(filename, preprocessFileName);
 
     char* source = readSourceFile(preprocessFileName);
@@ -50,10 +50,10 @@ int main(int argc, char* argv[]) {
     printTACKY_AST(tacky_ast);
     ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
     printASM_AST(asm_ast);
-    /*generateASMFile(asm_ast, asmFileName);
+    generateASMFile(asm_ast, asmFileName);
     commandForExecutable(asmFileName, execFileName);
     
-    freeASM_AST(asm_ast);
+    /*freeASM_AST(asm_ast);
     freeAST(ast);
     freeTACKY_AST(tacky_ast);*/
     free(source); 

@@ -12,3 +12,4 @@ int isBothStackOps(ASMOperand* op1, ASMOperand* op2);
 void handleStackToStackForMov(ASMInstruction* inst);
 void handleStackToStackForBinary(ASMInstruction* inst);
 void handleIdivOperation(ASMInstruction* inst);
+void handleIMulOperation(ASMInstruction* inst);

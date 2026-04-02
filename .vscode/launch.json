@@ -11,7 +11,7 @@
             // Points to the compiler in the folder above the current workspace
             "program": "${workspaceFolder}/compiler",
             "args": [
-                "${workspaceFolder}/testFiles/valid/add.c"
+                "${workspaceFolder}/testFiles/valid/mult.c"
             ],
             "stopAtEntry": false,
             // Sets the execution root to the parent folder
