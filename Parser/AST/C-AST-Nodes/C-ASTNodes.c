@@ -4,6 +4,30 @@
 #include <string.h>
 #include <stdio.h>
 
+CBlockItemList* createCBlockItemList() {
+    CBlockItemList* list = malloc(sizeof(CBlockItemList));
+    if (!list) return NULL;
+    list->currSize = 0;
+    list->arraySize = 16; 
+    list->items = malloc(sizeof(CBlockItem*) * list->arraySize);
+    if (!list->items) {
+        free(list);
+        return NULL;
+    }
+    list->cursor = 0;
+    return list;
+}
+void addCBlockItem(CBlockItemList* list, CBlockItem* item) {
+    if (list->currSize >= list->arraySize) {
+        int newSize = list->arraySize * 2;
+        CBlockItem** newItems = realloc(list->items, sizeof(CBlockItem*) * newSize);
+        if (!newItems) return; 
+        list->items = newItems;
+        list->arraySize = newSize;
+    }
+    list->items[list->currSize++] = item;
+}
+
 
 CFactor* C_parseFactor(TokenList* tokens) {
     if (check(tokens, CONSTANT)) {

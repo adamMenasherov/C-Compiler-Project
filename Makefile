@@ -25,6 +25,8 @@ SOURCES = EntryPoint/main.c \
           Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.c \
           Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.c \
           Parser/AST/ASM-AST-Nodes/ASM-ASTNodes.c \
+          Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesGeneralUtils.c \
+          Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.c \
           Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.c \
           Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.c \
           Parser/TACKY/TACKY_AST.c \

@@ -13,7 +13,7 @@ void lex(char ** source, TokenList* tokenList) {
             freeToken(p);
             exit(1);
         }
-        addToken(tokenList, p);
+        addTokenList(tokenList, p);
         *source += strlen(p->value);
     }
     printTokenList(tokenList);

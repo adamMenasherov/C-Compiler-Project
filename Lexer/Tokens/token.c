@@ -23,6 +23,16 @@ const char *tokenTypeStr[] = {
     "ASTERISK",
     "SLASH",
     "PERCENT",
+    "EXCLAMATION",
+    "TWO_AMPERSANDS",
+    "TWO_BARS",
+    "ONE_EQUAL",
+    "TWO_EQUALS",
+    "NOT_EQUAL",
+    "LESS_THAN",
+    "GREATER_THAN",
+    "LESS_EQUAL",
+    "GREATER_EQUAL",
     "ERROR"
 };
 
@@ -45,15 +55,13 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
     char c;
     if (isalpha(*tokenSource) || *tokenSource == '_') return keywordOrIdentifier(tokenSource, tokenStr);
     if (isdigit(*tokenSource)) return isConstant(tokenSource, tokenStr);
-    if (strncmp(tokenSource, "--", 2) == 0) {
-        *tokenStr = strndup(tokenSource, 2);
-        return TWO_HYPHENS;
-    }
+    if ((type = handleTwoCharOperators(tokenSource, tokenStr)) != ERROR) return type;
 
     c = *(tokenSource + 1);
     // Has to be one of the single char tokens, so we terminate the string after the first char
     *(tokenSource + 1) = '\0';
     switch (*tokenSource) {
+        case '=': type = ONE_EQUAL; break;
         case '(': type = OPEN_PAREN; break;
         case ')': type = CLOSE_PAREN; break;
         case '{': type = OPEN_BRACE; break;
@@ -65,11 +73,42 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
         case '*': type = ASTERISK; break;
         case '/': type = SLASH; break;
         case '%': type = PERCENT; break;
+        case '!': type = EXCLAMATION; break;
+        case '<': type = LESS_THAN; break;
+        case '>': type = GREATER_THAN; break;
         default: type = ERROR;
     }
     *tokenStr = strdup(tokenSource);
     *(tokenSource + 1) = c;
     return type;
+}
+
+TokenType handleTwoCharOperators(char* tokenSource, char ** tokenStr) {
+    if (strncmp(tokenSource, "--", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return TWO_HYPHENS;
+    }
+    else if (strncmp(tokenSource, "&&", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return TWO_AMPERSANDS;
+    } else if (strncmp(tokenSource, "||", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return TWO_BARS;
+    } else if (strncmp(tokenSource, "==", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return TWO_EQUALS;
+    } else if (strncmp(tokenSource, "!=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return NOT_EQUAL;
+    } else if (strncmp(tokenSource, "<=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return LESS_EQUAL;
+    } else if (strncmp(tokenSource, ">=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return GREATER_EQUAL;
+    }
+
+    return ERROR;
 }
 
 
@@ -144,6 +183,8 @@ unaryType tokenTypeToUnaryType(TokenType type) {
             return UNARY_NEGATE;
         case TILDE:
             return UNARY_COMPLEMENT;
+        case EXCLAMATION:
+            return UNARY_NOT;
         default:
             fprintf(stderr, "Error: Invalid unary operator token type %s\n", tokenTypetoToken(type));
             exit(1);

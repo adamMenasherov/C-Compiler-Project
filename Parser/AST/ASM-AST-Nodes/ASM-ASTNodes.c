@@ -1,35 +1,8 @@
 #include "ASM-ASTNodes.h"
+#include "ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.h"
 #include <stdlib.h>
 #include <string.h>
 #include "../../../ASM-File-Generation/ASM_AST_fix.h"
-
-ASMInstructionList* createASMInstructionList() {
-    ASMInstructionList* list = malloc(sizeof(ASMInstructionList));
-    if (!list) return NULL;
-    list->head = NULL;
-    list->tail = NULL;
-    return list;
-}
-
-void addASMInstructionAtEnd(ASMInstructionList* list, ASMInstruction* instruction) {
-    if (!list->head) {
-        list->head = instruction;
-        list->tail = instruction;
-    } else {
-        list->tail->next = instruction;
-        list->tail = instruction;
-    }
-}
-
-void addASMInstructionAtBeginning(ASMInstructionList* list, ASMInstruction* instruction) {
-    if (!list->head) {
-        list->head = instruction;
-        list->tail = instruction;
-    } else {
-        instruction->next = list->head;
-        list->head = instruction;
-    }
-}
 
 ASMProgram* parseASMprogram(TACKYProgram* tacky_prog) {
     ASMProgram* asm_prog = malloc(sizeof(ASMProgram));
@@ -74,38 +47,133 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
     TACKYInstruction* instruction = tackyInstList->instructions[tackyInstList->cursor++];
     switch(instruction->type) {
         case TACKY_UNARY: {
-            ASMInstruction* mov_inst = createMovInstruction(
-                tackyValueToASMOperand(instruction->instValue.unaryOp.src), 
-                tackyValueToASMOperand(instruction->instValue.unaryOp.dest)
-            );
-            addASMInstructionAtEnd(asmInstructionList, mov_inst);
-            ASMInstruction* unary_inst = createASMUnaryInstruction(
-                instruction->instValue.unaryOp.type, 
-                instruction->instValue.unaryOp.dest);
-            addASMInstructionAtEnd(asmInstructionList, unary_inst);
+            parseASMUnaryInstruction(instruction, asmInstructionList);
             break;
         }
         case TACKY_BINARY: {
-            if (instruction->instValue.binaryOp.binaryOpType == BIN_DIVIDE 
-                    || instruction->instValue.binaryOp.binaryOpType == BIN_MODULO) {
-                handleDivideModuloCase(instruction, asmInstructionList);
-                break;
-            }
-
+            parseASMBinaryInstruction(instruction, asmInstructionList);
+            break;
+        }
+        case TACKY_JUMP: {
+            ASMInstruction* jmp_inst = createASMJumpInstruction(instruction->instValue.jump.label);
+            addASMInstructionAtEnd(asmInstructionList, jmp_inst);
+            break;
+        }
+        case TACKY_LABEL: {
+            ASMInstruction* label_inst = createASMLabelInstruction(instruction->instValue.label.label);
+            addASMInstructionAtEnd(asmInstructionList, label_inst);
+            break;
+        }
+        case TACKY_COPY: {
             ASMInstruction* mov_inst = createMovInstruction(
-                tackyValueToASMOperand(instruction->instValue.binaryOp.src1), 
-                tackyValueToASMOperand(instruction->instValue.binaryOp.dest));
+                tackyValueToASMOperand(instruction->instValue.copy.src), 
+                tackyValueToASMOperand(instruction->instValue.copy.dest));
             addASMInstructionAtEnd(asmInstructionList, mov_inst);
-            
-            ASMInstruction* binary_inst = createASMBinaryInstruction(
-                instruction->instValue.binaryOp.binaryOpType,
-                tackyValueToASMOperand(instruction->instValue.binaryOp.src2),
-                tackyValueToASMOperand(instruction->instValue.binaryOp.dest)
-            );
-            addASMInstructionAtEnd(asmInstructionList, binary_inst);
+            break;
+        }
+
+        case TACKY_JUMP_IF_ZERO:
+        case TACKY_JUMP_IF_NOT_ZERO: {
+            parseCondJumpInstruction(instruction, asmInstructionList);
+            break;
         }
         default: break; // Handle other instruction types as needed
     }
+}
+
+void parseCondJumpInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
+    ASMCondCode cond = (instruction->type == TACKY_JUMP_IF_ZERO) ? ASM_COND_CODE_E : ASM_COND_CODE_NE;
+    ASMInstruction* cmp_inst = createASMCmpInstruction(
+        createImmediateOperand(0),
+        tackyValueToASMOperand(instruction->instValue.condJump.condition)
+    );
+    addASMInstructionAtEnd(asmInstructionList, cmp_inst);
+
+    ASMInstruction* jmpcc_inst = createASMJumpCCInstruction(cond, instruction->instValue.condJump.label);
+    addASMInstructionAtEnd(asmInstructionList, jmpcc_inst);
+}
+
+
+void handleUnaryNot(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
+    // For NOT operation, move source to destination, then apply NOT
+    ASMInstruction* cmp_inst = createASMCmpInstruction(
+        createImmediateOperand(0),
+        tackyValueToASMOperand(instruction->instValue.unaryOp.src)
+    );
+    addASMInstructionAtEnd(asmInstructionList, cmp_inst);
+
+    ASMInstruction* mov_inst = createMovInstruction(
+        createImmediateOperand(0),
+        tackyValueToASMOperand(instruction->instValue.unaryOp.dest)
+    );
+    addASMInstructionAtEnd(asmInstructionList, mov_inst);
+
+    ASMInstruction* setcc_inst = createASMSetCCInstruction(ASM_COND_CODE_E, 
+                                tackyValueToASMOperand(instruction->instValue.unaryOp.dest));
+    addASMInstructionAtEnd(asmInstructionList, setcc_inst);
+}
+
+
+void parseASMUnaryInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
+    if (instruction->type != TACKY_UNARY) return; // Not a unary instruction
+    if (instruction->instValue.unaryOp.type == UNARY_NOT) {
+        handleUnaryNot(instruction, asmInstructionList);
+        return;
+    }
+    ASMInstruction* mov_inst = createMovInstruction(
+                tackyValueToASMOperand(instruction->instValue.unaryOp.src), 
+                tackyValueToASMOperand(instruction->instValue.unaryOp.dest)
+            );
+    addASMInstructionAtEnd(asmInstructionList, mov_inst);
+    ASMInstruction* unary_inst = createASMUnaryInstruction(
+        instruction->instValue.unaryOp.type, 
+        instruction->instValue.unaryOp.dest);
+    addASMInstructionAtEnd(asmInstructionList, unary_inst);
+}
+
+void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
+    if (instruction->instValue.binaryOp.binaryOpType == BIN_DIVIDE 
+                    || instruction->instValue.binaryOp.binaryOpType == BIN_REMAINDER) {
+        handleDivideModuloCase(instruction, asmInstructionList);
+        return;
+    }
+    if (isRelationalOp(instruction->instValue.binaryOp.binaryOpType)) {
+        handleBinaryRelationalOp(instruction, asmInstructionList);
+        return;
+    }
+
+    ASMInstruction* mov_inst = createMovInstruction(
+        tackyValueToASMOperand(instruction->instValue.binaryOp.src1), 
+        tackyValueToASMOperand(instruction->instValue.binaryOp.dest));
+    addASMInstructionAtEnd(asmInstructionList, mov_inst);
+    
+    ASMInstruction* binary_inst = createASMBinaryInstruction(
+        instruction->instValue.binaryOp.binaryOpType,
+        tackyValueToASMOperand(instruction->instValue.binaryOp.src2),
+        tackyValueToASMOperand(instruction->instValue.binaryOp.dest)
+    );
+    addASMInstructionAtEnd(asmInstructionList, binary_inst);
+}
+
+
+void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
+    ASMInstruction* cmp_inst = createASMCmpInstruction(
+        tackyValueToASMOperand(instruction->instValue.binaryOp.src2),
+        tackyValueToASMOperand(instruction->instValue.binaryOp.src1)
+    );
+    addASMInstructionAtEnd(asmInstructionList, cmp_inst);
+
+    ASMInstruction* movInst = createMovInstruction(
+        createImmediateOperand(0),
+        tackyValueToASMOperand(instruction->instValue.binaryOp.dest)
+    );
+    addASMInstructionAtEnd(asmInstructionList, movInst);
+
+    ASMCondCode cond = getCondCodeForRelationalOp(instruction->instValue.binaryOp.binaryOpType);
+    ASMInstruction* setcc_inst = createASMSetCCInstruction(cond, 
+                                tackyValueToASMOperand(instruction->instValue.binaryOp.dest));
+    addASMInstructionAtEnd(asmInstructionList, setcc_inst);
+
 }
 
 void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
@@ -121,11 +189,11 @@ void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* a
     addASMInstructionAtEnd(asmInstructionList, cdq_inst);
 
     // Create IDIV instruction
-    ASMInstruction* idiv_inst = CreateIdivInstruction(
+    ASMInstruction* idiv_inst = createIdivInstruction(
         tackyValueToASMOperand(instruction->instValue.binaryOp.src2));
     addASMInstructionAtEnd(asmInstructionList, idiv_inst);
 
-    if (instruction->instValue.binaryOp.binaryOpType == BIN_MODULO) {
+    if (instruction->instValue.binaryOp.binaryOpType == BIN_REMAINDER) {
         // Move remainder from RDX to destination for modulo
         ASMInstruction* mov_modulo_result = createMovInstruction(
             createRegisterOperand(DX), 
@@ -138,117 +206,4 @@ void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* a
             tackyValueToASMOperand(instruction->instValue.binaryOp.dest));
         addASMInstructionAtEnd(asmInstructionList, mov_div_result);
     }
-}
-
-
-ASMInstruction* CreateIdivInstruction(ASMOperand* divisor) {
-    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
-    if (!inst) return NULL;
-    inst->type = ASM_IDIV;
-    inst->instValue.idiv.divisor = divisor;  // Use correct idiv union member
-    return inst;
-}
-
-
-
-ASMOperand* tackyValueToASMOperand(TACKYValue* val) {
-    ASMOperand* operand = malloc(sizeof(ASMOperand));
-    if (!operand) return NULL;
-
-    switch(val->type) {
-        case TACKY_CONSTANT: {
-            operand->type = ASM_OP_IMMEDIATE;
-            operand->OperandValue.immediate = val->constant->value;
-            return operand;
-        }
-        case TACKY_VAR: {
-            operand->type = ASM_OP_PSEUDO;
-            operand->OperandValue.identifier = strdup(val->identifier);
-            return operand;
-        }
-        default: return NULL;
-    }
-}
-
-ASMOperand* createRegisterOperand(Register reg) {
-    ASMOperand* operand = malloc(sizeof(ASMOperand));
-    if (!operand) return NULL;
-
-    operand->type = ASM_OP_REGISTER;
-    operand->OperandValue.reg = reg;
-    return operand;
-}
-
-
-ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest) {
-    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
-    if (!inst) return NULL;
-    inst->type = ASM_UNARY;
-    switch (type) {
-        case UNARY_NEGATE:
-            inst->instValue.unary.type = ASM_UNARY_NEG;
-            break;
-        case UNARY_COMPLEMENT:
-            inst->instValue.unary.type = ASM_UNARY_NOT;
-            break;
-         default: 
-            free(inst);
-            return NULL; // Unsupported unary type
-    }
-    inst->instValue.unary.op = tackyValueToASMOperand(dest);
-    // Destination operand will be determined by the caller, as it may require a temporary register
-    return inst;
-}
-
-
-ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOperand* op2) {
-    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
-    if (!inst) return NULL;
-    inst->type = ASM_BINARY;
-    switch (type) {
-        case BIN_ADD:
-            inst->instValue.binary.type = ASM_BINARY_ADD;
-            break;
-        case BIN_SUBTRACT:
-            inst->instValue.binary.type = ASM_BINARY_SUBTRACT;
-            break;
-        case BIN_MULTIPLY:
-            inst->instValue.binary.type = ASM_BINARY_MULTIPLY;
-            break;
-        default: 
-            free(inst);
-            return NULL; // Unsupported binary type
-    }
-    inst->instValue.binary.op1 = op1;
-    inst->instValue.binary.op2 = op2;
-    return inst;
-}
-
-
-ASMInstruction* createMovInstruction(ASMOperand* src, ASMOperand* dest) {
-    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
-    if (!inst) return NULL;
-    inst->type = ASM_MOV;
-    inst->instValue.mov.operand1 = src;
-    inst->instValue.mov.operand2 = dest;
-    return inst;
-}
-
-
-
-ASMInstruction* createAllocStackInstruction(int size) {
-    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
-    if (!inst) return NULL;
-    inst->type = ASM_ALLOCATESTACK;
-    inst->instValue.allocatestack.size = size;
-    return inst;
-}
-
-ASMOperand* createStackOperand(int offset) {
-    ASMOperand* operand = malloc(sizeof(ASMOperand));
-    if (!operand) return NULL;
-
-    operand->type = ASM_OP_STACK;
-    operand->OperandValue.immediate = offset; // Using immediate to store stack offset
-    return operand;
 }

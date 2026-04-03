@@ -3,7 +3,12 @@
 
 typedef enum {
     TACKY_UNARY,
-    TACKY_BINARY
+    TACKY_BINARY,
+    TACKY_COPY,
+    TACKY_JUMP,
+    TACKY_JUMP_IF_ZERO,
+    TACKY_JUMP_IF_NOT_ZERO,
+    TACKY_LABEL
 } TACKYInstructionType;
 
 typedef enum {
@@ -35,6 +40,20 @@ typedef struct TACKYInstruction {
             TACKYValue* src2;
             TACKYValue* dest;
         } binaryOp;
+        struct {
+            char* label;
+        } jump;
+        struct {
+            char* label;
+            TACKYValue* condition;
+        } condJump;
+        struct {
+            char* label;
+        } label;
+        struct {
+            TACKYValue* src;
+            TACKYValue* dest;
+        } copy;
     } instValue;
 } TACKYInstruction;
 
@@ -91,6 +110,15 @@ TACKYReturn* parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instruc
 TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list);
 
 /**
+ * @brief Handles short-circuit evaluation for logical operators in TACKY.
+ * 
+ * @param exp The C AST expression representing the logical operation 
+ * @param instruction_list The list to add generated instructions to
+ * @return TACKYValue* representing the result of the short-circuit evaluation
+ */
+TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* instruction_list);
+
+/**
  * Creates a unary operation instruction.
  * @param type The type of unary operation
  * @param src The source operand
@@ -109,6 +137,41 @@ TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYV
  * @return A pointer to the created TACKYInstruction
  */
 TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest);
+
+
+/**
+ * @brief Create a Jump Instruction object
+ * 
+ * @param jumpType The type of jump instruction (e.g., TACKY_JUMP, TACKY_JUMP_IF_ZERO)
+ * @param label The label to jump to
+ * @return TACKYInstruction* the created jump instruction
+ */
+TACKYInstruction* createJumpInstruction(TACKYInstructionType jumpType, char* label, TACKYValue* condition);
+
+/**
+ * @brief Create a Label Instruction object
+ * 
+ * @param label The label name for the instruction
+ * @return TACKYInstruction* the created label instruction 
+ */
+TACKYInstruction* createLabelInstruction(char* label);
+
+/**
+ * @brief Create a Copy Instruction object
+ * 
+ * @param src The source TACKYValue to copy from
+ * @param dest The destination TACKYValue to copy to
+ * @return TACKYInstruction* the created copy instruction
+ */
+TACKYInstruction* createCopyInstruction(TACKYValue* src, TACKYValue* dest);
+
+/**
+ * @brief Create a Tacky Value From Constant object
+ * 
+ * @param val The integer value to create the TACKY constant from
+ * @return TACKYValue* the created TACKYValue representing the constant
+ */
+TACKYValue* createTackyValueFromConstant(int val);
 
 /**
  * @brief Create a Tacky Value From C Constant Node object
@@ -154,6 +217,24 @@ void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruct
  * @return char* temp var name
  */
 char* generateTempName();
+
+/**
+ * @brief Generates a false label
+ * @return char* The generated false label
+ */
+char* generateFalseLabel();
+
+/**
+ * @brief Generates a true label
+ * @return char* The generated true label
+ */
+char* generateTrueLabel();
+
+/**
+ * @brief Generates an end label
+ * @return char* The generated end label
+ */
+char* generateEndLabel();
 
 /**
  * @brief Creates a deep copy of a TACKYValue

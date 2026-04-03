@@ -5,14 +5,17 @@
 #include "C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 
 
-/* Type definitions */
 typedef struct {
-    CFactor* exp;
-} CReturn;
+    CBlockItem** items;
+    int currSize;
+    int arraySize;
+    int cursor; 
+} CBlockItemList;
+
 
 typedef struct {
     char* function_name; 
-    CReturn* body; 
+    CBlockItemList* body; 
 } CFunction;
 
 typedef struct {

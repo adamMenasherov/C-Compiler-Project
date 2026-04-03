@@ -40,6 +40,7 @@ void C_printUnary(CUnary* unary) {
     switch (unary->type) {
         case UNARY_COMPLEMENT:   op_name = "Complement"; break;
         case UNARY_NEGATE:       op_name = "Negate";     break;
+        case UNARY_NOT:          op_name = "Not";        break;
         case UNARY_NOT_UNARY_OP: op_name = "Not";        break;
         default:           op_name = "Unknown";
     }
@@ -65,7 +66,15 @@ void C_printBinary(CBinary* binary) {
         case BIN_SUBTRACT:  op_name = "Subtract"; break;
         case BIN_MULTIPLY:  op_name = "Multiply"; break;
         case BIN_DIVIDE:    op_name = "Divide";   break;
-        case BIN_MODULO:    op_name = "Modulo";   break;
+        case BIN_REMAINDER:    op_name = "Modulo";   break;
+        case BIN_AND:       op_name = "And";       break;
+        case BIN_OR:        op_name = "Or";        break;
+        case BIN_EQUALS:    op_name = "Equals";    break;
+        case BIN_NOT_EQUALS: op_name = "NotEquals"; break;
+        case BIN_LESS_THAN: op_name = "LessThan";  break;
+        case BIN_LESS_EQUAL: op_name = "LessEqual"; break;
+        case BIN_GREATER_THAN: op_name = "GreaterThan"; break;
+        case BIN_GREATER_EQUAL: op_name = "GreaterEqual"; break;
         default:           op_name = "Unknown";
     }
 

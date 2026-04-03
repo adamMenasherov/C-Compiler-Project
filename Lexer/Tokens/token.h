@@ -21,6 +21,16 @@ typedef enum {
     ASTERISK,
     SLASH,
     PERCENT,
+    EXCLAMATION,
+    TWO_AMPERSANDS,
+    TWO_BARS,
+    ONE_EQUAL,
+    TWO_EQUALS,
+    NOT_EQUAL,
+    LESS_THAN,
+    GREATER_THAN,
+    LESS_EQUAL,
+    GREATER_EQUAL,
     ERROR
 } TokenType; 
 
@@ -37,3 +47,4 @@ TokenType isConstant(char* tokenSource, char ** tokenStr);
 void freeToken(Token* tok);
 char* tokenTypetoToken(TokenType type);
 unaryType tokenTypeToUnaryType(TokenType type);
+TokenType handleTwoCharOperators(char* tokenSource, char ** tokenStr);

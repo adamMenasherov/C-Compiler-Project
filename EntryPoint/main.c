@@ -16,7 +16,7 @@
 
 int main(int argc, char* argv[]) {
     char* filename = NULL, *execFileName;
-    TokenList tokenList;
+    TokenList* tokenList;
    
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--lex") == 0) {} 
@@ -43,9 +43,9 @@ int main(int argc, char* argv[]) {
     }
     
     char* sourcePtr = source; 
-    createTokenList(&tokenList);
-    lex(&sourcePtr, &tokenList);
-    AST* ast = parse(&tokenList);
+    tokenList = createTokenList();
+    lex(&sourcePtr, tokenList);
+    AST* ast = parse(tokenList);
     TACKY_AST* tacky_ast = astToTACKY_AST(ast);
     printTACKY_AST(tacky_ast);
     ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     freeTACKY_AST(tacky_ast);*/
     free(source); 
     free(preprocessFileName);
-    freeTokenList(&tokenList);
+    freeTokenList(tokenList);
     return 0;
 }
 

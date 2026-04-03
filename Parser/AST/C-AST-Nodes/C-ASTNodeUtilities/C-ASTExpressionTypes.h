@@ -9,6 +9,7 @@ typedef enum {
 typedef enum {
     UNARY_COMPLEMENT,
     UNARY_NEGATE,
+    UNARY_NOT,
     UNARY_NOT_UNARY_OP
 } unaryType;
 
@@ -17,9 +18,28 @@ typedef enum {
     BIN_ADD,
     BIN_MULTIPLY,
     BIN_DIVIDE,
-    BIN_MODULO,
+    BIN_REMAINDER,
+    BIN_AND,
+    BIN_OR,
+    BIN_EQUALS,
+    BIN_NOT_EQUALS,
+    BIN_LESS_THAN,
+    BIN_LESS_EQUAL,
+    BIN_GREATER_THAN,
+    BIN_GREATER_EQUAL,
     BIN_NOT_BINARY_OP
 } binType;
+
+typedef enum {
+    STMT_RETURN,
+    STMT_EXPRESSION,
+    STMT_NULL
+} statementType;
+
+typedef enum {
+    BLOCK_ITEM_DECL,
+    BLOCK_ITEM_STMT
+} blockItemType;
 
 typedef struct {
     int val; 
@@ -50,6 +70,45 @@ typedef struct CUnary {
     unaryType type;
 } CUnary;
 
+typedef struct {
+    char * identifier;
+} CVar;
+
+typedef struct {
+    CFactor* exp1;
+    CFactor* exp2;
+} CAssignment;
+
+/* Type definitions */
+typedef struct {
+    CFactor* exp;
+} CReturn;
+
+typedef struct {
+    CFactor* exp;
+} CExpression;
+
+typedef struct {
+    statementType type;
+    union {
+        CReturn* ret;
+        CExpression* exp;
+    } stmt;
+} CStatement;
+
+typedef struct {
+    char * identifier;
+    CFactor* exp;
+} CDecleration;
+
+typedef struct {
+    blockItemType type;
+    union {
+        CDecleration* decl;
+        CStatement* stmt;
+    } item;
+} CBlockItem;
 
 
-
+CBlockItemList* createCBlockItemList();
+void addCBlockItem(CBlockItemList* list, CBlockItem* item);

@@ -29,6 +29,18 @@ static const char* getRegisterNameForASM_AST(Register reg) {
     }
 }
 
+static const char * getCondCodeString(ASMCondCode cond) {
+    switch (cond) {
+        case ASM_COND_CODE_E: return "E";
+        case ASM_COND_CODE_NE: return "NE";
+        case ASM_COND_CODE_L: return "L";
+        case ASM_COND_CODE_LE: return "LE";
+        case ASM_COND_CODE_G: return "G";
+        case ASM_COND_CODE_GE: return "GE";
+        default: return "Unknown";
+    }
+}
+
 
 void printASMOperand(const ASMOperand* operand) {
     if (!operand) {
@@ -105,6 +117,31 @@ void printASMInstruction(const ASMInstruction* inst) {
         
         case ASM_CDQ:
             printf("CDQ");
+            break;
+        
+        case ASM_LABEL:
+            printf("Label(\"%s\")", inst->instValue.label.identifier);
+            break;
+        
+        case ASM_CMP:
+            printf("Cmp(");
+            printASMOperand(inst->instValue.cmp.op1);
+            printf(", ");
+            printASMOperand(inst->instValue.cmp.op2);
+            printf(")");
+            break;
+        
+        case ASM_JUMP:
+            printf("Jmp(\"%s\")", inst->instValue.jmp.label);
+            break;
+        
+        case ASM_JUMPCC:
+            printf("JumpCC(%s, \"%s\")", getCondCodeString(inst->instValue.jumpcc.cond), inst->instValue.jumpcc.label);
+            break;
+        case ASM_SETCC:
+            printf("SetCC(%s, ", getCondCodeString(inst->instValue.setcc.cond));
+            printASMOperand(inst->instValue.setcc.op);
+            printf(")");
             break;
 
         default:

@@ -11,6 +11,7 @@ static const char* unaryTypeToString(unaryType type) {
     switch (type) {
         case UNARY_NEGATE:      return "Negate";
         case UNARY_COMPLEMENT:  return "Complement";
+        case UNARY_NOT:         return "Not";
         default:                return "Unknown";
     }
 }
@@ -21,7 +22,13 @@ static const char* binTypeToString(binType type) {
         case BIN_SUBTRACT:  return "Subtract";
         case BIN_MULTIPLY:  return "Multiply";
         case BIN_DIVIDE:    return "Divide";
-        case BIN_MODULO:    return "Modulo";
+        case BIN_REMAINDER:    return "Modulo";
+        case BIN_EQUALS:    return "Equals";
+        case BIN_NOT_EQUALS:return "NotEquals";
+        case BIN_LESS_THAN: return "LessThan";
+        case BIN_LESS_EQUAL:return "LessEqual";
+        case BIN_GREATER_THAN: return "GreaterThan";
+        case BIN_GREATER_EQUAL: return "GreaterEqual";
         default:           return "Unknown";
      }
 }
@@ -84,6 +91,29 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printf(")");
             break;
         }
+        case TACKY_JUMP:
+            printf("Jump(\"%s\")", inst->instValue.jump.label);
+            break;
+        case TACKY_LABEL:
+            printf("Label(\"%s\")", inst->instValue.label.label);
+            break;
+        case TACKY_JUMP_IF_ZERO:
+            printf("JumpIfZero(\"%s\", ", inst->instValue.condJump.label);
+            printTACKYValue(inst->instValue.condJump.condition);
+            printf(")");
+            break;
+        case TACKY_JUMP_IF_NOT_ZERO:
+            printf("JumpIfNotZero(\"%s\", ", inst->instValue.condJump.label);
+            printTACKYValue(inst->instValue.condJump.condition);
+            printf(")");
+            break;
+        case TACKY_COPY:
+            printf("Copy(");
+            printTACKYValue(inst->instValue.copy.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.copy.dest);
+            printf(")");
+            break;
         default:
             printf("<unknown instruction type>");
             break;

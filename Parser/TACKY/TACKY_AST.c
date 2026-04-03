@@ -52,6 +52,9 @@ TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list) {
             return copyTackyValue(dst); 
         }
         case FACTOR_BINARY: {
+            if (exp->exp.binary->type == BIN_AND || exp->exp.binary->type == BIN_OR) {
+                return shortCircuitTACKYInstruction(exp, instruction_list);
+            }
             TACKYValue* src1 = emit_TACKY(exp->exp.binary->left, instruction_list);
             TACKYValue* src2 = emit_TACKY(exp->exp.binary->right, instruction_list);
             char* temp_name = generateTempName();
@@ -65,6 +68,54 @@ TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list) {
     }
 }
 
+TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* instruction_list) {
+    if (exp->type != FACTOR_BINARY) return NULL;
+    
+    binType op = exp->exp.binary->type;
+    if (op != BIN_AND && op != BIN_OR) return NULL;
+
+    TACKYValue* leftVal = emit_TACKY(exp->exp.binary->left, instruction_list);
+    char* temp_name = generateTempName();
+    char* endLabel = generateEndLabel();
+    TACKYValue* resultVar = createVarValue(temp_name);
+    TACKYInstructionType jumpType = (op == BIN_AND) ? TACKY_JUMP_IF_ZERO : TACKY_JUMP_IF_NOT_ZERO;
+    int retVal = (op == BIN_AND) ? 1:0;
+    char* shortCircuitLabel = (op == BIN_AND) ? generateFalseLabel() : generateTrueLabel();
+    addInstructionToList(instruction_list, 
+        createJumpInstruction(jumpType, shortCircuitLabel, leftVal));
+
+    TACKYValue* rightVal = emit_TACKY(exp->exp.binary->right, instruction_list);
+    addInstructionToList(instruction_list, 
+        createJumpInstruction(jumpType, shortCircuitLabel, rightVal));
+    
+    addInstructionToList(instruction_list,
+        createCopyInstruction(createTackyValueFromConstant(retVal), resultVar));
+    
+    addInstructionToList(instruction_list, 
+        createJumpInstruction(TACKY_JUMP, endLabel, NULL));
+    
+    addInstructionToList(instruction_list,
+        createLabelInstruction(shortCircuitLabel));
+
+    addInstructionToList(instruction_list,
+        createCopyInstruction(createTackyValueFromConstant(1 - retVal), resultVar));
+    
+    addInstructionToList(instruction_list,
+        createLabelInstruction(endLabel));
+    
+
+    return copyTackyValue(resultVar);
+}
+
+TACKYInstruction* createLabelInstruction(char* label) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_LABEL;
+    inst->instValue.label.label = label;
+    return inst;
+}
+
+
 TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYValue* dest) {
     TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
     if (!inst) return NULL;
@@ -76,6 +127,36 @@ TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYV
     return inst;
 }
 
+TACKYInstruction* createJumpInstruction(TACKYInstructionType jumpType, char* label, TACKYValue* condition) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = jumpType;
+    switch (jumpType) {
+        case TACKY_JUMP:
+            inst->instValue.jump.label = label;
+            break;
+        case TACKY_JUMP_IF_ZERO:
+        case TACKY_JUMP_IF_NOT_ZERO:
+            inst->instValue.condJump.label = label;
+            inst->instValue.condJump.condition = condition;
+            break;
+        default:
+            free(inst);
+            return NULL; 
+    }
+
+    return inst;
+}
+
+TACKYInstruction* createCopyInstruction(TACKYValue* src, TACKYValue* dest) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_COPY;
+    inst->instValue.copy.src = src;
+    inst->instValue.copy.dest = dest;
+    
+    return inst;
+}
 
 TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest) {
     TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
@@ -131,6 +212,16 @@ TACKYValue* createTackyValueFromConstantNode(CConstant* const_node) {
     return tackyVal;
 }
 
+TACKYValue* createTackyValueFromConstant(int val) {
+    TACKYValue* tackyVal = calloc(1, sizeof(TACKYValue));
+    if (!tackyVal) return NULL;
+    
+    tackyVal->type = TACKY_CONSTANT;
+    tackyVal->constant = CreateTackyConstantNode(val);
+
+    return tackyVal;
+}
+
 TACKYValue* createVarValue(char* identifier) {
     TACKYValue* tackyVal = malloc(sizeof(TACKYValue));
     if (!tackyVal) return NULL;
@@ -146,6 +237,30 @@ char* generateTempName() {
     if (!temp_name) return NULL;
     sprintf(temp_name, "tmp.%d", curr++);
     return temp_name;
+}
+
+char* generateFalseLabel() {
+    static int falseCount = 0;
+    char* label = malloc(strlen("false_label_") + 10);
+    if (!label) return NULL;
+    sprintf(label, "false_label_%d", falseCount++);
+    return label;
+}
+
+char* generateTrueLabel() {
+    static int trueCount = 0;
+    char* label = malloc(strlen("true_label_") + 10);
+    if (!label) return NULL;
+    sprintf(label, "true_label_%d", trueCount++);
+    return label;
+}
+
+char* generateEndLabel() {
+    static int endCount = 0;
+    char* label = malloc(strlen("end_label_") + 10);
+    if (!label) return NULL;
+    sprintf(label, "end_label_%d", endCount++);
+    return label;
 }
 
 TACKYValue* copyTackyValue(TACKYValue* original) {

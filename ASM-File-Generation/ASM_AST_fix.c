@@ -25,7 +25,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
                 if ((newOp = handlePseudoOp(inst->instValue.idiv.divisor, table, &offset))) {
                     inst->instValue.idiv.divisor = newOp;
                 }
-                handleIdivOperation(inst);
+                handleConstantAsDestIdivOperation(inst);
                 break; 
             }
             case ASM_UNARY:
@@ -44,7 +44,26 @@ void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
                     inst->instValue.binary.op2 = newOp;
                 }
                 handleStackToStackForBinary(inst);
-                handleIMulOperation(inst);
+                handleImulOperation(inst);
+                break;
+            }
+            case ASM_CMP:
+            {
+                if ((newOp = handlePseudoOp(inst->instValue.cmp.op1, table, &offset))) {
+                    inst->instValue.cmp.op1 = newOp;
+                }
+                if ((newOp = handlePseudoOp(inst->instValue.cmp.op2, table, &offset))) {
+                    inst->instValue.cmp.op2 = newOp;
+                }
+                handleStackToStackForCmp(inst);
+                handleConstantAsDestCmpOperation(inst);
+                break;
+            }
+            case ASM_SETCC:
+            {
+                if ((newOp = handlePseudoOp(inst->instValue.setcc.op, table, &offset))) {
+                    inst->instValue.setcc.op = newOp;
+                }
                 break;
             }
             default: continue;
@@ -112,10 +131,27 @@ void handleStackToStackForBinary(ASMInstruction* inst) {
     }
 }
 
-void handleIdivOperation(ASMInstruction* inst) {
+void handleStackToStackForCmp(ASMInstruction* inst) {
+    if (!isBothStackOps(inst->instValue.cmp.op1, inst->instValue.cmp.op2)) return;
+    ASMOperand* op1 = inst->instValue.cmp.op1;
+    inst->instValue.cmp.op1 = createRegisterOperand(R10);
+
+    ASMInstruction* movToR10 = createMovInstruction(op1, createRegisterOperand(R10));
+    if (movToR10) {
+        ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
+        *cmpInst = *inst;         
+        cmpInst->next = inst->next;
+
+        *inst = *movToR10;
+        inst->next = cmpInst;
+        free(movToR10);
+    }
+}
+
+void handleConstantAsDestIdivOperation(ASMInstruction* inst) {
     if (inst->type != ASM_IDIV) return;
     if (!inst->instValue.idiv.divisor || inst->instValue.idiv.divisor->type == ASM_OP_REGISTER) {
-        return;  // Already in register, no transformation needed
+        return; 
     }
 
     ASMOperand* divisor = inst->instValue.idiv.divisor;
@@ -130,11 +166,31 @@ void handleIdivOperation(ASMInstruction* inst) {
         *inst = *movToR10;  
         inst->next = idivInst;  
         free(movToR10);
-    }
-        
+    }   
 }
 
-void handleIMulOperation(ASMInstruction* inst) {
+void handleConstantAsDestCmpOperation(ASMInstruction* inst) {
+    if (inst->type != ASM_CMP) return;
+    if (!inst->instValue.cmp.op2 || inst->instValue.cmp.op2->type == ASM_OP_REGISTER) {
+        return; 
+    }
+
+    ASMOperand* op2 = inst->instValue.cmp.op2;
+    inst->instValue.cmp.op2 = createRegisterOperand(R11);
+
+    ASMInstruction* movToR11 = createMovInstruction(op2, createRegisterOperand(R11));
+    if (movToR11) {
+        ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
+        *cmpInst = *inst; 
+        cmpInst->next = inst->next;   
+
+        *inst = *movToR11;  
+        inst->next = cmpInst;  
+        free(movToR11);
+    }
+}
+
+void handleImulOperation(ASMInstruction* inst) {
     if (inst->type != ASM_BINARY || inst->instValue.binary.type != ASM_BINARY_MULTIPLY) return;
     if (inst->instValue.binary.op2->type != ASM_OP_STACK) return;
 

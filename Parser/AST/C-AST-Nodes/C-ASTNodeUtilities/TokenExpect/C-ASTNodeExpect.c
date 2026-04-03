@@ -62,12 +62,13 @@ char* expectIdentifier(TokenList* tokens) {
 
 int isUnaryOp(Token* tok) {
     switch(tok->type) {
-        case HYPHEN: break;
+        case TILDE:
+        case HYPHEN:
+        case EXCLAMATION: 
+            break;
         case TWO_HYPHENS:
             fprintf(stderr, "Parser Error: -- is an invalid token\n");
             exit(1);
-        case TILDE:
-            break;
         default: return 0;
     }
 
@@ -85,6 +86,14 @@ int isBinaryOp(Token* tok) {
         case ASTERISK:
         case SLASH:
         case PERCENT:
+        case TWO_AMPERSANDS:
+        case TWO_BARS:
+        case TWO_EQUALS:
+        case NOT_EQUAL:
+        case LESS_THAN:
+        case GREATER_THAN:
+        case LESS_EQUAL:
+        case GREATER_EQUAL:
             break;
         default: return 0;
     }
@@ -129,7 +138,15 @@ binType tokenTypeToBinType(TokenType type) {
         case PLUS: return BIN_ADD;
         case ASTERISK: return BIN_MULTIPLY;
         case SLASH: return BIN_DIVIDE;
-        case PERCENT: return BIN_MODULO;
+        case PERCENT: return BIN_REMAINDER;
+        case TWO_AMPERSANDS: return BIN_AND;
+        case TWO_BARS: return BIN_OR;
+        case TWO_EQUALS: return BIN_EQUALS;
+        case NOT_EQUAL: return BIN_NOT_EQUALS;
+        case LESS_THAN: return BIN_LESS_THAN;
+        case GREATER_THAN: return BIN_GREATER_THAN;
+        case LESS_EQUAL: return BIN_LESS_EQUAL;
+        case GREATER_EQUAL: return BIN_GREATER_EQUAL;
         default:
             fprintf(stderr, "Parser Error: Expected binary operator but got %s\n",
                     tokenTypetoToken(type));
@@ -146,6 +163,18 @@ int precedence(Token* tok) {
         case HYPHEN:
         case PLUS:
             return 45;
+        case LESS_THAN:
+        case GREATER_THAN:
+        case LESS_EQUAL:
+        case GREATER_EQUAL:
+            return 35;
+        case TWO_EQUALS:
+        case NOT_EQUAL:
+            return 30;
+        case TWO_AMPERSANDS:
+            return 10;
+        case TWO_BARS:
+            return 5;
         default:
             fprintf(stderr, "Parser Error: Expected binary operator but got %s\n",
                     tokenTypetoToken(tok->type));

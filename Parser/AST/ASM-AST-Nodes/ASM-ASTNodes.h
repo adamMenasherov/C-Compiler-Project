@@ -1,115 +1,10 @@
 #pragma once
-#include "../C-AST-Nodes/C-ASTNodes.h"
-#include "../../TACKY/TACKY_AST.h"
-#include "../../../DataStructures/HashTable.h"
+#include "ASM-ASTNodesUtilities/ASM-ASTNodesGeneralUtils.h"
+#include "ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.h"
 
-typedef enum {
-    ASM_UNARY,
-    ASM_ALLOCATESTACK,
-    ASM_MOV,
-    ASM_BINARY,
-    ASM_CDQ,
-    ASM_IDIV,
-    ASM_RET
-} ASMInstructionType;
-
-typedef enum {
-    ASM_UNARY_NEG,
-    ASM_UNARY_NOT,
-} ASMUnaryOperator;
-
-typedef enum {
-    ASM_BINARY_ADD,
-    ASM_BINARY_SUBTRACT,
-    ASM_BINARY_MULTIPLY,
-} ASMBinaryOperator;
-
-typedef enum {
-    ASM_OP_REGISTER,
-    ASM_OP_IMMEDIATE,
-    ASM_OP_PSEUDO,
-    ASM_OP_STACK
-} OperandType;
-
-typedef enum {
-    AX,
-    DX,
-    R10,
-    R11
-} Register;
-
-typedef struct {
-    OperandType type;
-    union {
-        Register reg;
-        int immediate;
-        char* identifier;
-    } OperandValue;
-} ASMOperand;
-
-
-typedef struct ASMInstruction {
-    ASMInstructionType type;
-    union {
-        struct {
-            ASMOperand* operand1;
-            ASMOperand* operand2;
-        } mov;
-        struct {
-            ASMUnaryOperator type;
-            ASMOperand* op;
-        } unary;
-        struct {
-            int size;
-        } allocatestack;
-        struct {
-            ASMBinaryOperator type;
-            ASMOperand* op1;
-            ASMOperand* op2;
-        } binary;
-        struct {
-            ASMOperand* divisor;
-        } idiv;
-    } instValue;
-    struct ASMInstruction* next;
-} ASMInstruction;
-
-typedef struct {
-    ASMInstruction* head;
-    ASMInstruction* tail;
-} ASMInstructionList;
-
-typedef struct ASMFunction {
-    char* function_name;
-    ASMInstructionList* inst;
-    HashTable* pseudoTable; // Maps pseudo-register names to stack offsets
-} ASMFunction;
-
-
-typedef struct {
-    ASMFunction* function_def;
-} ASMProgram;
-
-/**
- * Initializes and returns a new empty ASMInstructionList.
- * @return A pointer to the newly allocated instruction list
- */
-ASMInstructionList* createASMInstructionList();
-
-/**
- * Appends an ASMInstruction to the list, growing it if necessary.
- * @param list The instruction list to append to
- * @param instruction The instruction to append
- */
-void addASMInstructionAtEnd(ASMInstructionList* list, ASMInstruction* instruction);
-
-
-/**
- * @brief   Prepends an ASMInstruction to the list, adjusting head and tail pointers as needed.
- * @param   list The instruction list to prepend to
- * @param   instruction The instruction to prepend
- */
-void addASMInstructionAtBeginning(ASMInstructionList* list, ASMInstruction* instruction);
+/* ============================================================
+ * ASM Parser Functions
+ * ============================================================ */
 
 /**
  * Converts a TACKYProgram into its ASM representation.
@@ -142,79 +37,36 @@ void parseASMReturn(TACKYReturn* tacky_ret, ASMInstructionList* instruction_list
  */
 void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList* asmInstructionList);
 
-/**
- * @brief Converts a TACKYValue into an ASMOperand, handling both constants and variables.
- * 
- * @param val 
- * @return ASMOperand* pointer to the created ASMOperand
- */
-ASMOperand* tackyValueToASMOperand(TACKYValue* val);
-
 
 /**
- * @brief Frees the memory allocated for an ASMProgram, including all nested structures.
+ * @brief Handles the translation of a TACKY unary instruction into its corresponding ASM instructions,
  * 
- * @param program The ASMProgram to free
+ * @param tackyInstList The TACKY instruction to process 
+ * @param asmInstructionList The list of ASM instructions to append the generated instructions to
  */
-ASMOperand* createRegisterOperand(Register reg);
+void parseASMUnaryInstruction(TACKYInstruction* tackyInstList, ASMInstructionList* asmInstructionList);
 
 
 /**
-    * @brief Creates an ASMInstruction representing a unary operation (e.g. NEG, NOT).
+ * @brief Handles the translation of a TACKY binary instruction into its corresponding ASM instructions, including special handling for division and relational operations.
  * 
- * @param type The type of unary operation
- * @param src The source operand for the unary operation
- * @param dest The destination operand where the result will be stored
- * @return A pointer to the created ASMInstruction
+ * @param tackyInstList The TACKY instruction to process
+ * @param asmInstructionList The list of ASM instructions to append the generated instructions to
  */
-ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest);
-
+void parseASMBinaryInstruction(TACKYInstruction* tackyInstList, ASMInstructionList* asmInstructionList);
 
 /**
- * @brief Creates an ASMInstruction representing a binary operation (e.g. ADD, SUB, MUL).
+ * @brief Handles the translation of a TACKY conditional jump instruction into its corresponding ASM instructions, including the necessary comparison and jump logic.
  * 
- * @param type The type of binary operation
- * @param op1 The first operand for the binary operation
- * @param op2 The second operand for the binary operation
- * @return A pointer to the created ASMInstruction
+ * @param instruction The TACKY instruction representing the conditional jump
+ * @param asmInstructionList The list of ASM instructions to append the generated instructions to
  */
-ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOperand* op2);
-
-/**
- * @brief Create a Mov Instruction object
- * 
- * @param src The source operand for the MOV instruction
- * @param dest The destination operand for the MOV instruction
- * @return ASMInstruction* pointer to the created MOV instruction 
- */
-ASMInstruction* createMovInstruction(ASMOperand* src, ASMOperand* dest);
+void parseCondJumpInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList);
 
 
-/**
- * @brief Create a Alloc Stack Instruction object
- * 
- * @param size The size of the stack to allocate (in bytes)
- * @return ASMInstruction* pointer to the created Alloc Stack instruction
- */
-ASMInstruction* createAllocStackInstruction(int size);
-
-
-/**
- * @brief Create a Idiv Instruction object
- * 
- * @param divisor The operand representing the divisor for the IDIV instruction
- * @return ASMInstruction* pointer to the created IDIV instruction
- */
-ASMInstruction* CreateIdivInstruction(ASMOperand* divisor);
-
-/**
- * @brief Create a Stack Operand object
- * 
- * @param offset The offset of the stack location
- * @return ASMOperand* pointer to the created stack operand
- */
-ASMOperand* createStackOperand(int offset);
-
+/* ============================================================
+ * Instruction Case Handlers
+ * ============================================================ */
 
 /**
  * @brief Handles the special case for divide and modulo operations.
@@ -223,3 +75,11 @@ ASMOperand* createStackOperand(int offset);
  * @param asmInstructionList The ASM instruction list to append to
  */
 void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList);
+
+/**
+ * @brief Handles the translation of a TACKY binary relational instruction into its corresponding ASM instructions.
+ * 
+ * @param instruction The TACKY instruction for the binary relational operation
+ * @param asmInstructionList The ASM instruction list to append to
+ */
+void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList);

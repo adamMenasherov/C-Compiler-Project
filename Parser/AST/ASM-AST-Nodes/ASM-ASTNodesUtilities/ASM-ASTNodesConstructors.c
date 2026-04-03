@@ -1,0 +1,205 @@
+#include "ASM-ASTNodesConstructors.h"
+#include <stdlib.h>
+#include <string.h>
+
+/* ============================================================
+ * Instruction List Management Implementation
+ * ============================================================ */
+
+ASMInstructionList* createASMInstructionList() {
+    ASMInstructionList* list = malloc(sizeof(ASMInstructionList));
+    if (!list) return NULL;
+    list->head = NULL;
+    list->tail = NULL;
+    return list;
+}
+
+void addASMInstructionAtEnd(ASMInstructionList* list, ASMInstruction* instruction) {
+    if (!list->head) {
+        list->head = instruction;
+        list->tail = instruction;
+    } else {
+        list->tail->next = instruction;
+        list->tail = instruction;
+    }
+}
+
+void addASMInstructionAtBeginning(ASMInstructionList* list, ASMInstruction* instruction) {
+    if (!list->head) {
+        list->head = instruction;
+        list->tail = instruction;
+    } else {
+        instruction->next = list->head;
+        list->head = instruction;
+    }
+}
+
+
+/* ============================================================
+ * Operand Creation Implementation
+ * ============================================================ */
+
+ASMOperand* createRegisterOperand(Register reg) {
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+
+    operand->type = ASM_OP_REGISTER;
+    operand->OperandValue.reg = reg;
+    return operand;
+}
+
+ASMOperand* createImmediateOperand(int value) {
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+
+    operand->type = ASM_OP_IMMEDIATE;
+    operand->OperandValue.immediate = value;
+    return operand;
+}
+
+ASMOperand* createStackOperand(int offset) {
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+
+    operand->type = ASM_OP_STACK;
+    operand->OperandValue.immediate = offset; // Using immediate to store stack offset
+    return operand;
+}
+
+ASMOperand* tackyValueToASMOperand(TACKYValue* val) {
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+
+    switch(val->type) {
+        case TACKY_CONSTANT: {
+            operand->type = ASM_OP_IMMEDIATE;
+            operand->OperandValue.immediate = val->constant->value;
+            return operand;
+        }
+        case TACKY_VAR: {
+            operand->type = ASM_OP_PSEUDO;
+            operand->OperandValue.identifier = strdup(val->identifier);
+            return operand;
+        }
+        default: return NULL;
+    }
+}
+
+
+/* ============================================================
+ * Instruction Creation Implementation
+ * ============================================================ */
+
+ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_UNARY;
+    switch (type) {
+        case UNARY_NEGATE:
+            inst->instValue.unary.type = ASM_UNARY_NEG;
+            break;
+        case UNARY_COMPLEMENT:
+            inst->instValue.unary.type = ASM_UNARY_NOT;
+            break;
+        case UNARY_NOT:
+            inst->instValue.unary.type = ASM_UNARY_NOT;
+            break;
+         default: 
+            free(inst);
+            return NULL; // Unsupported unary type
+    }
+    inst->instValue.unary.op = tackyValueToASMOperand(dest);
+    // Destination operand will be determined by the caller, as it may require a temporary register
+    return inst;
+}
+
+ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOperand* op2) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_BINARY;
+    switch (type) {
+        case BIN_ADD:
+            inst->instValue.binary.type = ASM_BINARY_ADD;
+            break;
+        case BIN_SUBTRACT:
+            inst->instValue.binary.type = ASM_BINARY_SUBTRACT;
+            break;
+        case BIN_MULTIPLY:
+            inst->instValue.binary.type = ASM_BINARY_MULTIPLY;
+            break;
+        default: 
+            free(inst);
+            return NULL; // Unsupported binary type
+    }
+    inst->instValue.binary.op1 = op1;
+    inst->instValue.binary.op2 = op2;
+    return inst;
+}
+
+ASMInstruction* createMovInstruction(ASMOperand* src, ASMOperand* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_MOV;
+    inst->instValue.mov.operand1 = src;
+    inst->instValue.mov.operand2 = dest;
+    return inst;
+}
+
+ASMInstruction* createAllocStackInstruction(int size) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_ALLOCATESTACK;
+    inst->instValue.allocatestack.size = size;
+    return inst;
+}
+
+ASMInstruction* createIdivInstruction(ASMOperand* divisor) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_IDIV;
+    inst->instValue.idiv.divisor = divisor;  // Use correct idiv union member
+    return inst;
+}
+
+ASMInstruction* createASMCmpInstruction(ASMOperand* op1, ASMOperand* op2) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_CMP;
+    inst->instValue.cmp.op1 = op1;
+    inst->instValue.cmp.op2 = op2;
+    return inst;
+}
+
+ASMInstruction* createASMJumpInstruction(char* label) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_JUMP;
+    inst->instValue.jmp.label = label;
+    return inst;
+}
+
+ASMInstruction* createASMJumpCCInstruction(ASMCondCode cond, char* label) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_JUMPCC;
+    inst->instValue.jumpcc.cond = cond;
+    inst->instValue.jumpcc.label = label;
+    return inst;
+}
+
+ASMInstruction* createASMSetCCInstruction(ASMCondCode cond, ASMOperand* op) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_SETCC;
+    inst->instValue.setcc.cond = cond;
+    inst->instValue.setcc.op = op;
+    return inst;
+}
+
+ASMInstruction* createASMLabelInstruction(char* label) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_LABEL;
+    inst->instValue.label.identifier = label;
+    return inst;
+}
