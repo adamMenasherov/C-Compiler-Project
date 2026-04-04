@@ -110,6 +110,7 @@ int isBinaryOp(Token* tok) {
         case GREATER_THAN:
         case LESS_EQUAL:
         case GREATER_EQUAL:
+        case ONE_EQUAL:
             break;
         default: return 0;
     }
@@ -197,6 +198,8 @@ int precedence(Token* tok) {
             return 10;
         case TWO_BARS:
             return 5;
+        case ONE_EQUAL:
+            return 1;
         default:
             fprintf(stderr, "Parser Error: Expected binary operator but got %s\n",
                     tokenTypetoToken(tok->type));

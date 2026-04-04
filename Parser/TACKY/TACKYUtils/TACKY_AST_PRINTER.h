@@ -20,12 +20,6 @@ void printTACKYInstruction(const TACKYInstruction* inst);
 void printTACKYInstructionList(const TACKYInstructionList* list);
 
 /**
- * Prints a TACKYReturn as:
- *   Return(Var("tmp.0"))   or   Return(Constant(3))
- */
-void printTACKYReturn(const TACKYReturn* ret);
-
-/**
  * Prints a full TACKYFunction:
  *   -- function: <name> --
  *   <instructions>

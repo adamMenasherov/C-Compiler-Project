@@ -3,6 +3,7 @@
 #include "../../C-ASTNodes.h"
 
 CConstant* C_CreateConstant(int val);
+CVar* C_CreateVar(char* identifier);
 CReturn* C_CreateReturn(CFactor* exp);
 CFunction* C_CreateFunction(char* function_name, CBlockItemList* body);
 CProgram* C_CreateProgram(CFunction* function_def);
@@ -11,5 +12,10 @@ CFactor* C_CreateFactor(factorType type, void * expVal);
 CFactor* C_CreateFactorFromConstant(CConstant * exp);
 CFactor* C_CreateFactorFromUnary(CUnary * exp);
 CFactor* C_CreateFactorFromBinary(CBinary * exp);
+CFactor* C_CreateFactorFromVar(CVar* var);
+CFactor* C_CreateFactorFromAssignment(CAssignment* assign);
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right);
 CStatement* C_CreateStatement(statementType type, void * stmtVal);
+CDeclaration* C_CreateDecleration(declerationType type, char* iden, CFactor* assign);
+CBlockItem* C_CreateBlockItem(blockItemType type, void * stmtVal);
+CAssignment* C_CreateAssignment(CFactor* fact1, CFactor* fact2);

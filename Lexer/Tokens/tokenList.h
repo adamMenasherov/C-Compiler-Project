@@ -1,6 +1,6 @@
 #pragma once
 #include "token.h"
-#include "../../DataStructures/DynamicArray/TokenArrayWrapper.h"
+#include "../../DataStructures/DynamicArray/Wrappers/TokenArrayWrapper.h"
 
 typedef struct {
     TokenArray* array;  

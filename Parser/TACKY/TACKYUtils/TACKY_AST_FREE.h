@@ -14,12 +14,6 @@ void freeTackyProgram(TACKYProgram* prog);
 void freeTackyFunction(TACKYFunction* func);
 
 /**
- * Frees a TACKYReturn node and its associated value.
- * @param returnNode The return node to free
- */
-void freeTackyReturn(TACKYReturn* returnNode);
-
-/**
  * Frees a TACKYInstructionList and all instructions it contains.
  * @param list The instruction list to free
  */

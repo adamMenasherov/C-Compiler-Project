@@ -4,7 +4,7 @@
 #include "HashTable.h"
 
 
-unsigned int hash(const char* key) {
+static unsigned int hash(const char* key) {
     if (!key) return 0;
     unsigned int h = 0;
     while (*key)

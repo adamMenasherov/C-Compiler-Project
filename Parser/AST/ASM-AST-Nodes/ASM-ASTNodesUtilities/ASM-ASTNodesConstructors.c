@@ -203,3 +203,10 @@ ASMInstruction* createASMLabelInstruction(char* label) {
     inst->instValue.label.identifier = label;
     return inst;
 }
+
+ASMInstruction* createASMReturnInstruction() {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_RET;
+    return inst;
+}

@@ -40,11 +40,21 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
     if (!left) return NULL;
     int isBinary = checkBinaryOp(tokens), previous_prec; 
     while (isBinary && (previous_prec = precedence(TokenList_getAt(tokens, TokenList_getCursor(tokens)))) >= min_prec) {
-        binType type = expectBinaryOp(tokens);
-        CFactor* right = C_parseExpression(tokens, previous_prec + 1);
-        if (!right) return NULL;
-        CBinary* new_left = C_CreateBinary(type, left, right);
-        left = C_CreateFactorFromBinary(new_left);
+        if (check(tokens, ONE_EQUAL)) {
+            expect(tokens, ONE_EQUAL);
+            CFactor* right = C_parseExpression(tokens, previous_prec);
+            if (!right) return NULL;
+            CAssignment* new_left = C_CreateAssignment(left, right);
+            left = C_CreateFactorFromAssignment(new_left);
+        }
+        else {
+            binType type = expectBinaryOp(tokens);
+            CFactor* right = C_parseExpression(tokens, previous_prec + 1);
+            if (!right) return NULL;
+            CBinary* new_left = C_CreateBinary(type, left, right);
+            left = C_CreateFactorFromBinary(new_left);
+        }
+        
         isBinary = checkBinaryOp(tokens);
     }
     return left;
@@ -60,6 +70,7 @@ CVar* C_parseVar(TokenList* tokens) {
     char* identifier = expectIdentifier(tokens);
     return C_CreateVar(identifier);
 }
+
 CStatement* C_parseStatement(TokenList* tokens) {
     if (check(tokens, RETURN_KEYWORD)) {
         return C_CreateStatement(STMT_RETURN, C_parseReturn(tokens));
@@ -76,11 +87,12 @@ CStatement* C_parseStatement(TokenList* tokens) {
     else {
         fprintf(stderr, "Parser Error: Invalid statement\n");
         exit(1);
-    }
-        
+    }        
 }
-CDecleration* C_parseDecleration(TokenList* tokens) {
+
+CDeclaration* C_parseDecleration(TokenList* tokens) {
     CFactor* fact = NULL;
+    declerationType type = DECL_WITHOUT_EXP;
     expect(tokens, INT_KEYWORD);
     char* identifier = expectIdentifier(tokens);
     if (!identifier){
@@ -89,16 +101,35 @@ CDecleration* C_parseDecleration(TokenList* tokens) {
     }
 
     if (check(tokens, ONE_EQUAL)) {
+        type = DECL_WITH_EXP;
         expect(tokens, ONE_EQUAL);
-        fact = C_parseFactor(tokens);
+        fact = C_parseExpression(tokens, 0);
         expect(tokens, SEMICOLON);
     }
-
-    expect(tokens, SEMICOLON);
-    return C_CreateDecleration(identifier, fact);
+    else {
+        expect(tokens, SEMICOLON);
+    }
+    
+    return C_CreateDecleration(type, identifier, fact);
 }
 
-CBlockItem* C_parseBlockItem(TokenList* tokens);
+
+CBlockItem* C_parseBlockItem(TokenList* tokens) {
+    blockItemType type;
+    void* data;
+    if (check(tokens, INT_KEYWORD)) {
+        type = BLOCK_ITEM_DECL;
+        CDeclaration* decl = C_parseDecleration(tokens);
+        data = decl;
+    }    
+    else {
+        type = BLOCK_ITEM_STMT;
+        CStatement* stmt = C_parseStatement(tokens);
+        data = stmt;
+    }  
+
+    return C_CreateBlockItem(type, data);
+}
 
 CReturn* C_parseReturn(TokenList* tokens) {
     expect(tokens, RETURN_KEYWORD);

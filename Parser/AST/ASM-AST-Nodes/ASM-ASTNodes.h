@@ -21,13 +21,13 @@ ASMProgram* parseASMprogram(TACKYProgram* tacky_prog);
  */
 ASMFunction* parseASMfunction(TACKYFunction* tacky_func);
 
-/** 
- * Emits the ASM instructions for a TACKY return statement:
- * moves the return value into EAX and appends a RET instruction.
- * @param tacky_ret The TACKY return node to convert
- * @param instruction_list The ASM instruction list to append to
+/**
+ * @brief Parses a TACKY return instruction and emits the corresponding ASM instructions to move the return value into the AX register and perform the return.
+ * 
+ * @param tacky_ret The TACKYValue representing the return value to be returned
+ * @param instruction_list The ASM instruction list to which the generated instructions will be appended
  */
-void parseASMReturn(TACKYReturn* tacky_ret, ASMInstructionList* instruction_list);
+void parseASMReturn(TACKYValue* tacky_ret, ASMInstructionList* instruction_list);
 
 /**
  * Converts a list of TACKY instructions into ASM instructions,

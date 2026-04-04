@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/compiler",
       "args": [
-        "${workspaceFolder}/testFiles/valid/mult.c"
+        "${workspaceFolder}/testFiles/valid/mixed_precedence_assignment.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/..",

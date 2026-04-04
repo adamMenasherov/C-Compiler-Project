@@ -56,6 +56,15 @@ typedef struct CBinary CBinary;
 typedef struct CUnary CUnary;
 typedef struct CFactor CFactor;
 
+typedef struct {
+    char * identifier;
+} CVar;
+
+typedef struct {
+    CFactor* exp1;
+    CFactor* exp2;
+} CAssignment;
+
 
 typedef struct CBinary {
     CFactor * left;
@@ -79,15 +88,6 @@ typedef struct CUnary {
     unaryType type;
 } CUnary;
 
-typedef struct {
-    char * identifier;
-} CVar;
-
-typedef struct {
-    CFactor* exp1;
-    CFactor* exp2;
-} CAssignment;
-
 /* Type definitions */
 typedef struct {
     CFactor* exp;
@@ -102,14 +102,15 @@ typedef struct {
 } CStatement;
 
 typedef struct {
+    declerationType declType;
     char * identifier;
-    CAssignment* exp;
-} CDecleration;
+    CFactor* exp;
+} CDeclaration;
 
 typedef struct {
     blockItemType type;
     union {
-        CDecleration* decl;
+        CDeclaration* decl;
         CStatement* stmt;
     } item;
 } CBlockItem;

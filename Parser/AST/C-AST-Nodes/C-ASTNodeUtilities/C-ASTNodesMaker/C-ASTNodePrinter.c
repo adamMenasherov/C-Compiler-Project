@@ -4,6 +4,35 @@
 
 static int depth = 0;
 
+static const char* C_getUnaryOpName(unaryType type) {
+    switch (type) {
+        case UNARY_COMPLEMENT:   return "Complement";
+        case UNARY_NEGATE:       return "Negate";
+        case UNARY_NOT:          return "Not";
+        case UNARY_NOT_UNARY_OP: return "Not";
+        default:                 return "Unknown";
+    }
+}
+
+static const char* C_getBinaryOpName(binType type) {
+    switch (type) {
+        case BIN_ADD:           return "Add";
+        case BIN_SUBTRACT:      return "Subtract";
+        case BIN_MULTIPLY:      return "Multiply";
+        case BIN_DIVIDE:        return "Divide";
+        case BIN_REMAINDER:     return "Modulo";
+        case BIN_AND:           return "And";
+        case BIN_OR:            return "Or";
+        case BIN_EQUALS:        return "Equals";
+        case BIN_NOT_EQUALS:    return "NotEquals";
+        case BIN_LESS_THAN:     return "LessThan";
+        case BIN_LESS_EQUAL:    return "LessEqual";
+        case BIN_GREATER_THAN:  return "GreaterThan";
+        case BIN_GREATER_EQUAL: return "GreaterEqual";
+        default:                return "Unknown";
+    }
+}
+
 void C_printProgram(CProgram* prog) {
     printf("Program(\n\t");
     C_printFunction(prog->function_def);
@@ -12,15 +41,20 @@ void C_printProgram(CProgram* prog) {
 
 void C_printFunction(CFunction* func) {
     printf("Function(\"%s\",\n\t\t", func->function_name);
-    C_printReturn(func->body);
+    DArray_forEach(func->body, elem,
+        {
+            CBlockItem* blockItem = (CBlockItem*)elem;
+            C_printBlockItem(blockItem);
+            printf(", \n\t\t");
+        });
     printf("\n\t)");
 }
 
 void C_printReturn(CReturn* returnNode) {
-    printf("Return(\n\t\t\t");
+    printf("Return(");
     depth = 3;
     C_printFactor(returnNode->exp);
-    printf("\n\t\t)");
+    printf(")");
 }
 
 void C_printFactor(CFactor* exp) {
@@ -30,22 +64,39 @@ void C_printFactor(CFactor* exp) {
         case FACTOR_CONSTANT: C_printConstant(exp->exp.cnst);  break;
         case FACTOR_UNARY:    C_printUnary(exp->exp.unary);    break;
         case FACTOR_BINARY:   C_printBinary(exp->exp.binary);  break;
+        case FACTOR_ASSIGNMENT: C_printAssignment(exp->exp.assignment); break;
+        case FACTOR_VAR: C_printVar(exp->exp.var);
+    }
+}
+
+void C_printStatement(CStatement* stmt) {
+    switch(stmt->type) {
+        case STMT_EXPRESSION: C_printFactor(stmt->stmt.exp); break;
+        case STMT_NULL: C_printNull(); break;
+        case STMT_RETURN: C_printReturn(stmt->stmt.ret); break;
+    }
+}
+
+void C_printDeclaration(CDeclaration* decl) {
+    if (!decl) return;
+    
+    printf("Declaration(\"%s\"", decl->identifier);
+    
+    if (decl->declType == DECL_WITH_EXP && decl->exp) {
+        printf(", ");
+        depth++;
+        C_printFactor(decl->exp);
+        printf(")");
+        depth--;
+    } else {
+        printf(")");
     }
 }
 
 void C_printUnary(CUnary* unary) {
     if (!unary) return;
 
-    const char* op_name;
-    switch (unary->type) {
-        case UNARY_COMPLEMENT:   op_name = "Complement"; break;
-        case UNARY_NEGATE:       op_name = "Negate";     break;
-        case UNARY_NOT:          op_name = "Not";        break;
-        case UNARY_NOT_UNARY_OP: op_name = "Not";        break;
-        default:           op_name = "Unknown";
-    }
-
-    printf("Unary(%s,\n", op_name);
+    printf("Unary(%s,\n", C_getUnaryOpName(unary->type));
     depth++;
     for (int i = 0; i < depth; i++) printf("\t");
     C_printFactor(unary->exp);
@@ -57,36 +108,44 @@ void C_printConstant(CConstant* constant) {
     printf("Constant(%d)", constant->val);
 }
 
+void C_printBlockItem(CBlockItem* blockItem) {
+    switch (blockItem->type) {
+        case BLOCK_ITEM_DECL: C_printDeclaration(blockItem->item.decl); break;
+        case BLOCK_ITEM_STMT: C_printStatement(blockItem->item.stmt); break;
+    }
+}
+
 void C_printBinary(CBinary* binary) {
     if (!binary) return;
 
-    const char* op_name;
-    switch (binary->type) {
-        case BIN_ADD:       op_name = "Add";      break;
-        case BIN_SUBTRACT:  op_name = "Subtract"; break;
-        case BIN_MULTIPLY:  op_name = "Multiply"; break;
-        case BIN_DIVIDE:    op_name = "Divide";   break;
-        case BIN_REMAINDER:    op_name = "Modulo";   break;
-        case BIN_AND:       op_name = "And";       break;
-        case BIN_OR:        op_name = "Or";        break;
-        case BIN_EQUALS:    op_name = "Equals";    break;
-        case BIN_NOT_EQUALS: op_name = "NotEquals"; break;
-        case BIN_LESS_THAN: op_name = "LessThan";  break;
-        case BIN_LESS_EQUAL: op_name = "LessEqual"; break;
-        case BIN_GREATER_THAN: op_name = "GreaterThan"; break;
-        case BIN_GREATER_EQUAL: op_name = "GreaterEqual"; break;
-        default:           op_name = "Unknown";
-    }
-
-    printf("Binary(%s,\n", op_name);
+    printf("Binary(%s, ", C_getBinaryOpName(binary->type));
     depth++;
-    for (int i = 0; i < depth; i++) printf("\t");
     C_printFactor(binary->left);
-    printf(",\n");
-    for (int i = 0; i < depth; i++) printf("\t");
+    printf(", ");
     C_printFactor(binary->right);
     printf(")");
     depth--;
+}
+
+void C_printVar(CVar* var) {
+    if (!var) return;
+    printf("Var(\"%s\")", var->identifier);
+}
+
+void C_printAssignment(CAssignment* assign) {
+    if (!assign) return;
+    
+    printf("Assignment(");
+    depth++;
+    C_printFactor(assign->exp1);
+    printf(", ");
+    C_printFactor(assign->exp2);
+    printf(")");
+    depth--;
+}
+
+void C_printNull() {
+    printf("NullStatement()");
 }
 
 

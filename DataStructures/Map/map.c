@@ -1,0 +1,110 @@
+#include "map.h"
+
+Map* createMap(size_t (*hashFunc)(void* key), int (*equalsFunc)(void* lhs, void* rhs)) {
+    Map* map = malloc(sizeof(Map));
+    if (!map) return NULL;
+
+    map->bucket_count = MAP_SIZE;
+    map->buckets = calloc(MAP_SIZE, sizeof(MapEntry*));
+    map->hashFunc = hashFunc;
+    map->equalsFunc = equalsFunc;
+    if (!map->buckets) {
+        free(map);
+        return NULL;
+    }
+
+    return map;
+}
+
+void freeMap(Map* map, void (*freeKey)(void*), void (*freeValue)(void*)) {
+    if (!map) return;
+
+    for (size_t i = 0; i < map->bucket_count; i++) {
+        MapEntry* entry = map->buckets[i];
+        while (entry) {
+            MapEntry* next = entry->next;
+            if (freeKey) freeKey(entry->key);
+            if (freeValue) freeValue(entry->value);
+            free(entry);
+            entry = next;
+        }
+    }
+    free(map->buckets);
+    free(map);
+}
+
+int mapPut(Map* map, void* key, void* value) {
+    if (!map) return 0;
+
+    size_t hash = map->hashFunc(key) % map->bucket_count;
+    MapEntry* entry = map->buckets[hash];
+    while (entry) {
+        if (map->equalsFunc(entry->key, key)) {
+            entry->value = value; 
+            return 1;
+        }
+        entry = entry->next;
+    }
+
+    MapEntry* new_entry = malloc(sizeof(MapEntry));
+    if (!new_entry) return 0;
+    new_entry->key = key;
+    new_entry->value = value;
+    new_entry->next = map->buckets[hash];
+    map->buckets[hash] = new_entry;
+
+    return 1;
+}
+
+void* mapGet(Map* map, void* key) {
+    if (!map) return NULL;
+
+    size_t hash = map->hashFunc(key) % map->bucket_count;
+    MapEntry* entry = map->buckets[hash];
+    while (entry) {
+        if (map->equalsFunc(entry->key, key)) {
+            return entry->value;
+        }
+        entry = entry->next;
+    }
+    return NULL;
+}
+
+
+int mapContainsKey(Map* map, void* key) {
+    if (!map) return 0;
+
+    size_t hash = map->hashFunc(key) % map->bucket_count;
+    MapEntry* entry = map->buckets[hash];
+    while (entry) {
+        if (map->equalsFunc(entry->key, key)) {
+            return 1;
+        }
+        entry = entry->next;
+    }
+    return 0;
+}
+
+int mapRemove(Map* map, void* key, void (*freeKey)(void*), void (*freeValue)(void*)) {
+    if (!map) return 0;
+
+    size_t hash = map->hashFunc(key) % map->bucket_count;
+    MapEntry* entry = map->buckets[hash];
+    MapEntry* prev = NULL;
+    while (entry) {
+        if (map->equalsFunc(entry->key, key)) {
+            if (prev) {
+                prev->next = entry->next;
+            } else {
+                map->buckets[hash] = entry->next;
+            }
+            if (freeKey) freeKey(entry->key);
+            if (freeValue) freeValue(entry->value);
+            free(entry);
+            return 1;
+        }
+        prev = entry;
+        entry = entry->next;
+    }
+    return 0;
+}

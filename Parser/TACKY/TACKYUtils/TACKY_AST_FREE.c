@@ -10,14 +10,7 @@ void freeTackyProgram(TACKYProgram* prog) {
 void freeTackyFunction(TACKYFunction* func) {
     if (!func) return;
     freeTackyInstructionList(func->instruction_list);
-    freeTackyReturn(func->inst);
     free(func);
-}
-
-void freeTackyReturn(TACKYReturn* returnNode) {
-    if (!returnNode) return;
-    freeTackyValue(returnNode->val);
-    free(returnNode);
 }
 
 void freeTackyInstructionList(TACKYInstructionList* list) {
@@ -35,6 +28,31 @@ void freeTackyInstruction(TACKYInstruction* instruction) {
         case TACKY_UNARY:
             freeTackyValue(instruction->instValue.unaryOp.src);
             freeTackyValue(instruction->instValue.unaryOp.dest);
+            break;
+        case TACKY_BINARY:
+            freeTackyValue(instruction->instValue.binaryOp.src1);
+            freeTackyValue(instruction->instValue.binaryOp.src2);
+            freeTackyValue(instruction->instValue.binaryOp.dest);
+            break;
+        case TACKY_JUMP:
+            free(instruction->instValue.jump.label);
+            break;
+        case TACKY_JUMP_IF_ZERO:
+        case TACKY_JUMP_IF_NOT_ZERO:
+            free(instruction->instValue.condJump.label);
+            freeTackyValue(instruction->instValue.condJump.condition);
+            break;
+        case TACKY_LABEL:
+            free(instruction->instValue.label.label);
+            break;
+        case TACKY_COPY:
+            freeTackyValue(instruction->instValue.copy.src);
+            freeTackyValue(instruction->instValue.copy.dest);
+            break;
+        case TACKY_RETURN:
+            freeTackyValue(instruction->instValue.returnVal.retVal);
+            break;
+        default:
             break;
     }
     free(instruction);

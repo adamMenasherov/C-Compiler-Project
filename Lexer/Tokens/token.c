@@ -116,7 +116,7 @@ TokenType keywordOrIdentifier(char* tokenSource, char ** tokenStr) {
     TokenType type;
     char* start = tokenSource, c;
     tokenSource++;
-    while (isalnum(*tokenSource)) tokenSource++;
+    while (isalnum(*tokenSource) || *tokenSource == '_') tokenSource++;
 
     c = *tokenSource;
     *tokenSource = '\0';

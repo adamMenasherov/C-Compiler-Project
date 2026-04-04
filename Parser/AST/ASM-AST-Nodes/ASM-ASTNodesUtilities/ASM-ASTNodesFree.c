@@ -21,6 +21,29 @@ void freeASMInstruction(ASMInstruction* inst) {
         case ASM_UNARY:
             freeASMOperand(inst->instValue.unary.op);
             break;
+        case ASM_BINARY:
+            freeASMOperand(inst->instValue.binary.op1);
+            freeASMOperand(inst->instValue.binary.op2);
+            break;
+        case ASM_IDIV:
+            freeASMOperand(inst->instValue.idiv.divisor);
+            break;
+        case ASM_LABEL:
+            free(inst->instValue.label.identifier);
+            break;
+        case ASM_CMP:
+            freeASMOperand(inst->instValue.cmp.op1);
+            freeASMOperand(inst->instValue.cmp.op2);
+            break;
+        case ASM_JUMP:
+            free(inst->instValue.jmp.label);
+            break;
+        case ASM_JUMPCC:
+            free(inst->instValue.jumpcc.label);
+            break;
+        case ASM_SETCC:
+            freeASMOperand(inst->instValue.setcc.op);
+            break;
         default: break;
     }
     free(inst);

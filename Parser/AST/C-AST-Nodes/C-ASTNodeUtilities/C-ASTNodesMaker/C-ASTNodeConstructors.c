@@ -69,6 +69,15 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
             new_exp->exp.binary = (CBinary*)expVal;
             break;
         }       
+        case FACTOR_ASSIGNMENT: {
+            new_exp->type = FACTOR_ASSIGNMENT;
+            new_exp->exp.assignment = (CAssignment*)expVal;
+            break;
+        }
+        case FACTOR_VAR: {
+            new_exp->type = FACTOR_VAR;
+            new_exp->exp.assignment = (CVar*)expVal;
+        }
     }
     return new_exp;
 }
@@ -82,8 +91,16 @@ CFactor* C_CreateFactorFromUnary(CUnary * exp) {
     return C_CreateFactor(FACTOR_UNARY, exp);
 }
 
+CFactor* C_CreateFactorFromVar(CVar* var) {
+    return C_CreateFactor(FACTOR_VAR, var);
+}
+
 CFactor* C_CreateFactorFromBinary(CBinary * exp) {
     return C_CreateFactor(FACTOR_BINARY, exp);
+}
+
+CFactor* C_CreateFactorFromAssignment(CAssignment* assign) {
+    return C_CreateFactor(FACTOR_ASSIGNMENT, assign);
 }
 
 CStatement* C_CreateStatement(statementType type, void * stmtVal) {
@@ -99,6 +116,10 @@ CStatement* C_CreateStatement(statementType type, void * stmtVal) {
             stmt->stmt.exp = (CFactor*)stmtVal;
             break;
         }
+        case STMT_NULL: {
+            stmt->stmt.exp = NULL;
+            break;
+        }
         default: {
             fprintf(stderr, "Invalid statement type in C_CreateStatement\n");
             free(stmt);
@@ -108,8 +129,13 @@ CStatement* C_CreateStatement(statementType type, void * stmtVal) {
     return stmt;
 }
 
+CVar* C_CreateVar(char* identifier) {
+    CVar* var = malloc(sizeof(CVar));
+    if (!var) return NULL;
+    var->identifier = strdup(identifier);
 
-
+    return var;
+}
 
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {
     CBinary* binary = malloc(sizeof(CBinary));
@@ -118,4 +144,44 @@ CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {
     binary->left = left;
     binary->right = right;
     return binary;
+}
+
+CDeclaration* C_CreateDecleration(declerationType type, char* iden, CFactor* assign) {
+    CDeclaration* decl = malloc(sizeof(CDeclaration));
+    if (!decl) return NULL;
+    decl->declType = type;
+    decl->exp = assign;
+    decl->identifier = iden;
+    return decl;
+}
+
+CAssignment* C_CreateAssignment(CFactor* fact1, CFactor* fact2) {
+    CAssignment* assign = malloc(sizeof(CAssignment));
+    if (!assign) return NULL;
+    assign->exp1 = fact1;
+    assign->exp2 = fact2;
+    return assign;
+}
+
+CBlockItem* C_CreateBlockItem(blockItemType type, void * stmtVal) {
+    CBlockItem* blockItem = malloc(sizeof(CBlockItem));
+    blockItem->type = type;
+    if (!blockItem) return NULL;
+    switch(type) {
+        case BLOCK_ITEM_DECL: {
+            CDeclaration* decl = (CDeclaration*)stmtVal;
+            blockItem->item.decl = decl;
+            break;
+        }
+        case BLOCK_ITEM_STMT: {
+            CStatement* stmt = (CStatement*)stmtVal;
+            blockItem->item.stmt = stmt;
+            break;
+        }
+        default: {
+            fprintf(stderr, "Invalid block item type in C_CreateBlockItem\n");
+            free(blockItem);
+            return NULL;
+        }
+    }
 }

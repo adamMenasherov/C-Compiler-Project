@@ -3,14 +3,19 @@
 #include <stdio.h>
 #include <string.h>
 
+int currGlobalInt = 0; 
+
 TACKYFunction* parseTACKYFunction(CFunction* func) {
     TACKYInstructionList* instruction_list = createTACKYInstructionList();
-    TACKYReturn* returnNode = parseTACKYReturn(func->body, instruction_list);
     TACKYFunction* tackyFunc = malloc(sizeof(TACKYFunction));
     if (!tackyFunc) return NULL;
 
+    DArray_forEach(func->body, elem,
+    {
+        parseBlockItemInstructions((CBlockItem*)elem, instruction_list);
+    });
+
     tackyFunc->function_name = func->function_name;
-    tackyFunc->inst = returnNode;
     tackyFunc->instruction_list = instruction_list;
     return tackyFunc;
 }
@@ -24,23 +29,19 @@ TACKYProgram* parseTACKYProgram(CProgram* program) {
     return tackyProg;
 }
 
-TACKYReturn* parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList) {
-    TACKYReturn* tackyRet = malloc(sizeof(TACKYReturn));
-    if (!tackyRet) return NULL;
-
+void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList) {
     TACKYValue* ret_val = emit_TACKY(returnNode->exp, instructionList);
-    tackyRet->val = copyTackyValue(ret_val);
-    if (!tackyRet->val) {
-        free(tackyRet);
-        return NULL;
-    }
-    return tackyRet;
+    TACKYInstruction* ret_inst = createReturnInstruction(ret_val);
+    addInstructionToList(instructionList, ret_inst);
 }
 
 TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list) {
     switch(exp->type) {
         case FACTOR_CONSTANT: {
             return createTackyValueFromConstantNode(exp->exp.cnst);
+        }
+        case FACTOR_VAR: {
+            return createTackyValueFromVar(exp->exp.var);
         }
         case FACTOR_UNARY: {
             TACKYValue* src = emit_TACKY(exp->exp.unary->exp, instruction_list);
@@ -64,9 +65,49 @@ TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list) {
                 createBinaryInstruction(op, src1, src2, dst));
             return copyTackyValue(dst);  
         }
+
+        case FACTOR_ASSIGNMENT: {
+            char* varName = exp->exp.assignment->exp1->exp.var->identifier;
+            TACKYValue* src = emit_TACKY(exp->exp.assignment->exp2, instruction_list);
+            TACKYValue* dst = createVarValue(varName);
+            addInstructionToList(instruction_list,
+                createCopyInstruction(src, dst));
+            return copyTackyValue(dst);  
+        }
         default: return NULL;
     }
 }
+
+void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* instructionList) {
+    switch(blockItem->type) {
+        case BLOCK_ITEM_DECL:
+            if (blockItem->item.decl->declType == DECL_WITH_EXP) {
+                char* varName = blockItem->item.decl->identifier;
+                TACKYValue* src = emit_TACKY(blockItem->item.decl->exp, instructionList);
+                TACKYValue* dst = createVarValue(varName);
+                addInstructionToList(instructionList,
+                    createCopyInstruction(src, dst));
+            }
+            break;
+        case BLOCK_ITEM_STMT:
+            parseStatementInstructions(blockItem->item.stmt, instructionList);
+            break;
+    }
+}
+
+void parseStatementInstructions(CStatement* stmt, TACKYInstructionList* instructionList) {
+    switch(stmt->type) {
+        case STMT_EXPRESSION:
+            emit_TACKY(stmt->stmt.exp, instructionList);
+            break;
+        case STMT_RETURN:
+            parseTACKYReturn(stmt->stmt.ret, instructionList);
+            break;
+        case STMT_NULL:
+            break;
+    }
+}
+
 
 TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* instruction_list) {
     if (exp->type != FACTOR_BINARY) return NULL;
@@ -112,6 +153,14 @@ TACKYInstruction* createLabelInstruction(char* label) {
     if (!inst) return NULL;
     inst->type = TACKY_LABEL;
     inst->instValue.label.label = label;
+    return inst;
+}
+
+TACKYInstruction* createReturnInstruction(TACKYValue* retVal) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_RETURN;
+    inst->instValue.returnVal.retVal = retVal;
     return inst;
 }
 
@@ -211,6 +260,11 @@ TACKYValue* createTackyValueFromConstant(int val) {
     return tackyVal;
 }
 
+TACKYValue* createTackyValueFromVar(CVar* var) {
+    if (!var) return NULL;
+    return createVarValue(var->identifier);
+}
+
 TACKYValue* createVarValue(char* identifier) {
     TACKYValue* tackyVal = malloc(sizeof(TACKYValue));
     if (!tackyVal) return NULL;
@@ -221,10 +275,9 @@ TACKYValue* createVarValue(char* identifier) {
 }
 
 char* generateTempName() {
-    static int curr = 0;
     char* temp_name = malloc(strlen("tmp.") + 10);
     if (!temp_name) return NULL;
-    sprintf(temp_name, "tmp.%d", curr++);
+    sprintf(temp_name, "tmp.%d", currGlobalInt++);
     return temp_name;
 }
 

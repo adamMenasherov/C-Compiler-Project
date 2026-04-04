@@ -23,20 +23,17 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func) {
     while (InstructionArray_getCursor(tacky_func->instruction_list) < InstructionArray_size(tacky_func->instruction_list)) {
         parseASMInstruction(tacky_func->instruction_list, asm_func->inst);
     }
-    parseASMReturn(tacky_func->inst, asm_func->inst);
     pseudoToStackPositions(asm_func->inst, asm_func->pseudoTable);
     
     return asm_func;
 }
 
-void parseASMReturn(TACKYReturn* tacky_ret, ASMInstructionList* instruction_list) {
+void parseASMReturn(TACKYValue* tacky_ret, ASMInstructionList* instruction_list) {
     ASMInstruction* mov_inst = createMovInstruction
-                        (tackyValueToASMOperand(tacky_ret->val), createRegisterOperand(AX));
+                        (tackyValueToASMOperand(tacky_ret), createRegisterOperand(AX));
     addASMInstructionAtEnd(instruction_list, mov_inst);
 
-    ASMInstruction* ret_inst = calloc(1, sizeof(ASMInstruction));
-    if (!ret_inst) return;
-    ret_inst->type = ASM_RET;
+    ASMInstruction* ret_inst = createASMReturnInstruction();
     addASMInstructionAtEnd(instruction_list, ret_inst);
 }
 
@@ -73,6 +70,11 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
             break;
         }
 
+        case TACKY_RETURN: {
+            parseASMReturn(instruction->instValue.returnVal.retVal, asmInstructionList);
+            break;
+
+        }
         case TACKY_JUMP_IF_ZERO:
         case TACKY_JUMP_IF_NOT_ZERO: {
             parseCondJumpInstruction(instruction, asmInstructionList);

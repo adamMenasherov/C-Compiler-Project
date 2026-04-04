@@ -153,3 +153,11 @@ ASMInstruction* createASMSetCCInstruction(ASMCondCode cond, ASMOperand* op);
  * @return ASMInstruction* pointer to the created LABEL instruction
  */
 ASMInstruction* createASMLabelInstruction(char* label);
+
+
+/**
+ * @brief Create a Return Instruction object
+ * 
+ * @return ASMInstruction* pointer to the created RETURN instruction
+ */
+ASMInstruction* createASMReturnInstruction();

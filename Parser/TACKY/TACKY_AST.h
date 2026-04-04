@@ -1,6 +1,6 @@
 #pragma once
 #include "../AST/C-AST-Nodes/C-ASTNodes.h"
-#include "../../DataStructures/DynamicArray/InstructionArrayWrapper.h"
+#include "../../DataStructures/DynamicArray/Wrappers/InstructionArrayWrapper.h"
 
 typedef enum {
     TACKY_UNARY,
@@ -9,6 +9,7 @@ typedef enum {
     TACKY_JUMP,
     TACKY_JUMP_IF_ZERO,
     TACKY_JUMP_IF_NOT_ZERO,
+    TACKY_RETURN,
     TACKY_LABEL
 } TACKYInstructionType;
 
@@ -55,6 +56,9 @@ typedef struct TACKYInstruction {
             TACKYValue* src;
             TACKYValue* dest;
         } copy;
+        struct {
+            TACKYValue* retVal;
+        } returnVal;
     } instValue;
 } TACKYInstruction;
 
@@ -67,7 +71,6 @@ typedef struct {
 
 typedef struct {
     char* function_name; 
-    TACKYReturn* inst; 
     TACKYInstructionList* instruction_list;
 } TACKYFunction;
 
@@ -95,7 +98,24 @@ TACKYProgram* parseTACKYProgram(CProgram* program);
  * @param returnNode The C AST return statement to convert
  * @return A pointer to the generated TACKYReturn
  */
-TACKYReturn* parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList);
+void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList);
+
+/**
+ * @brief Parses a C AST block item and emits corresponding TACKY instructions, adding them to the instruction list.
+ * 
+ * @param blockItem The C AST block item to parse (could be a declaration or statement)
+ * @param instructionList The list to which generated TACKY instructions will be added
+ */
+void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* instructionList);
+
+
+/**
+ * @brief Parses a C AST statement and emits corresponding TACKY instructions, adding them to the instruction list.
+ * 
+ * @param stmt The C AST statement to parse (could be an expression statement, return statement, etc.)
+ * @param instructionList The list to which generated TACKY instructions will be added
+ */
+void parseStatementInstructions(CStatement* stmt, TACKYInstructionList* instructionList);
 
 /**
  * Emits TACKY instructions from a C expression and adds them to the instruction list.
@@ -134,6 +154,13 @@ TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYV
  */
 TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest);
 
+/**
+ * @brief Create a Return Instruction object
+ * 
+ * @param retVal The TACKYValue representing the return value
+ * @return TACKYInstruction* the created return instruction
+ */
+TACKYInstruction* createReturnInstruction(TACKYValue* retVal);
 
 /**
  * @brief Create a Jump Instruction object
@@ -168,6 +195,14 @@ TACKYInstruction* createCopyInstruction(TACKYValue* src, TACKYValue* dest);
  * @return TACKYValue* the created TACKYValue representing the constant
  */
 TACKYValue* createTackyValueFromConstant(int val);
+
+/**
+ * @brief Create a Tacky Value From Var object
+ * 
+ * @param var The C AST variable to convert
+ * @return TACKYValue* The created TACKYValue representing the variable
+ */
+TACKYValue* createTackyValueFromVar(CVar* var);
 
 /**
  * @brief Create a Tacky Value From C Constant Node object

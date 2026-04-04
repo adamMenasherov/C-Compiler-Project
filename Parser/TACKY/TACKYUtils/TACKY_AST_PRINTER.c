@@ -114,6 +114,11 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printTACKYValue(inst->instValue.copy.dest);
             printf(")");
             break;
+        case TACKY_RETURN:
+            printf("Return(");
+            printTACKYValue(inst->instValue.returnVal.retVal);
+            printf(")");
+            break;
         default:
             printf("<unknown instruction type>");
             break;
@@ -135,17 +140,6 @@ void printTACKYInstructionList(const TACKYInstructionList* list) {
     }
 }
 
-void printTACKYReturn(const TACKYReturn* ret) {
-    if (!ret) {
-        printf("Return(<null>)\n");
-        return;
-    }
-
-    printf("Return(");
-    printTACKYValue(ret->val);
-    printf(")\n");
-}
-
 void printTACKYFunction(const TACKYFunction* func) {
     if (!func) {
         printf("<null function>\n");
@@ -156,7 +150,6 @@ void printTACKYFunction(const TACKYFunction* func) {
            func->function_name ? func->function_name : "<unnamed>");
 
     printTACKYInstructionList(func->instruction_list);
-    printTACKYReturn(func->inst);
 }
 
 void printTACKYProgram(const TACKYProgram* program) {

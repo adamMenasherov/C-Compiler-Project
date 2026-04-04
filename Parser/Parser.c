@@ -14,7 +14,6 @@ AST* parse(TokenList* tokens) {
     ast->prog = C_parseProgram(tokens);
     if (!ast->prog) return NULL;
     printf("Parsing completed successfully.\n");
-    printAST(ast);
 
     return ast;
 }

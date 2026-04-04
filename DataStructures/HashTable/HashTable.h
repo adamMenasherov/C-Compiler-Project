@@ -12,7 +12,6 @@ typedef struct {
 } HashTable;
 
 
-unsigned int hash(const char* key);
 HashTable* createHashTable();
 void ht_insert(HashTable* table, const char* key, int value);
 int ht_get(HashTable* table, const char* key, int* out_value);

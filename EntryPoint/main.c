@@ -11,12 +11,12 @@
 #include "Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
 #include "Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
 #include "ASM-File-Generation/ASM_AST_fix.h"
-
+#include "SemanticAnalysis/semantic.h"
 
 
 int main(int argc, char* argv[]) {
     char* filename = NULL, *execFileName;
-    TokenList* tokenList;
+    TokenList* tokenList = createTokenList();
    
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--lex") == 0) {} 
@@ -43,9 +43,10 @@ int main(int argc, char* argv[]) {
     }
     
     char* sourcePtr = source; 
-    tokenList = createTokenList();
     lex(&sourcePtr, tokenList);
     AST* ast = parse(tokenList);
+    resolveAST(ast);
+    printAST(ast);
     TACKY_AST* tacky_ast = astToTACKY_AST(ast);
     printTACKY_AST(tacky_ast);
     ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
@@ -53,9 +54,9 @@ int main(int argc, char* argv[]) {
     generateASMFile(asm_ast, asmFileName);
     commandForExecutable(asmFileName, execFileName);
     
-    /*freeASM_AST(asm_ast);
+    freeASM_AST(asm_ast);
     freeAST(ast);
-    freeTACKY_AST(tacky_ast);*/
+    freeTACKY_AST(tacky_ast);
     free(source); 
     free(preprocessFileName);
     freeTokenList(tokenList);
