@@ -103,7 +103,7 @@ typedef struct {
 
 typedef struct {
     char * identifier;
-    CFactor* exp;
+    CAssignment* exp;
 } CDecleration;
 
 typedef struct {
