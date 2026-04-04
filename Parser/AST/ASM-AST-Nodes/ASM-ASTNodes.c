@@ -20,7 +20,7 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func) {
     asm_func->inst = createASMInstructionList();
     asm_func->pseudoTable = createHashTable();
 
-    while (tacky_func->instruction_list->cursor < tacky_func->instruction_list->currSize) {
+    while (InstructionArray_getCursor(tacky_func->instruction_list) < InstructionArray_size(tacky_func->instruction_list)) {
         parseASMInstruction(tacky_func->instruction_list, asm_func->inst);
     }
     parseASMReturn(tacky_func->inst, asm_func->inst);
@@ -43,8 +43,9 @@ void parseASMReturn(TACKYReturn* tacky_ret, ASMInstructionList* instruction_list
 
 void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList* asmInstructionList) 
 {
-    if (tackyInstList->cursor >= tackyInstList->currSize) return; // No more instructions
-    TACKYInstruction* instruction = tackyInstList->instructions[tackyInstList->cursor++];
+    if (InstructionArray_getCursor(tackyInstList) >= InstructionArray_size(tackyInstList)) return; // No more instructions
+    TACKYInstruction* instruction = InstructionArray_nextAndGet(tackyInstList);
+    if (!instruction) return;
     switch(instruction->type) {
         case TACKY_UNARY: {
             parseASMUnaryInstruction(instruction, asmInstructionList);

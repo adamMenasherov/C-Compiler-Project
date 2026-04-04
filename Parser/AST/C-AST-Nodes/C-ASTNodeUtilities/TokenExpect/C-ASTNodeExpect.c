@@ -4,17 +4,25 @@
 #include "../../../../../Lexer/Tokens/token.h"
 
 int tokensLeft(TokenList* tokens) {
-    return tokens->cursor < tokens->currSize;
+    return TokenList_getCursor(tokens) < TokenList_size(tokens);
 }
 
 int check(TokenList* tokens, TokenType type) {
     if (!tokensLeft(tokens)) return 0;
-    return tokens->tokens[tokens->cursor]->type == type;
+    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    return tok ? tok->type == type : 0;
 }
 
 int checkBinaryOp(TokenList* tokens)  {
     if (!tokensLeft(tokens)) return 0;
-    return isBinaryOp(tokens->tokens[tokens->cursor]);
+    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    return tok ? isBinaryOp(tok) : 0;
+}
+
+int checkUnaryOp(TokenList* tokens) {
+    if (!tokensLeft(tokens)) return 0;
+    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    return tok ? isUnaryOp(tok) : 0;
 }
 
 int expectConstant(TokenList* tokens) {
@@ -23,12 +31,15 @@ int expectConstant(TokenList* tokens) {
         exit(1);
     }
 
-    if (tokens->tokens[tokens->cursor]->type != CONSTANT) {
+    int cursor = TokenList_getCursor(tokens);
+    Token* tok = TokenList_getAt(tokens, cursor);
+    if (!tok || tok->type != CONSTANT) {
         fprintf(stderr, "Parser Error: Expected constant value but got %s\n", 
-            tokens->tokens[tokens->cursor]->value);
+            tok ? tok->value : "NULL");
         exit(1);
     }
-    return atoi(tokens->tokens[tokens->cursor++]->value);
+    TokenList_setCursor(tokens, cursor + 1);
+    return atoi(tok->value);
 }
 
 void expect(TokenList* tokens, TokenType type) {
@@ -38,12 +49,14 @@ void expect(TokenList* tokens, TokenType type) {
         exit(1);
     }
 
-    if (tokens->tokens[tokens->cursor]->type != type) {
+    int cursor = TokenList_getCursor(tokens);
+    Token* tok = TokenList_getAt(tokens, cursor);
+    if (!tok || tok->type != type) {
         fprintf(stderr, "Parser Error: Expected %s but got %s\n", 
-            tokenTypetoToken(type),tokens->tokens[tokens->cursor]->value);
+            tokenTypetoToken(type), tok ? tok->value : "NULL");
         exit(1);
     }
-    tokens->cursor++;
+    TokenList_setCursor(tokens, cursor + 1);
 }
 
 char* expectIdentifier(TokenList* tokens) {
@@ -51,12 +64,15 @@ char* expectIdentifier(TokenList* tokens) {
         fprintf(stderr, "Parser Error: Expected identifier but got end of file\n");
         exit(1);
     }
-    if (tokens->tokens[tokens->cursor]->type != IDENTIFIER) {
+    int cursor = TokenList_getCursor(tokens);
+    Token* tok = TokenList_getAt(tokens, cursor);
+    if (!tok || tok->type != IDENTIFIER) {
         fprintf(stderr, "Parser Error: Expected identifier but got %s\n", 
-            tokens->tokens[tokens->cursor]->value);
+            tok ? tok->value : "NULL");
         exit(1);
     }
-    return tokens->tokens[tokens->cursor++]->value;
+    TokenList_setCursor(tokens, cursor + 1);
+    return tok->value;
 }
 
 
@@ -107,13 +123,16 @@ unaryType expectUnaryOp(TokenList* tokens) {
         exit(1);
     }
 
-    if (!isUnaryOp(tokens->tokens[tokens->cursor])) {
+    int cursor = TokenList_getCursor(tokens);
+    Token* tok = TokenList_getAt(tokens, cursor);
+    if (!tok || !isUnaryOp(tok)) {
         fprintf(stderr, "Parser Error: Expected unary operator but got %s\n",
-                    tokens->tokens[tokens->cursor]->value);
+                    tok ? tok->value : "NULL");
         exit(1);
     }
 
-    return tokenTypeToUnaryType(tokens->tokens[tokens->cursor++]->type);
+    TokenList_setCursor(tokens, cursor + 1);
+    return tokenTypeToUnaryType(tok->type);
 }
 
 
@@ -123,13 +142,16 @@ binType expectBinaryOp(TokenList* tokens) {
         exit(1);
     }
 
-    if (!isBinaryOp(tokens->tokens[tokens->cursor])) {
+    int cursor = TokenList_getCursor(tokens);
+    Token* tok = TokenList_getAt(tokens, cursor);
+    if (!tok || !isBinaryOp(tok)) {
         fprintf(stderr, "Parser Error: Expected binary operator but got %s\n",
-                    tokens->tokens[tokens->cursor]->value);
+                    tok ? tok->value : "NULL");
         exit(1);
     }
 
-    return tokenTypeToBinType(tokens->tokens[tokens->cursor++]->type);
+    TokenList_setCursor(tokens, cursor + 1);
+    return tokenTypeToBinType(tok->type);
 }
 
 binType tokenTypeToBinType(TokenType type) {
@@ -180,4 +202,12 @@ int precedence(Token* tok) {
                     tokenTypetoToken(tok->type));
             exit(1);
     }
+}
+
+
+int checkFactorStart(TokenList* tokens) {
+    if (!tokensLeft(tokens)) return 0;
+    return check(tokens, CONSTANT) || check(tokens, IDENTIFIER) || checkUnaryOp(tokens) 
+    || checkBinaryOp(tokens) 
+    || check(tokens, OPEN_PAREN);
 }

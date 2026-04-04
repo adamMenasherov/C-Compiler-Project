@@ -1,7 +1,7 @@
 #include "C-ASTNodeConstructors.h"
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdio.h>
 
 
 CConstant* C_CreateConstant(int val) {
@@ -22,7 +22,7 @@ CReturn* C_CreateReturn(CFactor* exp) {
 }
 
 
-CFunction* C_CreateFunction(char* function_name, CReturn* body) {
+CFunction* C_CreateFunction(char* function_name, CBlockItemList* body) {
     CFunction* func = malloc(sizeof(CFunction));
     if (!func) return NULL;
     func->function_name = strdup(function_name);
@@ -85,6 +85,30 @@ CFactor* C_CreateFactorFromUnary(CUnary * exp) {
 CFactor* C_CreateFactorFromBinary(CBinary * exp) {
     return C_CreateFactor(FACTOR_BINARY, exp);
 }
+
+CStatement* C_CreateStatement(statementType type, void * stmtVal) {
+    CStatement* stmt = malloc(sizeof(CStatement));
+    if (!stmt) return NULL;
+    stmt->type = type;
+    switch(type) {
+        case STMT_RETURN: {
+            stmt->stmt.ret = (CReturn*)stmtVal;
+            break;
+        }
+        case STMT_EXPRESSION: {
+            stmt->stmt.exp = (CFactor*)stmtVal;
+            break;
+        }
+        default: {
+            fprintf(stderr, "Invalid statement type in C_CreateStatement\n");
+            free(stmt);
+            return NULL;
+        }
+    }
+    return stmt;
+}
+
+
 
 
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {

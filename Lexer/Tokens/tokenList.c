@@ -3,36 +3,38 @@
 #include <stdio.h>
 
 
-void createTokenList(TokenList* tokenList) {
-    tokenList->tokens = malloc(sizeof(Token*) * 16);
-    if (!tokenList->tokens) return;
-    tokenList->arraySize = 16;
-    tokenList->currSize = 0;
-    tokenList->cursor = 0;
+TokenList* createTokenList(void) {
+    TokenList* tokenList = malloc(sizeof(TokenList));
+    if (!tokenList) return NULL;
+    
+    tokenList->array = TokenArray_create();
+    if (!tokenList->array) {
+        free(tokenList);
+        return NULL;
+    }
+    
+    return tokenList;
 }
 
 
 void addToken(TokenList* tokenList, Token* token) {
-    if (tokenList->currSize >= tokenList->arraySize) {
-        tokenList->tokens = realloc(tokenList->tokens, 
-            tokenList->arraySize * 2 * sizeof(Token*));
-        if (!tokenList->tokens) return;
-        tokenList->arraySize *= 2;
-    }
-    tokenList->tokens[tokenList->currSize++] = token;
+    if (!tokenList || !tokenList->array) return;
+    TokenArray_append(tokenList->array, token);
 }
 
 void freeTokenList(TokenList* tokenList) {
-    if (!tokenList || !tokenList->tokens) return;
-    for (int i = 0; i < tokenList->currSize; i++) {
-        freeToken(tokenList->tokens[i]);
+    if (!tokenList) return;
+    if (tokenList->array) {
+        TokenArray_freeWithTokens(tokenList->array);
     }
-    free(tokenList->tokens);
+    free(tokenList);
 }
 
 void printTokenList(TokenList* tokenList) {
-    for (int i = 0; i < tokenList->currSize; i++) {
-        Token* tok = tokenList->tokens[i];
+    if (!tokenList || !tokenList->array) return;
+    
+    for (int i = 0; i < TokenArray_size(tokenList->array); i++) {
+        Token* tok = TokenArray_get(tokenList->array, i);
         printf("Token: %s   |    type: %s\n", tok->value, tokenTypeStr[tok->type]);
     }
 }

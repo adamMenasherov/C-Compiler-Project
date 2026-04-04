@@ -126,9 +126,12 @@ void printTACKYInstructionList(const TACKYInstructionList* list) {
         return;
     }
 
-    for (int i = 0; i < list->currSize; i++) {
-        printTACKYInstruction(list->instructions[i]);
-        printf("\n");
+    for (int i = 0; i < InstructionArray_size((InstructionArray*)list); i++) {
+        TACKYInstruction* inst = InstructionArray_get((InstructionArray*)list, i);
+        if (inst) {
+            printTACKYInstruction(inst);
+            printf("\n");
+        }
     }
 }
 

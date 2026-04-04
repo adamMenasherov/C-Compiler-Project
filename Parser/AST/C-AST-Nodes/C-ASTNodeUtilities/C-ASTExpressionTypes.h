@@ -3,7 +3,9 @@
 typedef enum {
     FACTOR_CONSTANT,
     FACTOR_UNARY,
-    FACTOR_BINARY
+    FACTOR_BINARY,
+    FACTOR_VAR,
+    FACTOR_ASSIGNMENT
 } factorType;
 
 typedef enum {
@@ -37,6 +39,11 @@ typedef enum {
 } statementType;
 
 typedef enum {
+    DECL_WITH_EXP,
+    DECL_WITHOUT_EXP
+} declerationType;
+
+typedef enum {
     BLOCK_ITEM_DECL,
     BLOCK_ITEM_STMT
 } blockItemType;
@@ -62,6 +69,8 @@ typedef struct CFactor {
         CConstant * cnst;
         CUnary * unary;
         CBinary * binary;
+        CVar * var;
+        CAssignment * assignment;
     } exp;
 } CFactor; 
 
@@ -85,14 +94,10 @@ typedef struct {
 } CReturn;
 
 typedef struct {
-    CFactor* exp;
-} CExpression;
-
-typedef struct {
     statementType type;
     union {
         CReturn* ret;
-        CExpression* exp;
+        CFactor* exp;
     } stmt;
 } CStatement;
 
@@ -110,5 +115,3 @@ typedef struct {
 } CBlockItem;
 
 
-CBlockItemList* createCBlockItemList();
-void addCBlockItem(CBlockItemList* list, CBlockItem* item);

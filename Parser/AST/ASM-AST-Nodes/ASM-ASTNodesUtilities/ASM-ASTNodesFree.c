@@ -1,5 +1,5 @@
 #include "ASM-ASTNodesFree.h"
-#include "../../../../DataStructures/HashTable.h"
+#include "../../../../DataStructures/HashTable/HashTable.h"
 #include <stdlib.h>
 
 void freeASMOperand(ASMOperand* operand) {

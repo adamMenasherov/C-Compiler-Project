@@ -1,5 +1,6 @@
 #pragma once
 #include "../AST/C-AST-Nodes/C-ASTNodes.h"
+#include "../../DataStructures/DynamicArray/InstructionArrayWrapper.h"
 
 typedef enum {
     TACKY_UNARY,
@@ -57,12 +58,7 @@ typedef struct TACKYInstruction {
     } instValue;
 } TACKYInstruction;
 
-typedef struct {
-    TACKYInstruction** instructions;
-    int arrSize;
-    int currSize;
-    int cursor;
-} TACKYInstructionList;
+typedef InstructionArray TACKYInstructionList;
 
 
 typedef struct {

@@ -1,5 +1,5 @@
 #include "ASM_AST_fix.h"
-#include "../DataStructures/HashTable.h"
+#include "../DataStructures/HashTable/HashTable.h"
 #include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
 #include <stdlib.h>
 

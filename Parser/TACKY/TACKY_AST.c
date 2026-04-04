@@ -172,24 +172,13 @@ TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYV
 
 
 TACKYInstructionList* createTACKYInstructionList() {
-    TACKYInstructionList* tackyList = malloc(sizeof(TACKYInstructionList));
-    if (!tackyList) return NULL;
-    tackyList->instructions = malloc(sizeof(TACKYInstruction*) * 16);
-    if (!tackyList->instructions) return NULL;
-    tackyList->arrSize = 16;
-    tackyList->currSize = 0;
-    tackyList->cursor = 0;
-    return tackyList;
+    return InstructionArray_create();
 }
 
 void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruction) {
-    if (list->currSize >= list->arrSize) {
-        list->instructions = realloc(list->instructions, 
-            list->arrSize * 2 * sizeof(TACKYInstruction*));
-        if (!list->instructions) return;
-        list->arrSize *= 2;
+    if (list) {
+        InstructionArray_append(list, instruction);
     }
-    list->instructions[list->currSize++] = instruction;
 }
 
 

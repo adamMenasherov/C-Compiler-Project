@@ -1,7 +1,7 @@
 #pragma once
 #include "../../C-AST-Nodes/C-ASTNodes.h"
 #include "../../../TACKY/TACKY_AST.h"
-#include "../../../../DataStructures/HashTable.h"
+#include "../../../../DataStructures/HashTable/HashTable.h"
 
 /* ============================================================
  * Enum Definitions

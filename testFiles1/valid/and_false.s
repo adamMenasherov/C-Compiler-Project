@@ -4,8 +4,10 @@ main:
 	movq %rsp, %rbp
 	subq $20, %rsp
 	movl $10, %r11d
+	cmpl $0, %r11d
 	je .Lfalse_label_0
 	movl $0, %r11d
+	cmpl $0, %r11d
 	je .Lfalse_label_0
 	movl $1, -4(%rbp)
 	jmp .Lend_label_0
@@ -13,8 +15,10 @@ main:
 	movl $0, -4(%rbp)
 .Lend_label_0:
 	movl $0, %r11d
+	cmpl $0, %r11d
 	je .Lfalse_label_1
 	movl $4, %r11d
+	cmpl $0, %r11d
 	je .Lfalse_label_1
 	movl $1, -8(%rbp)
 	jmp .Lend_label_1
@@ -26,8 +30,10 @@ main:
 	movl -8(%rbp), %r10d
 	addl %r10d, -12(%rbp)
 	movl $0, %r11d
+	cmpl $0, %r11d
 	je .Lfalse_label_2
 	movl $0, %r11d
+	cmpl $0, %r11d
 	je .Lfalse_label_2
 	movl $1, -16(%rbp)
 	jmp .Lend_label_2

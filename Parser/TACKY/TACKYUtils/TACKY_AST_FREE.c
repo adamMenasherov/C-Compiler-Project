@@ -22,10 +22,11 @@ void freeTackyReturn(TACKYReturn* returnNode) {
 
 void freeTackyInstructionList(TACKYInstructionList* list) {
     if (!list) return;
-    for (int v = 0; v < list->currSize; v++) {
-        freeTackyInstruction(list->instructions[v]);
+    for (int v = 0; v < InstructionArray_size(list); v++) {
+        TACKYInstruction* inst = InstructionArray_get(list, v);
+        if (inst) freeTackyInstruction(inst);
     }
-    free(list);
+    InstructionArray_free(list);
 }
 
 void freeTackyInstruction(TACKYInstruction* instruction) {
