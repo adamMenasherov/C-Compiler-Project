@@ -14,6 +14,7 @@ CFactor* C_CreateFactorFromUnary(CUnary * exp);
 CFactor* C_CreateFactorFromBinary(CBinary * exp);
 CFactor* C_CreateFactorFromVar(CVar* var);
 CFactor* C_CreateFactorFromAssignment(CAssignment* assign);
+CFactor* C_CreateCopyOfFactor(CFactor* original);
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right);
 CStatement* C_CreateStatement(statementType type, void * stmtVal);
 CDeclaration* C_CreateDecleration(declerationType type, char* iden, CFactor* assign);

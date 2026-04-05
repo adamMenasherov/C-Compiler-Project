@@ -30,7 +30,8 @@ int semanticMapPut(SemanticVariableMap* map, char* key, char* value) {
 }
 
 char* semanticMapGet(SemanticVariableMap* map, char* key) {
-    return strdup((char*)mapGet(map, key));
+    char* val = (char*)mapGet(map, key);
+    return val ? strdup(val) : NULL;
 }
 
 int semanticMapContainsKey(SemanticVariableMap* map, char* key) {

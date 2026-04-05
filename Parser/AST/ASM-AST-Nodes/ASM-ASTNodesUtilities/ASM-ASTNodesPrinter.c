@@ -15,6 +15,11 @@ static const char * asmBinaryOperatorToString(ASMBinaryOperator op) {
         case ASM_BINARY_ADD: return "Add";
         case ASM_BINARY_SUBTRACT: return "Sub";
         case ASM_BINARY_MULTIPLY: return "Mul";
+        case ASM_BINARY_AND: return "And";
+        case ASM_BINARY_OR: return "Or";
+        case ASM_BINARY_XOR: return "Xor";
+        case ASM_BINARY_SHIFT_LEFT: return "Sal";
+        case ASM_BINARY_SHIFT_RIGHT: return "Sar";
         default: return "Unknown";
     }
 }
@@ -22,6 +27,7 @@ static const char * asmBinaryOperatorToString(ASMBinaryOperator op) {
 static const char* getRegisterNameForASM_AST(Register reg) {
     switch (reg) {
         case AX: return "AX";
+        case CX: return "CX";
         case DX: return "DX";
         case R10: return "R10";
         case R11: return "R11";
@@ -141,6 +147,18 @@ void printASMInstruction(const ASMInstruction* inst) {
         case ASM_SETCC:
             printf("SetCC(%s, ", getCondCodeString(inst->instValue.setcc.cond));
             printASMOperand(inst->instValue.setcc.op);
+            printf(")");
+            break;
+
+        case ASM_PUSH:
+            printf("Push(");
+            printASMOperand(inst->instValue.push.op);
+            printf(")");
+            break;
+
+        case ASM_POP:
+            printf("Pop(");
+            printASMOperand(inst->instValue.pop.op);
             printf(")");
             break;
 

@@ -15,6 +15,8 @@ ASMInstructionList* createASMInstructionList() {
 }
 
 void addASMInstructionAtEnd(ASMInstructionList* list, ASMInstruction* instruction) {
+    if (!list || !instruction) return;
+
     if (!list->head) {
         list->head = instruction;
         list->tail = instruction;
@@ -127,6 +129,21 @@ ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOpe
         case BIN_MULTIPLY:
             inst->instValue.binary.type = ASM_BINARY_MULTIPLY;
             break;
+        case BIN_BITWISE_AND:
+            inst->instValue.binary.type = ASM_BINARY_AND;
+            break;
+        case BIN_BITWISE_OR:
+            inst->instValue.binary.type = ASM_BINARY_OR;
+            break;
+        case BIN_BITWISE_XOR:
+            inst->instValue.binary.type = ASM_BINARY_XOR;
+            break;
+        case BIN_LEFT_SHIFT:
+            inst->instValue.binary.type = ASM_BINARY_SHIFT_LEFT;
+            break;
+        case BIN_RIGHT_SHIFT:
+            inst->instValue.binary.type = ASM_BINARY_SHIFT_RIGHT;
+            break;
         default: 
             free(inst);
             return NULL; // Unsupported binary type
@@ -175,6 +192,22 @@ ASMInstruction* createASMJumpInstruction(char* label) {
     if (!inst) return NULL;
     inst->type = ASM_JUMP;
     inst->instValue.jmp.label = label;
+    return inst;
+}
+
+ASMInstruction* createASMPushInstruction(ASMOperand* src) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_PUSH;
+    inst->instValue.push.op = src;
+    return inst;
+}
+
+ASMInstruction* createASMPopInstruction(ASMOperand* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_POP;
+    inst->instValue.pop.op = dest;
     return inst;
 }
 

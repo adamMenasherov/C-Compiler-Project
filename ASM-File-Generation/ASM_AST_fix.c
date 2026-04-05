@@ -43,6 +43,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
                 if ((newOp = handlePseudoOp(inst->instValue.binary.op2, table, &offset))) {
                     inst->instValue.binary.op2 = newOp;
                 }
+                handleShiftingOperation(inst);
                 handleStackToStackForBinary(inst);
                 handleImulOperation(inst);
                 break;
@@ -69,6 +70,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
             default: continue;
         }
     }
+
     ht_print(table);
     addASMInstructionAtBeginning(instList, createAllocStackInstruction(-(offset + 4)));
 }
@@ -108,10 +110,53 @@ void handleStackToStackForMov(ASMInstruction* inst) {
     ASMOperand* dst = inst->instValue.mov.operand2;
     inst->instValue.mov.operand2 = createRegisterOperand(R10);
 
-    // Insert Mov(R10, dst) after inst
     ASMInstruction* movToDest = createMovInstruction(createRegisterOperand(R10), dst);
     movToDest->next = inst->next;
     inst->next = movToDest;
+}
+
+void handleShiftingOperation(ASMInstruction* inst) {
+    if (inst->type != ASM_BINARY) return;
+    if (inst->instValue.binary.type != ASM_BINARY_SHIFT_LEFT &&
+        inst->instValue.binary.type != ASM_BINARY_SHIFT_RIGHT) return;
+    if (!inst->instValue.binary.op1 || !inst->instValue.binary.op2) return;
+    if (inst->instValue.binary.op1->type == ASM_OP_IMMEDIATE) return;
+    if (inst->instValue.binary.op1->type == ASM_OP_REGISTER &&
+        inst->instValue.binary.op1->OperandValue.reg == CX) return;
+
+    ASMInstruction* originalNext = inst->next;
+    ASMOperand* countOp = inst->instValue.binary.op1;
+
+    ASMInstruction* pushRcx = createASMPushInstruction(createRegisterOperand(CX));
+    ASMInstruction* movToCx = createMovInstruction(countOp, createRegisterOperand(CX));
+    ASMInstruction* shiftInst = calloc(1, sizeof(ASMInstruction));
+    ASMInstruction* popRcx = createASMPopInstruction(createRegisterOperand(CX));
+    if (!pushRcx || !movToCx || !shiftInst || !popRcx) return;
+
+    *shiftInst = *inst;
+    shiftInst->instValue.binary.op1 = createRegisterOperand(CX);
+
+    ASMInstruction* movDestToR11 = NULL;
+    if (shiftInst->instValue.binary.op2->type == ASM_OP_IMMEDIATE) {
+        ASMOperand* immDest = shiftInst->instValue.binary.op2;
+        shiftInst->instValue.binary.op2 = createRegisterOperand(R11);
+        movDestToR11 = createMovInstruction(immDest, createRegisterOperand(R11));
+        if (!movDestToR11) return;
+    }
+
+    pushRcx->next = movToCx;
+    if (movDestToR11) {
+        movToCx->next = movDestToR11;
+        movDestToR11->next = shiftInst;
+    } else {
+        movToCx->next = shiftInst;
+    }
+    shiftInst->next = popRcx;
+    popRcx->next = originalNext;
+
+    *inst = *pushRcx;
+    inst->next = movToCx;
+    free(pushRcx);
 }
 
 void handleStackToStackForBinary(ASMInstruction* inst) {
@@ -186,6 +231,27 @@ void handleConstantAsDestCmpOperation(ASMInstruction* inst) {
 
         *inst = *movToR11;  
         inst->next = cmpInst;  
+        free(movToR11);
+    }
+}
+
+
+void handleImmediateAsDestForShift(ASMInstruction* inst) {
+    if (inst->type != ASM_BINARY) return;
+    if (inst->instValue.binary.type != ASM_BINARY_SHIFT_LEFT && inst->instValue.binary.type != ASM_BINARY_SHIFT_RIGHT) return;
+    if (inst->instValue.binary.op2->type != ASM_OP_IMMEDIATE) return;
+
+    ASMOperand* immOp = inst->instValue.binary.op2;
+    inst->instValue.binary.op2 = createRegisterOperand(R11);
+
+    ASMInstruction* movToR11 = createMovInstruction(immOp, createRegisterOperand(R11));
+    if (movToR11) {
+        ASMInstruction* shiftInst = calloc(1, sizeof(ASMInstruction));
+        *shiftInst = *inst; 
+        shiftInst->next = inst->next;   
+
+        *inst = *movToR11;  
+        inst->next = shiftInst;  
         free(movToR11);
     }
 }

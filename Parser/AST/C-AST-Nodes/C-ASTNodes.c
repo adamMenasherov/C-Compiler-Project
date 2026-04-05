@@ -44,14 +44,24 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
             expect(tokens, ONE_EQUAL);
             CFactor* right = C_parseExpression(tokens, previous_prec);
             if (!right) return NULL;
-            CAssignment* new_left = C_CreateAssignment(left, right);
+            CAssignment* new_left = C_CreateAssignment(C_CreateCopyOfFactor(left), right);
+            left = C_CreateFactorFromAssignment(new_left);
+        }
+        else if (checkCompoundAssignment(tokens)) {
+            binType type = compoundAssignmentToBinType(TokenList_getAt(tokens, TokenList_getCursor(tokens))->type);
+            expectCompoundAssignment(tokens);
+            CFactor* right = C_parseExpression(tokens, previous_prec);
+            if (!right) return NULL;
+            CAssignment* new_left = C_CreateAssignment(C_CreateCopyOfFactor(left), 
+                C_CreateFactorFromBinary(C_CreateBinary(type, 
+                    C_CreateCopyOfFactor(left), right)));
             left = C_CreateFactorFromAssignment(new_left);
         }
         else {
             binType type = expectBinaryOp(tokens);
             CFactor* right = C_parseExpression(tokens, previous_prec + 1);
             if (!right) return NULL;
-            CBinary* new_left = C_CreateBinary(type, left, right);
+            CBinary* new_left = C_CreateBinary(type, C_CreateCopyOfFactor(left), right);
             left = C_CreateFactorFromBinary(new_left);
         }
         

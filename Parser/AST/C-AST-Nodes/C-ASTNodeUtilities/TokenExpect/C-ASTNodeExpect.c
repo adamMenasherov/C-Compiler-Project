@@ -13,6 +13,14 @@ int check(TokenList* tokens, TokenType type) {
     return tok ? tok->type == type : 0;
 }
 
+int checkCompoundAssignment(TokenList* tokens) {
+    if (!tokensLeft(tokens)) return 0;
+    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    return tok ? (tok->type == PLUS_EQUAL || tok->type == MINUS_EQUAL || 
+                   tok->type == STAR_EQUAL || tok->type == SLASH_EQUAL || 
+                   tok->type == PERCENT_EQUAL) : 0;
+}
+
 int checkBinaryOp(TokenList* tokens)  {
     if (!tokensLeft(tokens)) return 0;
     Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
@@ -42,10 +50,24 @@ int expectConstant(TokenList* tokens) {
     return atoi(tok->value);
 }
 
+binType compoundAssignmentToBinType(TokenType type) {
+    switch(type) {
+        case PLUS_EQUAL: return BIN_ADD;
+        case MINUS_EQUAL: return BIN_SUBTRACT;
+        case STAR_EQUAL: return BIN_MULTIPLY;
+        case SLASH_EQUAL: return BIN_DIVIDE;
+        case PERCENT_EQUAL: return BIN_REMAINDER;
+        default:
+            fprintf(stderr, "Parser Error: Expected compound assignment operator but got %s\n",
+                    tokenTypeToToken(type));
+            exit(1);
+    }
+}
+
 void expect(TokenList* tokens, TokenType type) {
     if (!tokensLeft(tokens)) {
         fprintf(stderr, "Parser Error: Expected %s but got end of file\n", 
-            tokenTypetoToken(type));
+            tokenTypeToToken(type));
         exit(1);
     }
 
@@ -53,7 +75,7 @@ void expect(TokenList* tokens, TokenType type) {
     Token* tok = TokenList_getAt(tokens, cursor);
     if (!tok || tok->type != type) {
         fprintf(stderr, "Parser Error: Expected %s but got %s\n", 
-            tokenTypetoToken(type), tok ? tok->value : "NULL");
+            tokenTypeToToken(type), tok ? tok->value : "NULL");
         exit(1);
     }
     TokenList_setCursor(tokens, cursor + 1);
@@ -75,6 +97,22 @@ char* expectIdentifier(TokenList* tokens) {
     return tok->value;
 }
 
+void expectCompoundAssignment(TokenList* tokens) {
+    if (!tokensLeft(tokens)) {
+        fprintf(stderr, "Parser Error: Expected compound assignment operator but got end of file\n");
+        exit(1);
+    }
+    int cursor = TokenList_getCursor(tokens);
+    Token* tok = TokenList_getAt(tokens, cursor);
+    if (!tok || !(tok->type == PLUS_EQUAL || tok->type == MINUS_EQUAL || 
+                   tok->type == STAR_EQUAL || tok->type == SLASH_EQUAL || 
+                   tok->type == PERCENT_EQUAL)) {
+        fprintf(stderr, "Parser Error: Expected compound assignment operator but got %s\n", 
+            tok ? tok->value : "NULL");
+        exit(1);
+    }
+    TokenList_setCursor(tokens, cursor + 1);
+}
 
 int isUnaryOp(Token* tok) {
     switch(tok->type) {
@@ -111,6 +149,16 @@ int isBinaryOp(Token* tok) {
         case LESS_EQUAL:
         case GREATER_EQUAL:
         case ONE_EQUAL:
+        case PLUS_EQUAL:
+        case MINUS_EQUAL:
+        case STAR_EQUAL:
+        case SLASH_EQUAL:
+        case PERCENT_EQUAL:
+        case AMPERSAND:
+        case BAR:
+        case CARET:
+        case LEFT_SHIFT:
+        case RIGHT_SHIFT:
             break;
         default: return 0;
     }
@@ -170,9 +218,14 @@ binType tokenTypeToBinType(TokenType type) {
         case GREATER_THAN: return BIN_GREATER_THAN;
         case LESS_EQUAL: return BIN_LESS_EQUAL;
         case GREATER_EQUAL: return BIN_GREATER_EQUAL;
+        case AMPERSAND: return BIN_BITWISE_AND;
+        case BAR: return BIN_BITWISE_OR;
+        case CARET: return BIN_BITWISE_XOR;
+        case LEFT_SHIFT: return BIN_LEFT_SHIFT;
+        case RIGHT_SHIFT: return BIN_RIGHT_SHIFT;
         default:
             fprintf(stderr, "Parser Error: Expected binary operator but got %s\n",
-                    tokenTypetoToken(type));
+                    tokenTypeToToken(type));
             exit(1);
     }    
 }
@@ -186,6 +239,9 @@ int precedence(Token* tok) {
         case HYPHEN:
         case PLUS:
             return 45;
+        case LEFT_SHIFT:
+        case RIGHT_SHIFT:
+            return 40;
         case LESS_THAN:
         case GREATER_THAN:
         case LESS_EQUAL:
@@ -194,15 +250,31 @@ int precedence(Token* tok) {
         case TWO_EQUALS:
         case NOT_EQUAL:
             return 30;
+        case AMPERSAND:
+            return 25;
+        case CARET:
+            return 20;
+        case BAR:
+            return 15;
         case TWO_AMPERSANDS:
             return 10;
         case TWO_BARS:
             return 5;
         case ONE_EQUAL:
+        case PLUS_EQUAL:
+        case MINUS_EQUAL:
+        case STAR_EQUAL:
+        case SLASH_EQUAL:
+        case PERCENT_EQUAL:
+        case AMPERSAND_EQUAL:
+        case BAR_EQUAL:
+        case CARET_EQUAL:
+        case LEFT_SHIFT_EQUAL:
+        case RIGHT_SHIFT_EQUAL:
             return 1;
         default:
             fprintf(stderr, "Parser Error: Expected binary operator but got %s\n",
-                    tokenTypetoToken(tok->type));
+                    tokenTypeToToken(tok->type));
             exit(1);
     }
 }

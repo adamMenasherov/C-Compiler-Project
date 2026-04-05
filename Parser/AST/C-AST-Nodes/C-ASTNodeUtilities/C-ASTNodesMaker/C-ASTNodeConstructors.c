@@ -55,28 +55,31 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
     switch(type) {
         case FACTOR_UNARY: {
             new_exp->type = FACTOR_UNARY;
-            new_exp->exp.unary = (CUnary*)expVal;
+            new_exp->exp.unary = C_CreateUnary(((CUnary*)expVal)->type, C_CreateCopyOfFactor(((CUnary*)expVal)->exp));
             break;
         }
             
         case FACTOR_CONSTANT: {
             new_exp->type = FACTOR_CONSTANT;
-            new_exp->exp.cnst = (CConstant*)expVal;
+            new_exp->exp.cnst = C_CreateConstant(((CConstant*)expVal)->val);
             break;
         }
         case FACTOR_BINARY: {
             new_exp->type = FACTOR_BINARY;
-            new_exp->exp.binary = (CBinary*)expVal;
+            new_exp->exp.binary = C_CreateBinary(((CBinary*)expVal)->type, 
+                                C_CreateCopyOfFactor(((CBinary*)expVal)->left), C_CreateCopyOfFactor(((CBinary*)expVal)->right));
             break;
         }       
         case FACTOR_ASSIGNMENT: {
             new_exp->type = FACTOR_ASSIGNMENT;
-            new_exp->exp.assignment = (CAssignment*)expVal;
+            new_exp->exp.assignment = C_CreateAssignment(C_CreateCopyOfFactor(((CAssignment*)expVal)->exp1), 
+                                    C_CreateCopyOfFactor(((CAssignment*)expVal)->exp2));
             break;
         }
         case FACTOR_VAR: {
             new_exp->type = FACTOR_VAR;
-            new_exp->exp.assignment = (CVar*)expVal;
+            new_exp->exp.var = C_CreateVar(((CVar*)expVal)->identifier);
+            break;
         }
     }
     return new_exp;
@@ -135,6 +138,25 @@ CVar* C_CreateVar(char* identifier) {
     var->identifier = strdup(identifier);
 
     return var;
+}
+
+CFactor* C_CreateCopyOfFactor(CFactor* original) {
+    if (!original) return NULL;
+    switch (original->type) {
+        case FACTOR_CONSTANT:
+            return C_CreateFactorFromConstant(original->exp.cnst);
+        case FACTOR_UNARY:
+            return C_CreateFactorFromUnary(original->exp.unary);
+        case FACTOR_BINARY:
+            return C_CreateFactorFromBinary(original->exp.binary);
+        case FACTOR_VAR:
+            return C_CreateFactorFromVar(original->exp.var);
+        case FACTOR_ASSIGNMENT:
+            return C_CreateFactorFromAssignment(original->exp.assignment);
+        default:
+            fprintf(stderr, "Invalid factor type in C_CreateCopyOfFactor\n");
+            return NULL;
+    }
 }
 
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {

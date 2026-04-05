@@ -31,8 +31,23 @@ typedef enum {
     GREATER_THAN,
     LESS_EQUAL,
     GREATER_EQUAL,
+    PLUS_EQUAL,
+    MINUS_EQUAL,
+    STAR_EQUAL,
+    SLASH_EQUAL,
+    PERCENT_EQUAL,
+    AMPERSAND,
+    BAR,
+    CARET,
+    LEFT_SHIFT,
+    RIGHT_SHIFT,
+    AMPERSAND_EQUAL,
+    BAR_EQUAL,
+    CARET_EQUAL,
+    LEFT_SHIFT_EQUAL,
+    RIGHT_SHIFT_EQUAL,
     ERROR
-} TokenType; 
+} TokenType;
 
 typedef struct {
     TokenType type;
@@ -45,6 +60,6 @@ TokenType identifyType(char * tokenSource, char ** tokenStr);
 TokenType keywordOrIdentifier(char * tokenSource, char ** tokenStr);
 TokenType isConstant(char* tokenSource, char ** tokenStr);
 void freeToken(Token* tok);
-char* tokenTypetoToken(TokenType type);
+char* tokenTypeToToken(TokenType type);
 unaryType tokenTypeToUnaryType(TokenType type);
-TokenType handleTwoCharOperators(char* tokenSource, char ** tokenStr);
+TokenType handleMoreThanCharOperators(char* tokenSource, char ** tokenStr);

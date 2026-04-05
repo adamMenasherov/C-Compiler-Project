@@ -93,7 +93,10 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp) {
 
         case ASM_BINARY: {
             fprintf(fp, "\t%s ", asmBinaryOperatorToString(inst->instValue.binary.type));
-            printOperandToASMFile(inst->instValue.binary.op1, fp, REGISTER_32_BIT);
+            if (inst->instValue.binary.type == ASM_BINARY_SHIFT_LEFT || inst->instValue.binary.type == ASM_BINARY_SHIFT_RIGHT) 
+                printOperandToASMFile(inst->instValue.binary.op1, fp, REGISTER_8_BIT);
+            else 
+                printOperandToASMFile(inst->instValue.binary.op1, fp, REGISTER_32_BIT);
             fputs(", ", fp);
             printOperandToASMFile(inst->instValue.binary.op2, fp, REGISTER_32_BIT);
             fputc('\n', fp);
@@ -113,6 +116,20 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp) {
         case ASM_RET: {
             printFunctionEpilogueToASMFile(fp);
             fputs("\tret\n", fp);
+            break;
+        }
+
+        case ASM_PUSH: {
+            fputs("\tpushq ", fp);
+            printOperandToASMFile(inst->instValue.push.op, fp, REGISTER_64_BIT);
+            fputc('\n', fp);
+            break;
+        }
+
+        case ASM_POP: {
+            fputs("\tpopq ", fp);
+            printOperandToASMFile(inst->instValue.pop.op, fp, REGISTER_64_BIT);
+            fputc('\n', fp);
             break;
         }
         
@@ -151,6 +168,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
             switch (reg) {
                 case AX: return "al";
                 case DX: return "dl";
+                case CX: return "cl";
                 case R10: return "r10b";
                 case R11: return "r11b";
                 default: return "<unknown register>";
@@ -159,6 +177,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
             switch (reg) {
                 case AX: return "ax";
                 case DX: return "dx";
+                case CX: return "cx";
                 case R10: return "r10w";
                 case R11: return "r11w";
                 default: return "<unknown register>";
@@ -167,6 +186,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
             switch (reg) {
                 case AX: return "eax";
                 case DX: return "edx";
+                case CX: return "ecx";
                 case R10: return "r10d";
                 case R11: return "r11d";
                 default: return "<unknown register>";
@@ -175,6 +195,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
             switch (reg) {
                 case AX: return "rax";
                 case DX: return "rdx";
+                case CX: return "rcx";
                 case R10: return "r10";
                 case R11: return "r11";
                 default: return "<unknown register>";
@@ -196,6 +217,11 @@ const char * asmBinaryOperatorToString(ASMBinaryOperator op) {
         case ASM_BINARY_ADD: return "addl";
         case ASM_BINARY_SUBTRACT: return "subl";
         case ASM_BINARY_MULTIPLY: return "imull";
+        case ASM_BINARY_AND: return "andl";
+        case ASM_BINARY_OR: return "orl";
+        case ASM_BINARY_XOR: return "xorl";
+        case ASM_BINARY_SHIFT_LEFT: return "sall";
+        case ASM_BINARY_SHIFT_RIGHT: return "sarl";
         default: return "<unknown binary operator>";
     }
 }

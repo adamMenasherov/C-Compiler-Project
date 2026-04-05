@@ -33,10 +33,69 @@ const char *tokenTypeStr[] = {
     "GREATER_THAN",
     "LESS_EQUAL",
     "GREATER_EQUAL",
+    "PLUS_EQUAL",
+    "MINUS_EQUAL",
+    "STAR_EQUAL",
+    "SLASH_EQUAL",
+    "PERCENT_EQUAL",
+    "AMPERSAND",
+    "BAR",
+    "CARET",
+    "LEFT_SHIFT",
+    "RIGHT_SHIFT",
+    "AMPERSAND_EQUAL",
+    "BAR_EQUAL",
+    "CARET_EQUAL",
+    "LEFT_SHIFT_EQUAL",
+    "RIGHT_SHIFT_EQUAL",
     "ERROR"
 };
 
 
+const char *tokenTypeToSymbol[] = {
+    "",       // IDENTIFIER
+    "",       // CONSTANT
+    "int",    // INT_KEYWORD
+    "void",   // VOID_KEYWORD
+    "return", // RETURN_KEYWORD
+    "(",      // OPEN_PAREN
+    ")",      // CLOSE_PAREN
+    "{",      // OPEN_BRACE
+    "}",      // CLOSE_BRACE
+    ";",      // SEMICOLON
+    "~",      // TILDE
+    "-",      // HYPHEN
+    "--",     // TWO_HYPHENS
+    "+",      // PLUS
+    "*",      // ASTERISK
+    "/",      // SLASH
+    "%",      // PERCENT
+    "!",      // EXCLAMATION
+    "&&",     // TWO_AMPERSANDS
+    "||",     // TWO_BARS
+    "=",      // ONE_EQUAL
+    "==",     // TWO_EQUALS
+    "!=",     // NOT_EQUAL
+    "<",      // LESS_THAN
+    ">",      // GREATER_THAN
+    "<=",     // LESS_EQUAL
+    ">=",     // GREATER_EQUAL
+    "+=",     // PLUS_EQUAL
+    "-=",     // MINUS_EQUAL
+    "*=",     // STAR_EQUAL
+    "/=",     // SLASH_EQUAL
+    "%=",     // PERCENT_EQUAL
+    "&",      // AMPERSAND
+    "|",      // BAR
+    "^",      // CARET
+    "<<",     // LEFT_SHIFT
+    ">>",     // RIGHT_SHIFT
+    "&=",     // AMPERSAND_EQUAL
+    "|=",     // BAR_EQUAL
+    "^=",     // CARET_EQUAL
+    "<<=",    // LEFT_SHIFT_EQUAL
+    ">>=",    // RIGHT_SHIFT_EQUAL
+};
 
 Token* createToken(char** tokenSource) {
     while(isspace(**tokenSource)) (*tokenSource)++;
@@ -55,7 +114,7 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
     char c;
     if (isalpha(*tokenSource) || *tokenSource == '_') return keywordOrIdentifier(tokenSource, tokenStr);
     if (isdigit(*tokenSource)) return isConstant(tokenSource, tokenStr);
-    if ((type = handleTwoCharOperators(tokenSource, tokenStr)) != ERROR) return type;
+    if ((type = handleMoreThanCharOperators(tokenSource, tokenStr)) != ERROR) return type;
 
     c = *(tokenSource + 1);
     // Has to be one of the single char tokens, so we terminate the string after the first char
@@ -76,6 +135,9 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
         case '!': type = EXCLAMATION; break;
         case '<': type = LESS_THAN; break;
         case '>': type = GREATER_THAN; break;
+        case '&': type = AMPERSAND; break;
+        case '|': type = BAR; break;
+        case '^': type = CARET; break;
         default: type = ERROR;
     }
     *tokenStr = strdup(tokenSource);
@@ -83,7 +145,14 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
     return type;
 }
 
-TokenType handleTwoCharOperators(char* tokenSource, char ** tokenStr) {
+char* tokenTypeToToken(TokenType type) {
+    if (type < 0 || type >= ERROR)
+        return "";
+    return (char*)tokenTypeToSymbol[type];
+}
+
+
+TokenType handleMoreThanCharOperators(char* tokenSource, char ** tokenStr) {
     if (strncmp(tokenSource, "--", 2) == 0) {
         *tokenStr = strndup(tokenSource, 2);
         return TWO_HYPHENS;
@@ -106,6 +175,37 @@ TokenType handleTwoCharOperators(char* tokenSource, char ** tokenStr) {
     } else if (strncmp(tokenSource, ">=", 2) == 0) {
         *tokenStr = strndup(tokenSource, 2);
         return GREATER_EQUAL;
+    }
+    else if (strncmp(tokenSource, "+=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return PLUS_EQUAL;
+    } else if (strncmp(tokenSource, "-=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return MINUS_EQUAL;
+    } else if (strncmp(tokenSource, "*=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return STAR_EQUAL;
+    } else if (strncmp(tokenSource, "/=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return SLASH_EQUAL;
+    } else if (strncmp(tokenSource, "%=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return PERCENT_EQUAL;
+    } else if (strncmp(tokenSource, "&=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return AMPERSAND_EQUAL;
+    } else if (strncmp(tokenSource, "|=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return BAR_EQUAL;
+    } else if (strncmp(tokenSource, "^=", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return CARET_EQUAL;
+    } else if (strncmp(tokenSource, "<<", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return LEFT_SHIFT;
+    } else if (strncmp(tokenSource, ">>", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return RIGHT_SHIFT;
     }
 
     return ERROR;
@@ -151,30 +251,7 @@ void freeToken(Token* tok) {
 }
 
 
-char* tokenTypetoToken(TokenType type) {
-    switch(type) {
-        case INT_KEYWORD:
-            return "int";
-        case VOID_KEYWORD:
-            return "void";
-        case RETURN_KEYWORD:
-            return "return";
-        case OPEN_PAREN:
-            return "(";
-        case CLOSE_PAREN:
-            return ")";
-        case OPEN_BRACE:
-            return "{";
-        case CLOSE_BRACE:
-            return "}";
-        case SEMICOLON:
-            return ";";
-        default:
-            break;
-    }
 
-    return "";
-}
 
 
 unaryType tokenTypeToUnaryType(TokenType type) {
@@ -186,7 +263,7 @@ unaryType tokenTypeToUnaryType(TokenType type) {
         case EXCLAMATION:
             return UNARY_NOT;
         default:
-            fprintf(stderr, "Error: Invalid unary operator token type %s\n", tokenTypetoToken(type));
+            fprintf(stderr, "Error: Invalid unary operator token type %s\n", tokenTypeToToken(type));
             exit(1);
     }
 }

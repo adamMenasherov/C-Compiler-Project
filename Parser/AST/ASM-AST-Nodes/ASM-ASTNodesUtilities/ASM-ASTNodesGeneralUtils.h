@@ -18,6 +18,8 @@ typedef enum {
     ASM_SETCC,
     ASM_JUMP,
     ASM_CMP,
+    ASM_PUSH,
+    ASM_POP,
     ASM_JUMPCC,
     ASM_RET
 } ASMInstructionType;
@@ -31,6 +33,11 @@ typedef enum {
     ASM_BINARY_ADD,
     ASM_BINARY_SUBTRACT,
     ASM_BINARY_MULTIPLY,
+    ASM_BINARY_XOR,
+    ASM_BINARY_AND,
+    ASM_BINARY_OR,
+    ASM_BINARY_SHIFT_LEFT,
+    ASM_BINARY_SHIFT_RIGHT
 } ASMBinaryOperator;
 
 typedef enum {
@@ -51,6 +58,7 @@ typedef enum {
 
 typedef enum {
     AX,
+    CX,
     DX,
     R10,
     R11
@@ -110,6 +118,12 @@ typedef struct ASMInstruction {
             ASMCondCode cond;
             ASMOperand* op;
         } setcc;
+        struct {
+            ASMOperand* op;
+        } push;
+        struct {
+            ASMOperand* op;
+        } pop;
     } instValue;
     struct ASMInstruction* next;
 } ASMInstruction;

@@ -1,37 +1,9 @@
 #include "C-ASTNodePrinter.h"
+#include "../C-ASTOperatorNames.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 static int depth = 0;
-
-static const char* C_getUnaryOpName(unaryType type) {
-    switch (type) {
-        case UNARY_COMPLEMENT:   return "Complement";
-        case UNARY_NEGATE:       return "Negate";
-        case UNARY_NOT:          return "Not";
-        case UNARY_NOT_UNARY_OP: return "Not";
-        default:                 return "Unknown";
-    }
-}
-
-static const char* C_getBinaryOpName(binType type) {
-    switch (type) {
-        case BIN_ADD:           return "Add";
-        case BIN_SUBTRACT:      return "Subtract";
-        case BIN_MULTIPLY:      return "Multiply";
-        case BIN_DIVIDE:        return "Divide";
-        case BIN_REMAINDER:     return "Modulo";
-        case BIN_AND:           return "And";
-        case BIN_OR:            return "Or";
-        case BIN_EQUALS:        return "Equals";
-        case BIN_NOT_EQUALS:    return "NotEquals";
-        case BIN_LESS_THAN:     return "LessThan";
-        case BIN_LESS_EQUAL:    return "LessEqual";
-        case BIN_GREATER_THAN:  return "GreaterThan";
-        case BIN_GREATER_EQUAL: return "GreaterEqual";
-        default:                return "Unknown";
-    }
-}
 
 void C_printProgram(CProgram* prog) {
     printf("Program(\n\t");
@@ -96,7 +68,7 @@ void C_printDeclaration(CDeclaration* decl) {
 void C_printUnary(CUnary* unary) {
     if (!unary) return;
 
-    printf("Unary(%s,\n", C_getUnaryOpName(unary->type));
+    printf("Unary(%s,\n", getUnaryOpName(unary->type));
     depth++;
     for (int i = 0; i < depth; i++) printf("\t");
     C_printFactor(unary->exp);
@@ -118,7 +90,7 @@ void C_printBlockItem(CBlockItem* blockItem) {
 void C_printBinary(CBinary* binary) {
     if (!binary) return;
 
-    printf("Binary(%s, ", C_getBinaryOpName(binary->type));
+    printf("Binary(%s, ", getBinaryOpName(binary->type));
     depth++;
     C_printFactor(binary->left);
     printf(", ");

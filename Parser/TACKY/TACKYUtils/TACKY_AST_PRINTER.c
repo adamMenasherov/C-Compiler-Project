@@ -1,37 +1,11 @@
 #include "TACKY_AST_PRINTER.h"
 #include "../../AST/C-AST-Nodes/C-ASTNodes.h"
+#include "../../AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTOperatorNames.h"
 #include <stdio.h>
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
-
-/** Returns a human-readable string for a unaryType enum value. */
-static const char* unaryTypeToString(unaryType type) {
-    switch (type) {
-        case UNARY_NEGATE:      return "Negate";
-        case UNARY_COMPLEMENT:  return "Complement";
-        case UNARY_NOT:         return "Not";
-        default:                return "Unknown";
-    }
-}
-
-static const char* binTypeToString(binType type) {
-    switch (type) {
-        case BIN_ADD:       return "Add";
-        case BIN_SUBTRACT:  return "Subtract";
-        case BIN_MULTIPLY:  return "Multiply";
-        case BIN_DIVIDE:    return "Divide";
-        case BIN_REMAINDER:    return "Modulo";
-        case BIN_EQUALS:    return "Equals";
-        case BIN_NOT_EQUALS:return "NotEquals";
-        case BIN_LESS_THAN: return "LessThan";
-        case BIN_LESS_EQUAL:return "LessEqual";
-        case BIN_GREATER_THAN: return "GreaterThan";
-        case BIN_GREATER_EQUAL: return "GreaterEqual";
-        default:           return "Unknown";
-     }
-}
 
 /* ------------------------------------------------------------------ */
 /*  Public printers                                                     */
@@ -74,7 +48,7 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
 
     switch (inst->type) {
         case TACKY_UNARY: {
-            printf("Unary(%s, ", unaryTypeToString(inst->instValue.unaryOp.type));
+            printf("Unary(%s, ", getUnaryOpName(inst->instValue.unaryOp.type));
             printTACKYValue(inst->instValue.unaryOp.src);
             printf(", ");
             printTACKYValue(inst->instValue.unaryOp.dest);
@@ -82,7 +56,7 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             break;
         }
         case TACKY_BINARY: {
-            printf("Binary(%s, ", binTypeToString(inst->instValue.binaryOp.binaryOpType));
+            printf("Binary(%s, ", getBinaryOpName(inst->instValue.binaryOp.binaryOpType));
             printTACKYValue(inst->instValue.binaryOp.src1);
             printf(", ");
             printTACKYValue(inst->instValue.binaryOp.src2);

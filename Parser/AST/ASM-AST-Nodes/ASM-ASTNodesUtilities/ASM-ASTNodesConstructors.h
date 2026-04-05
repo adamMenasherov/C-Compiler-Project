@@ -154,6 +154,22 @@ ASMInstruction* createASMSetCCInstruction(ASMCondCode cond, ASMOperand* op);
  */
 ASMInstruction* createASMLabelInstruction(char* label);
 
+/**
+ * @brief Create a Push Instruction object
+ * 
+ * @param src The source operand to push onto the stack
+ * @return ASMInstruction* pointer to the created PUSH instruction
+ */
+ASMInstruction* createASMPushInstruction(ASMOperand* src);
+
+
+/**
+ * @brief Create a Pop Instruction object
+ * 
+ * @param dest The destination operand to pop from the stack
+ * @return ASMInstruction* pointer to the created POP instruction
+ */
+ASMInstruction* createASMPopInstruction(ASMOperand* dest);
 
 /**
  * @brief Create a Return Instruction object

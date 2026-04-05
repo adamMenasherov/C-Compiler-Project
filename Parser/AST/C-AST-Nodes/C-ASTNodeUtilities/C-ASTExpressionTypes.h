@@ -29,7 +29,12 @@ typedef enum {
     BIN_LESS_EQUAL,
     BIN_GREATER_THAN,
     BIN_GREATER_EQUAL,
-    BIN_NOT_BINARY_OP
+    BIN_NOT_BINARY_OP,
+    BIN_BITWISE_AND,
+    BIN_BITWISE_OR,
+    BIN_BITWISE_XOR,
+    BIN_LEFT_SHIFT,
+    BIN_RIGHT_SHIFT
 } binType;
 
 typedef enum {

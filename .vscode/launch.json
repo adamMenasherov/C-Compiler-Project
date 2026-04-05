@@ -7,10 +7,10 @@
       "request": "launch",
       "program": "${workspaceFolder}/compiler",
       "args": [
-        "${workspaceFolder}/testFiles/valid/mixed_precedence_assignment.c"
+        "${workspaceFolder}/testShifting.c"
       ],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/..",
+      "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
