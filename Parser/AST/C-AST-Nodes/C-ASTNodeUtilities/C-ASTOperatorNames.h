@@ -7,6 +7,12 @@ static inline const char* getUnaryOpName(unaryType type) {
         case UNARY_COMPLEMENT:   return "Complement";
         case UNARY_NEGATE:       return "Negate";
         case UNARY_NOT:          return "Not";
+        case UNARY_INCREMENT_PREFIX:  return "IncrementPrefix";
+        case UNARY_INCREMENT_POSTFIX: return "IncrementPostfix";
+        case UNARY_DECREMENT_PREFIX:  return "DecrementPrefix";
+        case UNARY_DECREMENT_POSTFIX: return "DecrementPostfix";
+        case UNARY_DECREMENT:  return "Decrement";
+        case UNARY_INCREMENT:  return "Increment";
         case UNARY_NOT_UNARY_OP: return "Not";
         default:                 return "Unknown";
     }

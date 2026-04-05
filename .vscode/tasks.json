@@ -4,15 +4,7 @@
         {
             "label": "build compiler",
             "type": "shell",
-            "command": "gcc",
-            "args": [
-                "-g",
-                "${workspaceFolder}/main.c",
-                "${workspaceFolder}/Tokens/token.c",
-                "${workspaceFolder}/Tokens/tokenList.c",
-                "-o",
-                "${workspaceFolder}/mycompiler.exe"
-            ],
+            "command": "make",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -20,7 +12,7 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Task to build the C compiler with debugging symbols"
+            "detail": "Build the compiler using the workspace Makefile"
         }
     ]
 }

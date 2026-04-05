@@ -16,6 +16,7 @@ typedef enum {
     SEMICOLON,
     TILDE,
     HYPHEN,
+    TWO_PLUS,
     TWO_HYPHENS,
     PLUS, 
     ASTERISK,
@@ -46,6 +47,10 @@ typedef enum {
     CARET_EQUAL,
     LEFT_SHIFT_EQUAL,
     RIGHT_SHIFT_EQUAL,
+    IF_KEYWORD,
+    ELSE_KEYWORD,
+    QUESTION_MARK,
+    COLON,
     ERROR
 } TokenType;
 
@@ -62,4 +67,5 @@ TokenType isConstant(char* tokenSource, char ** tokenStr);
 void freeToken(Token* tok);
 char* tokenTypeToToken(TokenType type);
 unaryType tokenTypeToUnaryType(TokenType type);
+unaryType prefixToPostfix(unaryType type);
 TokenType handleMoreThanCharOperators(char* tokenSource, char ** tokenStr);

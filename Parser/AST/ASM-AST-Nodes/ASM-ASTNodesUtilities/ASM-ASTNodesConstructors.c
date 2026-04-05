@@ -106,6 +106,12 @@ ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest) {
         case UNARY_NOT:
             inst->instValue.unary.type = ASM_UNARY_NOT;
             break;
+        case UNARY_DECREMENT:
+            inst->instValue.unary.type = ASM_UNARY_DEC;
+            break;
+        case UNARY_INCREMENT:
+            inst->instValue.unary.type = ASM_UNARY_INC;
+            break;
          default: 
             free(inst);
             return NULL; // Unsupported unary type

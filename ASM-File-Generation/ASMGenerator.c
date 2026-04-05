@@ -209,6 +209,8 @@ const char * asmUnaryOperatorToString(ASMUnaryOperator op) {
     switch (op) {
         case ASM_UNARY_NEG: return "negl";
         case ASM_UNARY_NOT: return "notl";
+        case ASM_UNARY_DEC: return "decl";
+        case ASM_UNARY_INC: return "incl";
         default: return "<unknown unary operator>";
     }
 }

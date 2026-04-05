@@ -34,6 +34,8 @@ SOURCES = ASM-File-Generation/ASMGenerator.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodes.c \
 	      Parser/Parser.c \
+	      Parser/TACKY/TACKYUtils/TACKYConstructors.c \
+	      Parser/TACKY/TACKYUtils/TACKYEmitters.c \
 	      Parser/TACKY/TACKYUtils/TACKY_AST_FREE.c \
 	      Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.c \
 	      Parser/TACKY/TACKY_AST.c \
@@ -69,6 +71,11 @@ $(OBJ_DIR)/%.o: %.c
 run: $(TARGET)
 	./$(TARGET) testFiles/test.c
 
+# Run the regression test suite
+.PHONY: test
+test: $(TARGET)
+	python3 scripts/run_compiler_tests.py
+
 # Run with --lex flag to stop at lexical analysis
 .PHONY: lex
 lex: $(TARGET)
@@ -95,6 +102,7 @@ help:
 	@echo "Available targets:"
 	@echo "  make              - Build the compiler (default)"
 	@echo "  make run          - Build and run with test file"
+	@echo "  make test         - Build and run the regression test suite"
 	@echo "  make lex          - Build and run with --lex flag"
 	@echo "  make debug        - Build and run with GDB debugger"
 	@echo "  make clean        - Remove build directory"

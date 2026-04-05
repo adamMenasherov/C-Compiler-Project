@@ -58,7 +58,9 @@ int main(int argc, char* argv[]) {
     freeAST(ast);
     freeTACKY_AST(tacky_ast);
     free(source); 
+    free(asmFileName);
     free(preprocessFileName);
+    free(execFileName);
     freeTokenList(tokenList);
     return 0;
 }

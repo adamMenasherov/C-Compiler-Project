@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
-    int offset = -4;  
+    int offset = -4;
     ASMInstruction* inst;
     ASMOperand* newOp;
     for (inst = instList->head; inst != NULL; inst = inst->next) {
@@ -18,7 +18,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
                     inst->instValue.mov.operand2 = newOp;
                 }
                 handleStackToStackForMov(inst);
-                break; 
+                break;
             }
             case ASM_IDIV:
             {
@@ -26,7 +26,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
                     inst->instValue.idiv.divisor = newOp;
                 }
                 handleConstantAsDestIdivOperation(inst);
-                break; 
+                break;
             }
             case ASM_UNARY:
             {
@@ -94,7 +94,7 @@ ASMOperand* changePseudoToStackOp(int offset, ASMOperand* operandToFree) {
 ASMOperand* handlePseudoOp(ASMOperand* operand, HashTable* table, int* offset) {
     if (operand->type != ASM_OP_PSEUDO) return NULL;
     insertPseudoToTable(table, operand->OperandValue.identifier, offset);
-    
+
     int storedOffset;
     ht_get(table, operand->OperandValue.identifier, &storedOffset);
     return changePseudoToStackOp(storedOffset, operand);
@@ -167,7 +167,7 @@ void handleStackToStackForBinary(ASMInstruction* inst) {
     ASMInstruction* movToR10 = createMovInstruction(op1, createRegisterOperand(R10));
     if (movToR10) {
         ASMInstruction* binaryInst = calloc(1, sizeof(ASMInstruction));
-        *binaryInst = *inst;         
+        *binaryInst = *inst;
         binaryInst->next = inst->next;
 
         *inst = *movToR10;
@@ -184,7 +184,7 @@ void handleStackToStackForCmp(ASMInstruction* inst) {
     ASMInstruction* movToR10 = createMovInstruction(op1, createRegisterOperand(R10));
     if (movToR10) {
         ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
-        *cmpInst = *inst;         
+        *cmpInst = *inst;
         cmpInst->next = inst->next;
 
         *inst = *movToR10;
@@ -196,7 +196,7 @@ void handleStackToStackForCmp(ASMInstruction* inst) {
 void handleConstantAsDestIdivOperation(ASMInstruction* inst) {
     if (inst->type != ASM_IDIV) return;
     if (!inst->instValue.idiv.divisor || inst->instValue.idiv.divisor->type == ASM_OP_REGISTER) {
-        return; 
+        return;
     }
 
     ASMOperand* divisor = inst->instValue.idiv.divisor;
@@ -205,19 +205,19 @@ void handleConstantAsDestIdivOperation(ASMInstruction* inst) {
     ASMInstruction* movToR10 = createMovInstruction(divisor, createRegisterOperand(R10));
     if (movToR10) {
         ASMInstruction* idivInst = calloc(1, sizeof(ASMInstruction));
-        *idivInst = *inst; 
-        idivInst->next = inst->next;   
+        *idivInst = *inst;
+        idivInst->next = inst->next;
 
-        *inst = *movToR10;  
-        inst->next = idivInst;  
+        *inst = *movToR10;
+        inst->next = idivInst;
         free(movToR10);
-    }   
+    }
 }
 
 void handleConstantAsDestCmpOperation(ASMInstruction* inst) {
     if (inst->type != ASM_CMP) return;
     if (!inst->instValue.cmp.op2 || inst->instValue.cmp.op2->type == ASM_OP_REGISTER) {
-        return; 
+        return;
     }
 
     ASMOperand* op2 = inst->instValue.cmp.op2;
@@ -226,11 +226,11 @@ void handleConstantAsDestCmpOperation(ASMInstruction* inst) {
     ASMInstruction* movToR11 = createMovInstruction(op2, createRegisterOperand(R11));
     if (movToR11) {
         ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
-        *cmpInst = *inst; 
-        cmpInst->next = inst->next;   
+        *cmpInst = *inst;
+        cmpInst->next = inst->next;
 
-        *inst = *movToR11;  
-        inst->next = cmpInst;  
+        *inst = *movToR11;
+        inst->next = cmpInst;
         free(movToR11);
     }
 }
@@ -247,11 +247,11 @@ void handleImmediateAsDestForShift(ASMInstruction* inst) {
     ASMInstruction* movToR11 = createMovInstruction(immOp, createRegisterOperand(R11));
     if (movToR11) {
         ASMInstruction* shiftInst = calloc(1, sizeof(ASMInstruction));
-        *shiftInst = *inst; 
-        shiftInst->next = inst->next;   
+        *shiftInst = *inst;
+        shiftInst->next = inst->next;
 
-        *inst = *movToR11;  
-        inst->next = shiftInst;  
+        *inst = *movToR11;
+        inst->next = shiftInst;
         free(movToR11);
     }
 }

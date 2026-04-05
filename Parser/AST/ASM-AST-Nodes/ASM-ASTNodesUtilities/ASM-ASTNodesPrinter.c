@@ -6,6 +6,8 @@ static const char* asmUnaryOperatorToString(ASMUnaryOperator op) {
     switch (op) {
         case ASM_UNARY_NEG: return "Neg";
         case ASM_UNARY_NOT: return "Not";
+        case ASM_UNARY_DEC: return "Dec";
+        case ASM_UNARY_INC: return "Inc";
         default:  return "Unknown";
     }
 }

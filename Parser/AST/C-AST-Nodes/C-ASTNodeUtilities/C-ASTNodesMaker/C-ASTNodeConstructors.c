@@ -22,11 +22,11 @@ CReturn* C_CreateReturn(CFactor* exp) {
 }
 
 
-CFunction* C_CreateFunction(char* function_name, CBlockItemList* body) {
+CFunction* C_CreateFunction(char* function_name, CBlock* block) {
     CFunction* func = malloc(sizeof(CFunction));
     if (!func) return NULL;
     func->function_name = strdup(function_name);
-    func->body = body;
+    func->block = block;
 
     return func;
 }
@@ -81,10 +81,34 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
             new_exp->exp.var = C_CreateVar(((CVar*)expVal)->identifier);
             break;
         }
+        case FACTOR_CONDITIONAL: {
+            new_exp->type = FACTOR_CONDITIONAL;
+            new_exp->exp.conditional = C_CreateConditional(C_CreateCopyOfFactor(((CConditional*)expVal)->condition), 
+                                        C_CreateCopyOfFactor(((CConditional*)expVal)->then), 
+                                        C_CreateCopyOfFactor(((CConditional*)expVal)->else_stmt));
+            break;
+        }
     }
     return new_exp;
 }
 
+CBlock* C_CreateBlockFromBlockItems(CBlockItemList* items) {
+    CBlock* block = malloc(sizeof(CBlock));
+    if (!block) return NULL;
+    block->items = items;
+    return block;
+}
+
+CBlock* C_CreateBlockEmpty() {
+    CBlock* block = malloc(sizeof(CBlock));
+    if (!block) return NULL;
+    block->items = BlockItemArray_create();
+    if (!block->items) {
+        free(block);
+        return NULL;
+    }
+    return block;
+}
 
 CFactor* C_CreateFactorFromConstant(CConstant * exp) {
     return C_CreateFactor(FACTOR_CONSTANT, exp);
@@ -106,6 +130,22 @@ CFactor* C_CreateFactorFromAssignment(CAssignment* assign) {
     return C_CreateFactor(FACTOR_ASSIGNMENT, assign);
 }
 
+CFactor* C_CreateFactorFromConditional(CConditional* conditional) {
+    return C_CreateFactor(FACTOR_CONDITIONAL, conditional);
+}
+
+CIf* C_CreateIf(ifType type, CFactor* condition, CStatement* then, CStatement* else_stmt) {
+    CIf* ifNode = malloc(sizeof(CIf));
+    if (!ifNode) return NULL;
+    ifNode->type = type;
+    ifNode->condition = condition;
+    ifNode->then = then;
+    ifNode->else_stmt = else_stmt;
+
+    return ifNode;
+}
+
+
 CStatement* C_CreateStatement(statementType type, void * stmtVal) {
     CStatement* stmt = malloc(sizeof(CStatement));
     if (!stmt) return NULL;
@@ -121,6 +161,14 @@ CStatement* C_CreateStatement(statementType type, void * stmtVal) {
         }
         case STMT_NULL: {
             stmt->stmt.exp = NULL;
+            break;
+        }
+        case STMT_IF: {
+            stmt->stmt.if_stmt = (CIf*)stmtVal;
+            break;
+        }
+        case STMT_COMPOUND: {
+            stmt->stmt.compound_stmt = (CCompound*)stmtVal;
             break;
         }
         default: {
@@ -153,6 +201,8 @@ CFactor* C_CreateCopyOfFactor(CFactor* original) {
             return C_CreateFactorFromVar(original->exp.var);
         case FACTOR_ASSIGNMENT:
             return C_CreateFactorFromAssignment(original->exp.assignment);
+        case FACTOR_CONDITIONAL:
+            return C_CreateFactorFromConditional(original->exp.conditional);
         default:
             fprintf(stderr, "Invalid factor type in C_CreateCopyOfFactor\n");
             return NULL;
@@ -206,4 +256,22 @@ CBlockItem* C_CreateBlockItem(blockItemType type, void * stmtVal) {
             return NULL;
         }
     }
+    return blockItem;
+}
+
+
+CConditional* C_CreateConditional(CFactor* condition, CFactor* then, CFactor* else_stmt) {
+    CConditional* conditional = malloc(sizeof(CConditional));
+    if (!conditional) return NULL;
+    conditional->condition = condition;
+    conditional->then = then;
+    conditional->else_stmt = else_stmt;
+    return conditional;
+}
+
+CCompound* C_CreateCompound(CBlock* block) {
+    CCompound* compound = malloc(sizeof(CCompound));
+    if (!compound) return NULL;
+    compound->block = block;
+    return compound;
 }

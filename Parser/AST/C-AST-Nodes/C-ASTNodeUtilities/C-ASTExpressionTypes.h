@@ -1,19 +1,36 @@
 #pragma once
 
+typedef struct CBlockItem CBlockItem;
+#include "../../../../DataStructures/DynamicArray/Wrappers/BlockItemArrayWrapper.h"
+typedef BlockItemArray CBlockItemList;
+
 typedef enum {
     FACTOR_CONSTANT,
     FACTOR_UNARY,
     FACTOR_BINARY,
     FACTOR_VAR,
-    FACTOR_ASSIGNMENT
+    FACTOR_ASSIGNMENT,
+    FACTOR_CONDITIONAL
 } factorType;
 
 typedef enum {
     UNARY_COMPLEMENT,
     UNARY_NEGATE,
     UNARY_NOT,
+    UNARY_INCREMENT,
+    UNARY_DECREMENT,
+    UNARY_INCREMENT_PREFIX,
+    UNARY_INCREMENT_POSTFIX,
+    UNARY_DECREMENT_PREFIX,
+    UNARY_DECREMENT_POSTFIX,
     UNARY_NOT_UNARY_OP
 } unaryType;
+
+typedef enum {
+    IF_WITHOUT_ELSE,
+    IF_WITH_ELSE
+} ifType;
+
 
 typedef enum {
     BIN_SUBTRACT,
@@ -40,6 +57,8 @@ typedef enum {
 typedef enum {
     STMT_RETURN,
     STMT_EXPRESSION,
+    STMT_IF,
+    STMT_COMPOUND,
     STMT_NULL
 } statementType;
 
@@ -60,6 +79,9 @@ typedef struct {
 typedef struct CBinary CBinary;
 typedef struct CUnary CUnary;
 typedef struct CFactor CFactor;
+typedef struct CStatement CStatement;
+typedef struct CBlock CBlock;
+typedef struct CCompound CCompound;
 
 typedef struct {
     char * identifier;
@@ -70,6 +92,15 @@ typedef struct {
     CFactor* exp2;
 } CAssignment;
 
+typedef struct {
+    CFactor* condition;
+    CFactor* then;
+    CFactor* else_stmt;
+} CConditional;
+
+typedef struct CCompound {
+    CBlock* block;
+} CCompound;
 
 typedef struct CBinary {
     CFactor * left;
@@ -85,6 +116,7 @@ typedef struct CFactor {
         CBinary * binary;
         CVar * var;
         CAssignment * assignment;
+        CConditional * conditional;
     } exp;
 } CFactor; 
 
@@ -99,10 +131,19 @@ typedef struct {
 } CReturn;
 
 typedef struct {
+    ifType type;
+    CFactor* condition;
+    CStatement* then;
+    CStatement* else_stmt; 
+} CIf;
+
+typedef struct CStatement {
     statementType type;
     union {
         CReturn* ret;
         CFactor* exp;
+        CIf* if_stmt;
+        CCompound* compound_stmt;
     } stmt;
 } CStatement;
 
@@ -112,12 +153,16 @@ typedef struct {
     CFactor* exp;
 } CDeclaration;
 
-typedef struct {
+typedef struct CBlockItem {
     blockItemType type;
     union {
         CDeclaration* decl;
         CStatement* stmt;
     } item;
 } CBlockItem;
+
+typedef struct CBlock {
+    CBlockItemList* items;
+} CBlock;
 
 

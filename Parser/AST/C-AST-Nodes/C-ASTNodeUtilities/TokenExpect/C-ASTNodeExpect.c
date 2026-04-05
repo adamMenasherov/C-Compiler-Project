@@ -16,9 +16,7 @@ int check(TokenList* tokens, TokenType type) {
 int checkCompoundAssignment(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
     Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
-    return tok ? (tok->type == PLUS_EQUAL || tok->type == MINUS_EQUAL || 
-                   tok->type == STAR_EQUAL || tok->type == SLASH_EQUAL || 
-                   tok->type == PERCENT_EQUAL) : 0;
+    return tok ? (isCompoundAssignment(tok)) : 0;
 }
 
 int checkBinaryOp(TokenList* tokens)  {
@@ -31,6 +29,12 @@ int checkUnaryOp(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
     Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
     return tok ? isUnaryOp(tok) : 0;
+}
+
+int checkIncrementDecrement(TokenList* tokens) {
+    if (!tokensLeft(tokens)) return 0;
+    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    return tok ? (tok->type == TWO_PLUS || tok->type == TWO_HYPHENS) : 0;
 }
 
 int expectConstant(TokenList* tokens) {
@@ -57,6 +61,11 @@ binType compoundAssignmentToBinType(TokenType type) {
         case STAR_EQUAL: return BIN_MULTIPLY;
         case SLASH_EQUAL: return BIN_DIVIDE;
         case PERCENT_EQUAL: return BIN_REMAINDER;
+        case AMPERSAND_EQUAL: return BIN_BITWISE_AND;
+        case BAR_EQUAL: return BIN_BITWISE_OR;
+        case CARET_EQUAL: return BIN_BITWISE_XOR;
+        case LEFT_SHIFT_EQUAL: return BIN_LEFT_SHIFT;
+        case RIGHT_SHIFT_EQUAL: return BIN_RIGHT_SHIFT;
         default:
             fprintf(stderr, "Parser Error: Expected compound assignment operator but got %s\n",
                     tokenTypeToToken(type));
@@ -104,9 +113,7 @@ void expectCompoundAssignment(TokenList* tokens) {
     }
     int cursor = TokenList_getCursor(tokens);
     Token* tok = TokenList_getAt(tokens, cursor);
-    if (!tok || !(tok->type == PLUS_EQUAL || tok->type == MINUS_EQUAL || 
-                   tok->type == STAR_EQUAL || tok->type == SLASH_EQUAL || 
-                   tok->type == PERCENT_EQUAL)) {
+    if (!tok || !isCompoundAssignment(tok)) {
         fprintf(stderr, "Parser Error: Expected compound assignment operator but got %s\n", 
             tok ? tok->value : "NULL");
         exit(1);
@@ -118,11 +125,10 @@ int isUnaryOp(Token* tok) {
     switch(tok->type) {
         case TILDE:
         case HYPHEN:
-        case EXCLAMATION: 
-            break;
+        case EXCLAMATION:
+        case TWO_PLUS:
         case TWO_HYPHENS:
-            fprintf(stderr, "Parser Error: -- is an invalid token\n");
-            exit(1);
+            break;
         default: return 0;
     }
 
@@ -132,14 +138,14 @@ int isUnaryOp(Token* tok) {
 
 int isBinaryOp(Token* tok) {
     switch(tok->type) {
-        case TWO_HYPHENS:
-            fprintf(stderr, "Parser Error: %s is an invalid token\n", tok->value);
-            exit(1);
         case HYPHEN:
         case PLUS:
         case ASTERISK:
         case SLASH:
         case PERCENT:
+        case AMPERSAND:
+        case BAR:
+        case CARET:
         case TWO_AMPERSANDS:
         case TWO_BARS:
         case TWO_EQUALS:
@@ -154,11 +160,14 @@ int isBinaryOp(Token* tok) {
         case STAR_EQUAL:
         case SLASH_EQUAL:
         case PERCENT_EQUAL:
-        case AMPERSAND:
-        case BAR:
-        case CARET:
+        case AMPERSAND_EQUAL:
+        case BAR_EQUAL:
+        case CARET_EQUAL:
+        case LEFT_SHIFT_EQUAL:
+        case RIGHT_SHIFT_EQUAL:
         case LEFT_SHIFT:
         case RIGHT_SHIFT:
+        case QUESTION_MARK:
             break;
         default: return 0;
     }
@@ -230,6 +239,30 @@ binType tokenTypeToBinType(TokenType type) {
     }    
 }
 
+
+int isPostfixUnaryOp(unaryType type) {
+    switch(type) {
+        case UNARY_INCREMENT_POSTFIX:
+        case UNARY_DECREMENT_POSTFIX:
+            break;
+        default: return 0;
+    }
+
+    return 1;
+}
+
+unaryType FromPostPreFixToRegular(unaryType type) {
+    switch(type) {
+        case UNARY_INCREMENT_POSTFIX:
+        case UNARY_INCREMENT_PREFIX:
+             return UNARY_INCREMENT;
+        case UNARY_DECREMENT_POSTFIX:
+        case UNARY_DECREMENT_PREFIX:
+             return UNARY_DECREMENT;
+        default: return type;
+    }
+}
+
 int precedence(Token* tok) {
     switch (tok->type) {
         case ASTERISK:
@@ -260,6 +293,8 @@ int precedence(Token* tok) {
             return 10;
         case TWO_BARS:
             return 5;
+        case QUESTION_MARK:
+            return 3;
         case ONE_EQUAL:
         case PLUS_EQUAL:
         case MINUS_EQUAL:
@@ -279,10 +314,37 @@ int precedence(Token* tok) {
     }
 }
 
+int isIncrementDecrementOp(unaryType type) {
+    switch(type) {
+        case UNARY_INCREMENT:
+        case UNARY_DECREMENT:
+            break;
+        default: return 0;
+    }
+
+    return 1;
+}
 
 int checkFactorStart(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
     return check(tokens, CONSTANT) || check(tokens, IDENTIFIER) || checkUnaryOp(tokens) 
     || checkBinaryOp(tokens) 
     || check(tokens, OPEN_PAREN);
+}
+
+int isCompoundAssignment(Token* tok) {
+    switch(tok->type) {
+        case PLUS_EQUAL:
+        case MINUS_EQUAL:
+        case STAR_EQUAL:
+        case SLASH_EQUAL:
+        case PERCENT_EQUAL:
+        case AMPERSAND_EQUAL:
+        case BAR_EQUAL:
+        case CARET_EQUAL:
+        case LEFT_SHIFT_EQUAL:
+        case RIGHT_SHIFT_EQUAL:
+            return 1;
+        default: return 0;
+    }
 }

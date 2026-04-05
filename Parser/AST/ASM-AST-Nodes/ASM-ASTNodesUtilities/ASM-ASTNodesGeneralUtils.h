@@ -27,6 +27,8 @@ typedef enum {
 typedef enum {
     ASM_UNARY_NEG,
     ASM_UNARY_NOT,
+    ASM_UNARY_DEC,
+    ASM_UNARY_INC
 } ASMUnaryOperator;
 
 typedef enum {

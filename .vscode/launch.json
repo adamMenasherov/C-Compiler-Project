@@ -2,18 +2,20 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(gdb) Launch",
+      "name": "(gdb) Launch compiler",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/compiler",
+      "preLaunchTask": "build compiler",
       "args": [
-        "${workspaceFolder}/testShifting.c"
+        "${workspaceFolder}/test.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -31,9 +33,10 @@
       "name": "(gdb) Attach",
       "type": "cppdbg",
       "request": "attach",
-      "program": "${workspaceFolder}/../main",
+      "program": "${workspaceFolder}/compiler",
       "processId": "${command:pickProcess}",
       "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -43,25 +46,6 @@
         {
           "description": "Set Disassembly Flavor to Intel",
           "text": "-gdb-set disassembly-flavor intel",
-          "ignoreFailures": true
-        }
-      ]
-    },
-    {
-      "name": "C/C++ Runner: Debug Session",
-      "type": "cppdbg",
-      "request": "launch",
-      "args": [],
-      "stopAtEntry": false,
-      "externalConsole": false,
-      "cwd": "/home/adammenasherov/CompilerProject/C-Compiler-Project/Parser",
-      "program": "/home/adammenasherov/CompilerProject/C-Compiler-Project/Parser/build/Debug/outDebug",
-      "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
           "ignoreFailures": true
         }
       ]

@@ -18,6 +18,7 @@ const char *tokenTypeStr[] = {
     "SEMICOLON",
     "TILDE",
     "HYPHEN",
+    "TWO_PLUS",
     "TWO_HYPHENS",
     "PLUS", 
     "ASTERISK",
@@ -48,53 +49,58 @@ const char *tokenTypeStr[] = {
     "CARET_EQUAL",
     "LEFT_SHIFT_EQUAL",
     "RIGHT_SHIFT_EQUAL",
+    "IF_KEYWORD",
+    "ELSE_KEYWORD",
+    "QUESTION_MARK",
+    "COLON",
     "ERROR"
 };
 
 
 const char *tokenTypeToSymbol[] = {
-    "",       // IDENTIFIER
-    "",       // CONSTANT
-    "int",    // INT_KEYWORD
-    "void",   // VOID_KEYWORD
-    "return", // RETURN_KEYWORD
-    "(",      // OPEN_PAREN
-    ")",      // CLOSE_PAREN
-    "{",      // OPEN_BRACE
-    "}",      // CLOSE_BRACE
-    ";",      // SEMICOLON
-    "~",      // TILDE
-    "-",      // HYPHEN
-    "--",     // TWO_HYPHENS
-    "+",      // PLUS
-    "*",      // ASTERISK
-    "/",      // SLASH
-    "%",      // PERCENT
-    "!",      // EXCLAMATION
-    "&&",     // TWO_AMPERSANDS
-    "||",     // TWO_BARS
-    "=",      // ONE_EQUAL
-    "==",     // TWO_EQUALS
-    "!=",     // NOT_EQUAL
-    "<",      // LESS_THAN
-    ">",      // GREATER_THAN
-    "<=",     // LESS_EQUAL
-    ">=",     // GREATER_EQUAL
-    "+=",     // PLUS_EQUAL
-    "-=",     // MINUS_EQUAL
-    "*=",     // STAR_EQUAL
-    "/=",     // SLASH_EQUAL
-    "%=",     // PERCENT_EQUAL
-    "&",      // AMPERSAND
-    "|",      // BAR
-    "^",      // CARET
-    "<<",     // LEFT_SHIFT
-    ">>",     // RIGHT_SHIFT
-    "&=",     // AMPERSAND_EQUAL
-    "|=",     // BAR_EQUAL
-    "^=",     // CARET_EQUAL
-    "<<=",    // LEFT_SHIFT_EQUAL
-    ">>=",    // RIGHT_SHIFT_EQUAL
+    "",
+    "",
+    "int",
+    "void",
+    "return",
+    "(",
+    ")",
+    "{",
+    "}",
+    ";",
+    "~",
+    "-",
+    "++",
+    "--",
+    "+",
+    "*",
+    "/",
+    "%",
+    "!",
+    "&&",
+    "||",
+    "=",
+    "==",
+    "!=",
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "+=",
+    "-=",
+    "*=",
+    "/=",
+    "%=",
+    "&",
+    "|",
+    "^",
+    "<<",
+    ">>",
+    "&=",
+    "|=",
+    "^=",
+    "<<=",
+    ">>=",
 };
 
 Token* createToken(char** tokenSource) {
@@ -138,6 +144,8 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
         case '&': type = AMPERSAND; break;
         case '|': type = BAR; break;
         case '^': type = CARET; break;
+        case '?': type = QUESTION_MARK; break;
+        case ':': type = COLON; break;
         default: type = ERROR;
     }
     *tokenStr = strdup(tokenSource);
@@ -153,7 +161,19 @@ char* tokenTypeToToken(TokenType type) {
 
 
 TokenType handleMoreThanCharOperators(char* tokenSource, char ** tokenStr) {
-    if (strncmp(tokenSource, "--", 2) == 0) {
+    if (strncmp(tokenSource, "<<=", 3) == 0) {
+        *tokenStr = strndup(tokenSource, 3);
+        return LEFT_SHIFT_EQUAL;
+    } 
+    else if (strncmp(tokenSource, ">>=", 3) == 0) {
+        *tokenStr = strndup(tokenSource, 3);
+        return RIGHT_SHIFT_EQUAL;
+    }    
+    else if (strncmp(tokenSource, "++", 2) == 0) {
+        *tokenStr = strndup(tokenSource, 2);
+        return TWO_PLUS;
+    }
+    else if (strncmp(tokenSource, "--", 2) == 0) {
         *tokenStr = strndup(tokenSource, 2);
         return TWO_HYPHENS;
     }
@@ -224,6 +244,8 @@ TokenType keywordOrIdentifier(char* tokenSource, char ** tokenStr) {
     if (strcmp(start, "int") == 0) type = INT_KEYWORD;
     else if (strcmp(start, "void") == 0) type = VOID_KEYWORD;
     else if (strcmp(start, "return") == 0) type = RETURN_KEYWORD;
+    else if (strcmp(start, "if") == 0) type = IF_KEYWORD;
+    else if (strcmp(start, "else") == 0) type = ELSE_KEYWORD;
     else type = IDENTIFIER;
     
     *tokenStr = strdup(start);
@@ -250,10 +272,6 @@ void freeToken(Token* tok) {
     free(tok);
 }
 
-
-
-
-
 unaryType tokenTypeToUnaryType(TokenType type) {
     switch(type) {
         case HYPHEN:
@@ -262,8 +280,22 @@ unaryType tokenTypeToUnaryType(TokenType type) {
             return UNARY_COMPLEMENT;
         case EXCLAMATION:
             return UNARY_NOT;
+        case TWO_PLUS:
+            return UNARY_INCREMENT_PREFIX;
+        case TWO_HYPHENS:
+            return UNARY_DECREMENT_PREFIX;
         default:
             fprintf(stderr, "Error: Invalid unary operator token type %s\n", tokenTypeToToken(type));
+            exit(1);
+    }
+}
+
+unaryType prefixToPostfix(unaryType type) {
+    switch(type) {
+        case UNARY_INCREMENT_PREFIX: return UNARY_INCREMENT_POSTFIX;
+        case UNARY_DECREMENT_PREFIX: return UNARY_DECREMENT_POSTFIX;
+        default:
+            fprintf(stderr, "Error: Invalid prefix unary operator type %d\n", type);
             exit(1);
     }
 }

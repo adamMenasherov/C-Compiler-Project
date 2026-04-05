@@ -4,27 +4,36 @@
 #include "C-ASTNodes.h"
 #include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
 
+static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
+    while (checkIncrementDecrement(tokens)) {
+        unaryType type = prefixToPostfix(expectUnaryOp(tokens));
+        factor = C_CreateFactorFromUnary(C_CreateUnary(type, factor));
+    }
+
+    return factor;
+}
+
 CFactor* C_parseFactor(TokenList* tokens) {
     if (check(tokens, CONSTANT)) {
-        return C_CreateFactorFromConstant(C_parseConstant(tokens));
+        return parsePostfixOperators(C_CreateFactorFromConstant(C_parseConstant(tokens)), tokens);
     }
 
     if (check(tokens, IDENTIFIER)) {
         char* identifier = expectIdentifier(tokens);
-        return C_CreateFactorFromVar(C_CreateVar(identifier));
+        return parsePostfixOperators(C_CreateFactorFromVar(C_CreateVar(identifier)), tokens);
     }
 
     else if (checkUnaryOp(tokens)) {
         unaryType type = expectUnaryOp(tokens);
         CFactor* inner_exp = C_parseFactor(tokens);
-        return C_CreateFactorFromUnary(C_CreateUnary(type, inner_exp));
+        return parsePostfixOperators(C_CreateFactorFromUnary(C_CreateUnary(type, inner_exp)), tokens);
     }
 
     else if (check(tokens, OPEN_PAREN)) {
         expect(tokens, OPEN_PAREN);
         CFactor* inner_exp = C_parseExpression(tokens, 0);
         expect(tokens, CLOSE_PAREN);
-        return inner_exp;
+        return parsePostfixOperators(inner_exp, tokens);
     }
     else {
         fprintf(stderr, "Expression is invalid\n");
@@ -57,6 +66,13 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
                     C_CreateCopyOfFactor(left), right)));
             left = C_CreateFactorFromAssignment(new_left);
         }
+        else if (check(tokens, QUESTION_MARK)) {
+            expect(tokens, QUESTION_MARK);
+            CFactor* middle = C_parseConditionalMiddle(tokens);
+            CFactor* right = C_parseExpression(tokens, previous_prec);
+            CConditional* new_left = C_CreateConditional(C_CreateCopyOfFactor(left), middle, right);
+            left = C_CreateFactorFromConditional(new_left);
+        }
         else {
             binType type = expectBinaryOp(tokens);
             CFactor* right = C_parseExpression(tokens, previous_prec + 1);
@@ -67,8 +83,13 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
         
         isBinary = checkBinaryOp(tokens);
     }
-    return left;
-    
+    return left;   
+}
+
+CFactor* C_parseConditionalMiddle(TokenList* tokens) {
+    CFactor* exp = C_parseExpression(tokens, 0);
+    expect(tokens, COLON);
+    return exp;
 }
 
 CConstant* C_parseConstant(TokenList* tokens) {
@@ -85,10 +106,20 @@ CStatement* C_parseStatement(TokenList* tokens) {
     if (check(tokens, RETURN_KEYWORD)) {
         return C_CreateStatement(STMT_RETURN, C_parseReturn(tokens));
     }
+    if (check(tokens, IF_KEYWORD)) {
+        return C_CreateStatement(STMT_IF, C_parseIf(tokens));
+    }
     else if (check(tokens, SEMICOLON)) {
         expect(tokens, SEMICOLON);
         return C_CreateStatement(STMT_NULL, NULL);
     }
+    else if (check(tokens, OPEN_BRACE)) {
+        expect(tokens, OPEN_BRACE);
+        CBlock* blockItemType = C_parseBlock(tokens);
+        expect(tokens, CLOSE_BRACE);
+        return C_CreateStatement(STMT_COMPOUND, C_CreateCompound(blockItemType));
+    }
+
     else if (checkFactorStart(tokens)) {
         CFactor* exp = C_parseExpression(tokens, 0);
         expect(tokens, SEMICOLON);
@@ -99,6 +130,34 @@ CStatement* C_parseStatement(TokenList* tokens) {
         exit(1);
     }        
 }
+
+CBlock* C_parseBlock(TokenList* tokens) {
+    CBlock* block = C_CreateBlockEmpty();
+    if (!block) return NULL;
+    while (!check(tokens, CLOSE_BRACE)) {
+        CBlockItem* item = C_parseBlockItem(tokens);
+        if (!item) return NULL;
+        addCBlockItem(block->items, item);
+    }
+    return block;
+}
+
+
+CIf* C_parseIf(TokenList* tokens) {
+    expect(tokens, IF_KEYWORD);
+    expect(tokens, OPEN_PAREN);
+    CFactor* condition = C_parseExpression(tokens, 0);
+    expect(tokens, CLOSE_PAREN);
+    CStatement* then_stmt = C_parseStatement(tokens);
+    CStatement* else_stmt = NULL;
+    if (check(tokens, ELSE_KEYWORD)) {
+        expect(tokens, ELSE_KEYWORD);
+        else_stmt = C_parseStatement(tokens);
+        return C_CreateIf(IF_WITH_ELSE, condition, then_stmt, else_stmt);
+    }
+    return C_CreateIf(IF_WITHOUT_ELSE, condition, then_stmt, else_stmt);
+}
+
 
 CDeclaration* C_parseDecleration(TokenList* tokens) {
     CFactor* fact = NULL;
@@ -152,7 +211,7 @@ CReturn* C_parseReturn(TokenList* tokens) {
 
 
 CFunction* C_parseFunction(TokenList* tokens) {
-    CBlockItemList* body = createCBlockItemList();
+    CBlock* body;
 
     expect(tokens, INT_KEYWORD);
     char* identifier = strdup(expectIdentifier(tokens));
@@ -160,11 +219,7 @@ CFunction* C_parseFunction(TokenList* tokens) {
     expect(tokens, VOID_KEYWORD);
     expect(tokens, CLOSE_PAREN);
     expect(tokens, OPEN_BRACE);
-    while (!check(tokens, CLOSE_BRACE)) {
-        CBlockItem* item = C_parseBlockItem(tokens);
-        if (!item) return NULL;
-        addCBlockItem(body, item); // Add the block item to the list
-    }
+    body = C_parseBlock(tokens);
     expect(tokens, CLOSE_BRACE);
 
     return C_CreateFunction(identifier, body);

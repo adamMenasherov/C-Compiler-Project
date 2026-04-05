@@ -118,20 +118,33 @@ void handleUnaryNot(TACKYInstruction* instruction, ASMInstructionList* asmInstru
 
 
 void parseASMUnaryInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
-    if (instruction->type != TACKY_UNARY) return; // Not a unary instruction
+    if (instruction->type != TACKY_UNARY) return; 
     if (instruction->instValue.unaryOp.type == UNARY_NOT) {
         handleUnaryNot(instruction, asmInstructionList);
         return;
     }
-    ASMInstruction* mov_inst = createMovInstruction(
-                tackyValueToASMOperand(instruction->instValue.unaryOp.src), 
-                tackyValueToASMOperand(instruction->instValue.unaryOp.dest)
-            );
-    addASMInstructionAtEnd(asmInstructionList, mov_inst);
-    ASMInstruction* unary_inst = createASMUnaryInstruction(
-        instruction->instValue.unaryOp.type, 
-        instruction->instValue.unaryOp.dest);
-    addASMInstructionAtEnd(asmInstructionList, unary_inst);
+
+    if (isIncrementDecrementOp(instruction->instValue.unaryOp.type)) {
+        ASMInstruction* unary_inst = createASMUnaryInstruction(
+            instruction->instValue.unaryOp.type,
+            instruction->instValue.unaryOp.src);  
+        addASMInstructionAtEnd(asmInstructionList, unary_inst);
+
+        ASMInstruction* mov_inst = createMovInstruction(
+            tackyValueToASMOperand(instruction->instValue.unaryOp.src),
+            tackyValueToASMOperand(instruction->instValue.unaryOp.dest));
+        addASMInstructionAtEnd(asmInstructionList, mov_inst);
+    } else {
+        ASMInstruction* mov_inst = createMovInstruction(
+            tackyValueToASMOperand(instruction->instValue.unaryOp.src), 
+            tackyValueToASMOperand(instruction->instValue.unaryOp.dest));
+        addASMInstructionAtEnd(asmInstructionList, mov_inst);
+
+        ASMInstruction* unary_inst = createASMUnaryInstruction(
+            instruction->instValue.unaryOp.type, 
+            instruction->instValue.unaryOp.dest);
+        addASMInstructionAtEnd(asmInstructionList, unary_inst);
+    }
 }
 
 void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {

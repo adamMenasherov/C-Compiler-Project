@@ -1,19 +1,15 @@
 #include "TACKY_AST.h"
+#include "TACKYUtils/TACKYEmitters.h"
+#include "TACKYUtils/TACKYConstructors.h"
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-int currGlobalInt = 0; 
 
 TACKYFunction* parseTACKYFunction(CFunction* func) {
     TACKYInstructionList* instruction_list = createTACKYInstructionList();
     TACKYFunction* tackyFunc = malloc(sizeof(TACKYFunction));
     if (!tackyFunc) return NULL;
 
-    DArray_forEach(func->body, elem,
-    {
-        parseBlockItemInstructions((CBlockItem*)elem, instruction_list);
-    });
+    parseBlock(func->block, instruction_list);
+    addInstructionToList(instruction_list, createReturnInstruction(createTackyValueFromConstant(0))); 
 
     tackyFunc->function_name = func->function_name;
     tackyFunc->instruction_list = instruction_list;
@@ -30,52 +26,9 @@ TACKYProgram* parseTACKYProgram(CProgram* program) {
 }
 
 void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList) {
-    TACKYValue* ret_val = emit_TACKY(returnNode->exp, instructionList);
+    TACKYValue* ret_val = emit_TACKY(returnNode->exp, instructionList, NULL);
     TACKYInstruction* ret_inst = createReturnInstruction(ret_val);
     addInstructionToList(instructionList, ret_inst);
-}
-
-TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list) {
-    switch(exp->type) {
-        case FACTOR_CONSTANT: {
-            return createTackyValueFromConstantNode(exp->exp.cnst);
-        }
-        case FACTOR_VAR: {
-            return createTackyValueFromVar(exp->exp.var);
-        }
-        case FACTOR_UNARY: {
-            TACKYValue* src = emit_TACKY(exp->exp.unary->exp, instruction_list);
-            char* temp_name = generateTempName();
-            TACKYValue* dst = createVarValue(temp_name);
-            unaryType op = exp->exp.unary->type;
-            addInstructionToList(instruction_list,
-                createUnaryInstruction(op, src, dst));
-            return copyTackyValue(dst); 
-        }
-        case FACTOR_BINARY: {
-            if (exp->exp.binary->type == BIN_AND || exp->exp.binary->type == BIN_OR) {
-                return shortCircuitTACKYInstruction(exp, instruction_list);
-            }
-            TACKYValue* src1 = emit_TACKY(exp->exp.binary->left, instruction_list);
-            TACKYValue* src2 = emit_TACKY(exp->exp.binary->right, instruction_list);
-            char* temp_name = generateTempName();
-            TACKYValue* dst = createVarValue(temp_name);
-            binType op = exp->exp.binary->type;
-            addInstructionToList(instruction_list,
-                createBinaryInstruction(op, src1, src2, dst));
-            return copyTackyValue(dst);  
-        }
-
-        case FACTOR_ASSIGNMENT: {
-            char* varName = exp->exp.assignment->exp1->exp.var->identifier;
-            TACKYValue* src = emit_TACKY(exp->exp.assignment->exp2, instruction_list);
-            TACKYValue* dst = createVarValue(varName);
-            addInstructionToList(instruction_list,
-                createCopyInstruction(src, dst));
-            return copyTackyValue(dst);  
-        }
-        default: return NULL;
-    }
 }
 
 void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* instructionList) {
@@ -83,10 +36,14 @@ void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* ins
         case BLOCK_ITEM_DECL:
             if (blockItem->item.decl->declType == DECL_WITH_EXP) {
                 char* varName = blockItem->item.decl->identifier;
-                TACKYValue* src = emit_TACKY(blockItem->item.decl->exp, instructionList);
+                int isPostfixUnary = 0;
+                TACKYValue* src = emit_TACKY(blockItem->item.decl->exp, instructionList, &isPostfixUnary);
                 TACKYValue* dst = createVarValue(varName);
                 addInstructionToList(instructionList,
                     createCopyInstruction(src, dst));
+
+                if (isPostfixUnary) addInstructionToList(instructionList,
+                    emitUnaryPostfixInstruction(blockItem->item.decl->exp));
             }
             break;
         case BLOCK_ITEM_STMT:
@@ -98,10 +55,19 @@ void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* ins
 void parseStatementInstructions(CStatement* stmt, TACKYInstructionList* instructionList) {
     switch(stmt->type) {
         case STMT_EXPRESSION:
-            emit_TACKY(stmt->stmt.exp, instructionList);
+            int isPostfixUnary = 0;
+            emit_TACKY(stmt->stmt.exp, instructionList, &isPostfixUnary);
+            if (isPostfixUnary) addInstructionToList(instructionList,
+                emitUnaryPostfixInstruction(stmt->stmt.exp));
             break;
         case STMT_RETURN:
             parseTACKYReturn(stmt->stmt.ret, instructionList);
+            break;
+        case STMT_IF:
+            parseIfStatementInstructions(stmt->stmt.if_stmt, instructionList);
+            break;
+        case STMT_COMPOUND:
+            parseBlock(stmt->stmt.compound_stmt->block, instructionList);
             break;
         case STMT_NULL:
             break;
@@ -109,222 +75,40 @@ void parseStatementInstructions(CStatement* stmt, TACKYInstructionList* instruct
 }
 
 
-TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* instruction_list) {
-    if (exp->type != FACTOR_BINARY) return NULL;
-    
-    binType op = exp->exp.binary->type;
-    if (op != BIN_AND && op != BIN_OR) return NULL;
-
-    TACKYValue* leftVal = emit_TACKY(exp->exp.binary->left, instruction_list);
-    char* temp_name = generateTempName();
+void parseIfStatementInstructions(CIf* if_stmt, TACKYInstructionList* instructionList) {
+    int isPostfixUnary = 0;
     char* endLabel = generateEndLabel();
-    TACKYValue* resultVar = createVarValue(temp_name);
-    TACKYInstructionType jumpType = (op == BIN_AND) ? TACKY_JUMP_IF_ZERO : TACKY_JUMP_IF_NOT_ZERO;
-    int retVal = (op == BIN_AND) ? 1:0;
-    char* shortCircuitLabel = (op == BIN_AND) ? generateFalseLabel() : generateTrueLabel();
-    addInstructionToList(instruction_list, 
-        createJumpInstruction(jumpType, shortCircuitLabel, leftVal));
-
-    TACKYValue* rightVal = emit_TACKY(exp->exp.binary->right, instruction_list);
-    addInstructionToList(instruction_list, 
-        createJumpInstruction(jumpType, shortCircuitLabel, rightVal));
+    TACKYValue* cond = emit_TACKY(if_stmt->condition, instructionList, &isPostfixUnary);
     
-    addInstructionToList(instruction_list,
-        createCopyInstruction(createTackyValueFromConstant(retVal), resultVar));
-    
-    addInstructionToList(instruction_list, 
-        createJumpInstruction(TACKY_JUMP, endLabel, NULL));
-    
-    addInstructionToList(instruction_list,
-        createLabelInstruction(shortCircuitLabel));
-
-    addInstructionToList(instruction_list,
-        createCopyInstruction(createTackyValueFromConstant(1 - retVal), resultVar));
-    
-    addInstructionToList(instruction_list,
-        createLabelInstruction(endLabel));
-    
-
-    return copyTackyValue(resultVar);
-}
-
-TACKYInstruction* createLabelInstruction(char* label) {
-    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
-    if (!inst) return NULL;
-    inst->type = TACKY_LABEL;
-    inst->instValue.label.label = label;
-    return inst;
-}
-
-TACKYInstruction* createReturnInstruction(TACKYValue* retVal) {
-    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
-    if (!inst) return NULL;
-    inst->type = TACKY_RETURN;
-    inst->instValue.returnVal.retVal = retVal;
-    return inst;
-}
-
-
-TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYValue* dest) {
-    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
-    if (!inst) return NULL;
-    inst->type = TACKY_UNARY;
-    inst->instValue.unaryOp.type = type;
-    inst->instValue.unaryOp.src = src;
-    inst->instValue.unaryOp.dest = dest;
-    
-    return inst;
-}
-
-TACKYInstruction* createJumpInstruction(TACKYInstructionType jumpType, char* label, TACKYValue* condition) {
-    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
-    if (!inst) return NULL;
-    inst->type = jumpType;
-    switch (jumpType) {
-        case TACKY_JUMP:
-            inst->instValue.jump.label = label;
+    switch(if_stmt->type) {
+        case IF_WITH_ELSE: {
+            char* elseLabel = generateElseLabel();
+            addInstructionToList(instructionList, 
+                createJumpInstruction(TACKY_JUMP_IF_ZERO, elseLabel, cond));
+            parseStatementInstructions(if_stmt->then, instructionList);
+            addInstructionToList(instructionList,
+                createJumpInstruction(TACKY_JUMP, endLabel, NULL));
+            addInstructionToList(instructionList,
+                createLabelInstruction(elseLabel));
+            parseStatementInstructions(if_stmt->else_stmt, instructionList);
+            addInstructionToList(instructionList,
+                createLabelInstruction(endLabel));
             break;
-        case TACKY_JUMP_IF_ZERO:
-        case TACKY_JUMP_IF_NOT_ZERO:
-            inst->instValue.condJump.label = label;
-            inst->instValue.condJump.condition = condition;
-            break;
-        default:
-            free(inst);
-            return NULL; 
-    }
-
-    return inst;
-}
-
-TACKYInstruction* createCopyInstruction(TACKYValue* src, TACKYValue* dest) {
-    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
-    if (!inst) return NULL;
-    inst->type = TACKY_COPY;
-    inst->instValue.copy.src = src;
-    inst->instValue.copy.dest = dest;
-    
-    return inst;
-}
-
-TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest) {
-    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
-    if (!inst) return NULL;
-    inst->type = TACKY_BINARY;
-    inst->instValue.binaryOp.binaryOpType = type;
-    inst->instValue.binaryOp.src1 = src1;
-    inst->instValue.binaryOp.src2 = src2;
-    inst->instValue.binaryOp.dest = dest;
-    
-    return inst;
-}
-
-
-TACKYInstructionList* createTACKYInstructionList() {
-    return InstructionArray_create();
-}
-
-void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruction) {
-    if (list) {
-        InstructionArray_append(list, instruction);
-    }
-}
-
-
-TACKYConstant* CreateTackyConstantNode(int val) {
-    TACKYConstant* constantNode = malloc(sizeof(TACKYConstant));
-    if (!constantNode) return NULL;
-    
-    constantNode->value = val;
-    return constantNode;
-}
-
-
-TACKYValue* createTackyValueFromConstantNode(CConstant* const_node) {
-    TACKYValue* tackyVal = calloc(1, sizeof(TACKYValue));
-    if (!tackyVal) return NULL;
-    
-    tackyVal->type = TACKY_CONSTANT;
-    tackyVal->constant = CreateTackyConstantNode(const_node->val);
-
-    return tackyVal;
-}
-
-TACKYValue* createTackyValueFromConstant(int val) {
-    TACKYValue* tackyVal = calloc(1, sizeof(TACKYValue));
-    if (!tackyVal) return NULL;
-    
-    tackyVal->type = TACKY_CONSTANT;
-    tackyVal->constant = CreateTackyConstantNode(val);
-
-    return tackyVal;
-}
-
-TACKYValue* createTackyValueFromVar(CVar* var) {
-    if (!var) return NULL;
-    return createVarValue(var->identifier);
-}
-
-TACKYValue* createVarValue(char* identifier) {
-    TACKYValue* tackyVal = malloc(sizeof(TACKYValue));
-    if (!tackyVal) return NULL;
-
-    tackyVal->type = TACKY_VAR;
-    tackyVal->identifier = identifier;
-    return tackyVal;
-}
-
-char* generateTempName() {
-    char* temp_name = malloc(strlen("tmp.") + 10);
-    if (!temp_name) return NULL;
-    sprintf(temp_name, "tmp.%d", currGlobalInt++);
-    return temp_name;
-}
-
-char* generateFalseLabel() {
-    static int falseCount = 0;
-    char* label = malloc(strlen("false_label_") + 10);
-    if (!label) return NULL;
-    sprintf(label, "false_label_%d", falseCount++);
-    return label;
-}
-
-char* generateTrueLabel() {
-    static int trueCount = 0;
-    char* label = malloc(strlen("true_label_") + 10);
-    if (!label) return NULL;
-    sprintf(label, "true_label_%d", trueCount++);
-    return label;
-}
-
-char* generateEndLabel() {
-    static int endCount = 0;
-    char* label = malloc(strlen("end_label_") + 10);
-    if (!label) return NULL;
-    sprintf(label, "end_label_%d", endCount++);
-    return label;
-}
-
-TACKYValue* copyTackyValue(TACKYValue* original) {
-    if (!original) return NULL;
-    
-    TACKYValue* copy = malloc(sizeof(TACKYValue));
-    if (!copy) return NULL;
-    
-    copy->type = original->type;
-    
-    if (original->type == TACKY_CONSTANT) {
-        copy->constant = malloc(sizeof(TACKYConstant));
-        if (!copy->constant) {
-            free(copy);
-            return NULL;
         }
-        copy->constant->value = original->constant->value;
-        copy->identifier = NULL;
-    } else if (original->type == TACKY_VAR) {
-        copy->identifier = strdup(original->identifier);
-        copy->constant = NULL;
+        case IF_WITHOUT_ELSE: {
+            addInstructionToList(instructionList, 
+                createJumpInstruction(TACKY_JUMP_IF_ZERO, endLabel, cond));
+            parseStatementInstructions(if_stmt->then, instructionList);
+            addInstructionToList(instructionList,
+                createLabelInstruction(endLabel));
+            break;
+        }   
     }
-    
-    return copy;
+}
+
+void parseBlock(CBlock* block, TACKYInstructionList* instructionList) {
+    DArray_forEach(block->items, elem,
+    {
+        parseBlockItemInstructions((CBlockItem*)elem, instructionList);
+    });
 }

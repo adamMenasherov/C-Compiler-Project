@@ -11,7 +11,7 @@ void C_freeProgram(CProgram* prog) {
 void C_freeFunction(CFunction* func) {
     if (func) {
         free(func->function_name);
-        C_freeReturn(func->body);
+        free(func->block);
         free(func);
     }
 }

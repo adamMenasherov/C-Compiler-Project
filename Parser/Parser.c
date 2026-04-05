@@ -30,7 +30,6 @@ ASM_AST* tackyAstToASM_AST(TACKY_AST* ast) {
     return asm_ast;
 }
 
-
 TACKY_AST* astToTACKY_AST(AST* ast) {
     TACKY_AST* tacky_ast = malloc(sizeof(TACKY_AST));
     if (!tacky_ast) return NULL;
@@ -41,7 +40,6 @@ TACKY_AST* astToTACKY_AST(AST* ast) {
     }
     return tacky_ast;
 }
-
 
 void freeTACKY_AST(TACKY_AST* tacky_ast) {
     if (tacky_ast) {

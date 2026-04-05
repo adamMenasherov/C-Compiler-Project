@@ -16,6 +16,26 @@ Map* createMap(size_t (*hashFunc)(void* key), int (*equalsFunc)(void* lhs, void*
     return map;
 }
 
+Map* copyMap(Map* original, void* (*copyKey)(void*), void* (*copyValue)(void*)) {
+    if (!original) return NULL;
+
+    Map* newMap = createMap(original->hashFunc, original->equalsFunc);
+    if (!newMap) return NULL;
+
+    for (size_t i = 0; i < original->bucket_count; i++) {
+        MapEntry* entry = original->buckets[i];
+        while (entry) {
+            void* newKey = copyKey ? copyKey(entry->key) : entry->key;
+            void* newValue = copyValue ? copyValue(entry->value) : entry->value;
+            mapPut(newMap, newKey, newValue, 0);
+            entry = entry->next;
+        }
+    }
+
+    return newMap;
+}
+
+
 void freeMap(Map* map, void (*freeKey)(void*), void (*freeValue)(void*)) {
     if (!map) return;
 
@@ -33,7 +53,7 @@ void freeMap(Map* map, void (*freeKey)(void*), void (*freeValue)(void*)) {
     free(map);
 }
 
-int mapPut(Map* map, void* key, void* value) {
+int mapPut(Map* map, void* key, void* value, int isInBlock) {
     if (!map) return 0;
 
     size_t hash = map->hashFunc(key) % map->bucket_count;
@@ -41,6 +61,7 @@ int mapPut(Map* map, void* key, void* value) {
     while (entry) {
         if (map->equalsFunc(entry->key, key)) {
             entry->value = value; 
+            entry->isInBlock = isInBlock;
             return 1;
         }
         entry = entry->next;
@@ -50,24 +71,30 @@ int mapPut(Map* map, void* key, void* value) {
     if (!new_entry) return 0;
     new_entry->key = key;
     new_entry->value = value;
+    new_entry->isInBlock = isInBlock;
     new_entry->next = map->buckets[hash];
     map->buckets[hash] = new_entry;
 
     return 1;
 }
 
-void* mapGet(Map* map, void* key) {
+MapEntry* mapGetEntry(Map* map, void* key) {
     if (!map) return NULL;
 
     size_t hash = map->hashFunc(key) % map->bucket_count;
     MapEntry* entry = map->buckets[hash];
     while (entry) {
         if (map->equalsFunc(entry->key, key)) {
-            return entry->value;
+            return entry;
         }
         entry = entry->next;
     }
     return NULL;
+}
+
+void* mapGet(Map* map, void* key) {
+    MapEntry* entry = mapGetEntry(map, key);
+    return entry ? entry->value : NULL;
 }
 
 
