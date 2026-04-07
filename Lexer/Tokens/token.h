@@ -51,6 +51,11 @@ typedef enum {
     ELSE_KEYWORD,
     QUESTION_MARK,
     COLON,
+    WHILE_KEYWORD,
+    FOR_KEYWORD,
+    DO_KEYWORD,
+    BREAK_KEYWORD,
+    CONTINUE_KEYWORD,
     ERROR
 } TokenType;
 

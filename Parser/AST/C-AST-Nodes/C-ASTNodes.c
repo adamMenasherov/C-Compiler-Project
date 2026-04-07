@@ -113,6 +113,10 @@ CStatement* C_parseStatement(TokenList* tokens) {
         expect(tokens, SEMICOLON);
         return C_CreateStatement(STMT_NULL, NULL);
     }
+    else if (checkIsLoopStatement(tokens)) {
+        return C_parseLoopStatement(tokens);
+    }
+
     else if (check(tokens, OPEN_BRACE)) {
         expect(tokens, OPEN_BRACE);
         CBlock* blockItemType = C_parseBlock(tokens);
@@ -130,6 +134,36 @@ CStatement* C_parseStatement(TokenList* tokens) {
         exit(1);
     }        
 }
+
+
+CStatement* C_parseLoopStatement(TokenList* tokens) {
+    statementType type = loopStatementKeywordToStatementType(tokens);
+    switch(type) {
+        case STMT_BREAK: {
+            expect(tokens, BREAK_KEYWORD);
+            expect(tokens, SEMICOLON);
+            return C_CreateStatement(STMT_BREAK, C_CreateLoopStmt());
+        }
+        case STMT_CONTINUE: {
+            expect(tokens, CONTINUE_KEYWORD);
+            expect(tokens, SEMICOLON);
+            return C_CreateStatement(STMT_CONTINUE, C_CreateLoopStmt());
+        }
+        case STMT_WHILE: {
+            return C_CreateStatement(STMT_WHILE, C_parseWhile(tokens));
+        }
+        case STMT_DO_WHILE: {
+            return C_CreateStatement(STMT_DO_WHILE, C_parseDoWhile(tokens));
+        }
+        case STMT_FOR: {
+            return C_CreateStatement(STMT_FOR, C_parseFor(tokens));
+        }
+        default:
+            fprintf(stderr, "Invalid loop statement type in C_parseStatement\n");
+            exit(1);
+    }
+}
+
 
 CBlock* C_parseBlock(TokenList* tokens) {
     CBlock* block = C_CreateBlockEmpty();
@@ -158,6 +192,59 @@ CIf* C_parseIf(TokenList* tokens) {
     return C_CreateIf(IF_WITHOUT_ELSE, condition, then_stmt, else_stmt);
 }
 
+CForInit* C_parseForInit(TokenList* tokens) {
+    if (check(tokens, INT_KEYWORD)) {
+        CDeclaration* decl = C_parseDecleration(tokens);
+        return C_CreateForInit(FOR_INIT_DECL, decl);
+    }
+    else if (!check(tokens, SEMICOLON)) {
+        CFactor* exp = C_parseExpression(tokens, 0);
+        expect(tokens, SEMICOLON);
+        return C_CreateForInit(FOR_INIT_EXP, exp);
+    }
+    else {
+        expect(tokens, SEMICOLON);
+        return C_CreateForInit(FOR_INIT_WITHOUT, NULL);
+    }
+}
+
+CLoop* C_parseWhile(TokenList* tokens) {
+    expect(tokens, WHILE_KEYWORD);
+    expect(tokens, OPEN_PAREN);
+    CFactor* condition = C_parseExpression(tokens, 0);
+    expect(tokens, CLOSE_PAREN);
+    CStatement* body = C_parseStatement(tokens);
+    return C_CreateLoop(condition, body);
+}
+
+CLoop* C_parseDoWhile(TokenList* tokens) {
+    expect(tokens, DO_KEYWORD);
+    CStatement* body = C_parseStatement(tokens);
+    expect(tokens, WHILE_KEYWORD);
+    expect(tokens, OPEN_PAREN);
+    CFactor* condition = C_parseExpression(tokens, 0);
+    expect(tokens, CLOSE_PAREN);
+    expect(tokens, SEMICOLON);
+    return C_CreateLoop(condition, body);
+}
+
+CForLoop* C_parseFor(TokenList* tokens) {
+    expect(tokens, FOR_KEYWORD);
+    expect(tokens, OPEN_PAREN);
+    CForInit* init = C_parseForInit(tokens);
+    CFactor* condition = NULL;
+    if (!check(tokens, SEMICOLON)) {
+        condition = C_parseExpression(tokens, 0);
+    }
+    expect(tokens, SEMICOLON);
+    CFactor* post = NULL;
+    if (!check(tokens, CLOSE_PAREN)) {
+        post = C_parseExpression(tokens, 0);
+    }
+    expect(tokens, CLOSE_PAREN);
+    CStatement* body = C_parseStatement(tokens);
+    return C_CreateForLoop(init, condition, post, body);
+}
 
 CDeclaration* C_parseDecleration(TokenList* tokens) {
     CFactor* fact = NULL;

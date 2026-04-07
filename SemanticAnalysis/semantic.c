@@ -1,5 +1,6 @@
 #include "semantic.h"
 #include "../DataStructures/DynamicArray/DynamicArray.h"
+#include "../Parser/TACKY/TACKYUtils/TACKYConstructors.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,8 +19,19 @@ void resolveFunction(CFunction* func) {
     if (!func) return;
     SemanticVariableMap* varMap = createSemanticVariableMap();
     resolveBlock(func->block, varMap);
+    resolveBlockWithLabeling(func->block);
     freeSemanticVariableMap(varMap);
 }
+
+void resolveBlockWithLabeling(CBlock* block) {
+    if (!block) return;
+    DArray_forEach(block->items, elem,
+    {
+        CBlockItem* blockItem = (CBlockItem*)elem;
+        resolveBlockStatementsWithLabeling(blockItem);
+    });
+}
+
 
 void resolveBlock(CBlock* block, SemanticVariableMap* varMap) {
     if (!block) return;
@@ -28,6 +40,83 @@ void resolveBlock(CBlock* block, SemanticVariableMap* varMap) {
         CBlockItem* blockItem = (CBlockItem*)elem;
         resolveBlockItem(blockItem, varMap);
     });
+}
+
+
+void resolveBlockStatementsWithLabeling(CBlockItem* block)
+{
+    switch(block->type) {
+        case BLOCK_ITEM_DECL:
+            break;
+        case BLOCK_ITEM_STMT:
+            labelStatement(block->item.stmt, NULL);
+            break;
+    }
+}
+
+void labelStatement(CStatement* stmt, char* currentLabel) {
+    if (!stmt) return;
+
+    switch (stmt->type) {
+        case STMT_IF: {
+            labelStatement(stmt->stmt.if_stmt->then, currentLabel);
+            if (stmt->stmt.if_stmt->else_stmt) {
+                labelStatement(stmt->stmt.if_stmt->else_stmt, currentLabel);
+            }
+            break;
+        }
+        case STMT_COMPOUND: {
+            CBlock* block = stmt->stmt.compound_stmt->block;
+            if (!block) break;
+            DArray_forEach(block->items, elem,
+            {
+                CBlockItem* blockItem = (CBlockItem*)elem;
+                if (blockItem && blockItem->type == BLOCK_ITEM_STMT) {
+                    labelStatement(blockItem->item.stmt, currentLabel);
+                }
+            });
+            break;
+        }
+        case STMT_FOR: {
+            char* loopLabel = generateLoopName();
+            stmt->stmt.for_stmt->identifier = strdup(loopLabel);
+            labelStatement(stmt->stmt.for_stmt->body, loopLabel);
+            break;
+        }
+            
+        case STMT_WHILE: {
+            char* whileLabel = generateLoopName();
+            stmt->stmt.while_stmt->identifier = strdup(whileLabel);
+            labelStatement(stmt->stmt.while_stmt->body, whileLabel);
+            break;
+        }
+            
+        case STMT_DO_WHILE: {
+            char* doWhileLabel = generateLoopName();
+            stmt->stmt.do_while_stmt->identifier = strdup(doWhileLabel);
+            labelStatement(stmt->stmt.do_while_stmt->body, doWhileLabel);
+            break;
+        }
+        case STMT_BREAK: {
+            if (!currentLabel) {
+                fprintf(stderr, "Semantic Error: 'break' statement not within a loop\n");
+                exit(1);
+            }
+            stmt->stmt.break_stmt->identifier = strdup(currentLabel);
+            break;
+        }
+        case STMT_CONTINUE: {
+            if (!currentLabel) {
+                fprintf(stderr, "Semantic Error: 'continue' statement not within a loop\n");
+                exit(1);
+            }
+            stmt->stmt.continue_stmt->identifier = strdup(currentLabel);
+            break;
+        }
+
+        default:
+            break;
+    }
 }
 
 void resolveBlockItem(CBlockItem* blockItem, SemanticVariableMap* varMap) {
@@ -86,11 +175,51 @@ void resolveStatement(CStatement* stmt, SemanticVariableMap* varMap) {
             freeSemanticVariableMap(newVarMap);
             break;
         }
-            
+        case STMT_FOR: {
+            SemanticVariableMap* newVarMap = copySemanticVariableMap(varMap);
+            resolveForInit(stmt->stmt.for_stmt->init, newVarMap);
+            resolveExpression(stmt->stmt.for_stmt->condition, newVarMap);
+            resolveExpression(stmt->stmt.for_stmt->post, newVarMap);
+            resolveStatement(stmt->stmt.for_stmt->body, newVarMap);
+            freeSemanticVariableMap(newVarMap);
+            break;
+        }
+        case STMT_WHILE: {
+            SemanticVariableMap* newVarMap = copySemanticVariableMap(varMap);
+            resolveExpression(stmt->stmt.while_stmt->condition, newVarMap);
+            resolveStatement(stmt->stmt.while_stmt->body, newVarMap);
+            freeSemanticVariableMap(newVarMap);
+            break;
+        }
+        case STMT_DO_WHILE: {
+            SemanticVariableMap* newVarMap = copySemanticVariableMap(varMap);
+            resolveStatement(stmt->stmt.do_while_stmt->body, newVarMap);
+            resolveExpression(stmt->stmt.do_while_stmt->condition, newVarMap);
+            freeSemanticVariableMap(newVarMap);
+            break;
+        }
         case STMT_NULL:
+            break;
+        default: break;
+    }
+}
+
+
+void resolveForInit(CForInit* init, SemanticVariableMap* varMap) {
+    if (!init) return;
+    switch (init->type) {
+        case FOR_INIT_DECL:
+            resolveDeclaration(init->decl, varMap);
+            break;
+        case FOR_INIT_EXP:
+            resolveExpression(init->exp, varMap);
+            break;
+        case FOR_INIT_WITHOUT:
             break;
     }
 }
+
+
 void resolveExpression(CFactor* fact, SemanticVariableMap* varMap) {
     if (!fact) return;
 

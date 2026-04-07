@@ -72,6 +72,11 @@ void C_printStatement(CStatement* stmt) {
         case STMT_NULL: C_printNull(); break;
         case STMT_IF: C_printIf(stmt->stmt.if_stmt); break;
         case STMT_COMPOUND: C_printBlock(stmt->stmt.compound_stmt->block); break;
+        case STMT_BREAK: printf("BreakStatement(%s)", stmt->stmt.break_stmt->identifier); break;
+        case STMT_CONTINUE: printf("ContinueStatement(%s)", stmt->stmt.continue_stmt->identifier); break;
+        case STMT_DO_WHILE: C_printLoop(stmt->type, stmt->stmt.do_while_stmt); break;
+        case STMT_WHILE: ; C_printLoop(stmt->type, stmt->stmt.while_stmt); break;
+        case STMT_FOR: C_printForLoop(stmt->stmt.for_stmt); break;
         case STMT_RETURN: C_printReturn(stmt->stmt.ret); break;
     }
 }
@@ -81,6 +86,50 @@ void C_printCompound(CCompound* compound) {
     printf("Compound(\n\t");
     C_printBlock(compound->block);
     printf("\n)");
+}
+
+void C_printLoop(statementType loopType, CLoop* loop) {
+    if (!loop) return;
+
+    const char* label = loop->identifier ? loop->identifier : "(null)";
+    printf("%sLoop(", (loopType == STMT_WHILE) ? "While" : "DoWhile");
+    printf("\"%s\",\n", label);
+    depth++;
+    C_printFactor(loop->condition);
+    printf(",\n");
+    C_printStatement(loop->body);
+    printf(")");
+    depth--;
+}
+
+void C_printForLoop(CForLoop* forLoop) {
+    if (!forLoop) return;
+
+    const char* label = forLoop->identifier ? forLoop->identifier : "(null)";
+    printf("ForLoop(");
+    printf("\"%s\",\n", label);
+    depth++;
+    C_printForInit(forLoop->init);
+    printf(",\n");
+    C_printFactor(forLoop->condition);
+    printf(",\n");
+    C_printFactor(forLoop->post);
+    printf(",\n");
+    C_printStatement(forLoop->body);
+    printf(")");
+    depth--;
+}
+
+void C_printForInit(CForInit* init) {
+    if (!init) return;
+
+    printf("ForInit(");
+    switch (init->type) {
+        case FOR_INIT_DECL: C_printDeclaration(init->decl); break;
+        case FOR_INIT_EXP: C_printFactor(init->exp); break;
+        case FOR_INIT_WITHOUT: C_printNull(); break;
+    }
+    printf(")");
 }
 
 void C_printDeclaration(CDeclaration* decl) {

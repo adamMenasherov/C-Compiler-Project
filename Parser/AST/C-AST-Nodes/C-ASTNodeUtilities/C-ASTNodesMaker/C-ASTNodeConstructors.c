@@ -171,6 +171,23 @@ CStatement* C_CreateStatement(statementType type, void * stmtVal) {
             stmt->stmt.compound_stmt = (CCompound*)stmtVal;
             break;
         }
+        case STMT_WHILE: {
+            stmt->stmt.while_stmt = (CLoop*)stmtVal;
+            break;
+        }
+        case STMT_DO_WHILE: {
+            stmt->stmt.do_while_stmt = (CLoop*)stmtVal;
+            break;
+        }
+        case STMT_FOR: {
+            stmt->stmt.for_stmt = (CForLoop*)stmtVal;
+            break;
+        }
+        case STMT_BREAK:
+        case STMT_CONTINUE: {
+            stmt->stmt.break_stmt = (CLoopStmt*)stmtVal;
+            break;
+        }
         default: {
             fprintf(stderr, "Invalid statement type in C_CreateStatement\n");
             free(stmt);
@@ -178,6 +195,60 @@ CStatement* C_CreateStatement(statementType type, void * stmtVal) {
         }
     }
     return stmt;
+}
+
+
+CLoop* C_CreateLoop(CFactor* condition, CStatement* body) {
+    CLoop* loop = calloc(1, sizeof(CLoop));
+    if (!loop) return NULL;
+    loop->condition = condition;
+    loop->body = body;
+    return loop;
+}
+
+CForLoop* C_CreateForLoop(CForInit* init, CFactor* condition, CFactor* post, CStatement* body) {
+    CForLoop* forLoop = calloc(1, sizeof(CForLoop));
+    if (!forLoop) return NULL;
+    forLoop->init = init;
+    forLoop->condition = condition;
+    forLoop->post = post;
+    forLoop->body = body;
+    return forLoop;
+}
+
+CLoopStmt* C_CreateLoopStmt() {
+    CLoopStmt* loopStmt = calloc(1, sizeof(CLoopStmt));
+    if (!loopStmt) return NULL;
+    loopStmt->identifier = generateLoopStmtIdentifier();
+    return loopStmt;
+}
+
+
+
+CForInit* C_CreateForInit(forInitType type, void* initVal) {
+    CForInit* forInit = calloc(1, sizeof(CForInit));
+    if (!forInit) return NULL;
+    forInit->type = type;
+    switch (type) {
+        case FOR_INIT_DECL: {
+            forInit->decl = (CDeclaration*)initVal;
+            break;
+        }
+        case FOR_INIT_EXP: {
+            forInit->exp = (CFactor*)initVal;
+            break;
+        }
+        case FOR_INIT_WITHOUT: {
+            forInit->exp = NULL;
+            break;
+        }
+        default: {
+            fprintf(stderr, "Invalid for init type in C_CreateForInit\n");
+            free(forInit);
+            return NULL;
+        }
+    }
+    return forInit;
 }
 
 CVar* C_CreateVar(char* identifier) {
@@ -274,4 +345,13 @@ CCompound* C_CreateCompound(CBlock* block) {
     if (!compound) return NULL;
     compound->block = block;
     return compound;
+}
+
+
+char* generateLoopStmtIdentifier() {
+    static int loopStmtCounter = 0;
+    char* identifier = malloc(20);
+    if (!identifier) return NULL;
+    sprintf(identifier, "loop_stmt_%d", loopStmtCounter++);
+    return identifier;
 }

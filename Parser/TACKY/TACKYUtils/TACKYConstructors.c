@@ -137,6 +137,27 @@ char* generateTempName() {
     return temp_name;
 }
 
+char* generateLoopName() {
+    char* loop_name = malloc(strlen("loop") + 10);
+    if (!loop_name) return NULL;
+    sprintf(loop_name, "loop%d", currGlobalInt++);
+    return loop_name;
+}
+
+char* generateBreakLabelFromLoopLabel(char* loopLabel) {
+    char* label = malloc(strlen("break_") + strlen(loopLabel) + 1);
+    if (!label) return NULL;
+    sprintf(label, "break_%s", loopLabel);
+    return label;
+}
+
+char* generateContinueLabelFromLoopLabel(char* loopLabel) {
+    char* label = malloc(strlen("continue_") + strlen(loopLabel) + 1);
+    if (!label) return NULL;
+    sprintf(label, "continue_%s", loopLabel);
+    return label;
+}
+
 char* generateFalseLabel() {
     static int falseCount = 0;
     char* label = malloc(strlen("false_label_") + 10);

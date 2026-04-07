@@ -8,7 +8,7 @@
       "program": "${workspaceFolder}/compiler",
       "preLaunchTask": "build compiler",
       "args": [
-        "${workspaceFolder}/test.c"
+        "${workspaceFolder}/testFiles/valid/for_decl_no_init.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -46,6 +46,25 @@
         {
           "description": "Set Disassembly Flavor to Intel",
           "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "cwd": "/home/adammenasherov/CompilerProject/C-Compiler-Project",
+      "program": "/home/adammenasherov/CompilerProject/C-Compiler-Project/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
           "ignoreFailures": true
         }
       ]

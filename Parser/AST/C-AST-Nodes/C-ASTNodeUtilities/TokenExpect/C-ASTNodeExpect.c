@@ -239,6 +239,38 @@ binType tokenTypeToBinType(TokenType type) {
     }    
 }
 
+statementType loopStatementKeywordToStatementType(TokenList* tokens) {
+    if (!tokensLeft(tokens)) {
+        fprintf(stderr, "Parser Error: Expected loop statement keyword but got end of file\n");
+        exit(1);
+    }
+    int cursor = TokenList_getCursor(tokens);
+    Token* tok = TokenList_getAt(tokens, cursor);
+    if (!tok) {
+        fprintf(stderr, "Parser Error: Expected loop statement keyword but got NULL\n");
+        exit(1);
+    }
+    TokenType type = tok->type;
+    switch(type) {
+        case WHILE_KEYWORD: return STMT_WHILE;
+        case FOR_KEYWORD: return STMT_FOR;
+        case DO_KEYWORD: return STMT_DO_WHILE;
+        case BREAK_KEYWORD: return STMT_BREAK;
+        case CONTINUE_KEYWORD: return STMT_CONTINUE;
+        default:
+            fprintf(stderr, "Parser Error: Expected loop statement keyword but got %s\n",
+                    tokenTypeToToken(type));
+            exit(1);
+    }
+}
+
+int checkIsLoopStatement(TokenList* tokens) {
+    if (!tokensLeft(tokens)) return 0;
+    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    return tok ? isLoopStatement(tok) : 0;
+
+}
+
 
 int isPostfixUnaryOp(unaryType type) {
     switch(type) {
@@ -250,6 +282,21 @@ int isPostfixUnaryOp(unaryType type) {
 
     return 1;
 }
+
+int isLoopStatement(Token* tok) {
+    switch(tok->type) {
+        case BREAK_KEYWORD:
+        case CONTINUE_KEYWORD:
+        case WHILE_KEYWORD:
+        case FOR_KEYWORD:
+        case DO_KEYWORD:
+            break;
+        default: return 0;
+    }
+
+    return 1;
+}
+
 
 unaryType FromPostPreFixToRegular(unaryType type) {
     switch(type) {

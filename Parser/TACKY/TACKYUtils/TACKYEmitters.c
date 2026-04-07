@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary) {
+    if (!exp) return NULL;
     switch(exp->type) {
         case FACTOR_CONSTANT:
             return createTackyValueFromConstantNode(exp->exp.cnst);

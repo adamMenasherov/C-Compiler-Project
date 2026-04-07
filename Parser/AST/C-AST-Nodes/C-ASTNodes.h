@@ -18,6 +18,11 @@ typedef struct {
 CConstant* C_parseConstant(TokenList* tokens);
 CVar* C_parseVar(TokenList* tokens);
 CIf* C_parseIf(TokenList* tokens);
+CLoop* C_parseWhile(TokenList* tokens);
+CLoop* C_parseDoWhile(TokenList* tokens);
+CForLoop* C_parseFor(TokenList* tokens);
+CForInit* C_parseForInit(TokenList* tokens);
+CStatement* C_parseLoopStatement(TokenList* tokens);
 CStatement* C_parseStatement(TokenList* tokens);
 CDeclaration* C_parseDecleration(TokenList* tokens);
 CBlockItem* C_parseBlockItem(TokenList* tokens);

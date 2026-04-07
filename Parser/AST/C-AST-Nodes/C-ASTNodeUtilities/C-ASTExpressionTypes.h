@@ -59,6 +59,11 @@ typedef enum {
     STMT_EXPRESSION,
     STMT_IF,
     STMT_COMPOUND,
+    STMT_BREAK,
+    STMT_CONTINUE,
+    STMT_WHILE,
+    STMT_FOR,
+    STMT_DO_WHILE,
     STMT_NULL
 } statementType;
 
@@ -72,6 +77,12 @@ typedef enum {
     BLOCK_ITEM_STMT
 } blockItemType;
 
+typedef enum {
+    FOR_INIT_DECL, 
+    FOR_INIT_EXP,
+    FOR_INIT_WITHOUT
+} forInitType;
+
 typedef struct {
     int val; 
 } CConstant;
@@ -81,6 +92,7 @@ typedef struct CUnary CUnary;
 typedef struct CFactor CFactor;
 typedef struct CStatement CStatement;
 typedef struct CBlock CBlock;
+typedef struct CDeclaration CDeclaration;
 typedef struct CCompound CCompound;
 
 typedef struct {
@@ -137,6 +149,33 @@ typedef struct {
     CStatement* else_stmt; 
 } CIf;
 
+typedef struct {
+    forInitType type;
+    union {
+        CDeclaration* decl;
+        CFactor* exp;
+    };
+} CForInit;
+
+
+typedef struct {
+    CFactor* condition;
+    CStatement* body;
+    char* identifier;
+} CLoop;
+
+typedef struct {
+    CForInit* init;
+    CFactor* condition;
+    CFactor* post;
+    CStatement* body;
+    char* identifier;
+} CForLoop;
+
+typedef struct {
+    char* identifier;
+} CLoopStmt;
+
 typedef struct CStatement {
     statementType type;
     union {
@@ -144,10 +183,17 @@ typedef struct CStatement {
         CFactor* exp;
         CIf* if_stmt;
         CCompound* compound_stmt;
+
+        CLoop* while_stmt;
+        CLoop* do_while_stmt;
+        CForLoop* for_stmt;
+
+        CLoopStmt* break_stmt;
+        CLoopStmt* continue_stmt;
     } stmt;
 } CStatement;
 
-typedef struct {
+typedef struct CDeclaration {
     declerationType declType;
     char * identifier;
     CFactor* exp;

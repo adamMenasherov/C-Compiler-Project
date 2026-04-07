@@ -18,6 +18,9 @@ void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruct
 char* generateTempName();
 char* generateFalseLabel();
 char* generateTrueLabel();
+char* generateLoopName();
+char* generateBreakLabelFromLoopLabel(char* loopLabel);
+char* generateContinueLabelFromLoopLabel(char* loopLabel);
 char* generateEndLabel();
 char* generateE2Label();
 char* generateElseLabel();
