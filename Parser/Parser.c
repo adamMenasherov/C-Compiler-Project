@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
+#include <stdio.h>
+/*
 #include "TACKY/TACKYUtils/TACKY_AST_FREE.h"
 #include "AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
-#include <stdio.h>
 #include "TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
+*/
 
 
 AST* parse(TokenList* tokens) {
@@ -19,6 +21,11 @@ AST* parse(TokenList* tokens) {
     return ast;
 }
 
+/*
+ * Disabled for lexing/parsing-only stage.
+ * Keep TACKY/ASM pipeline code commented until those stages are re-enabled.
+ */
+/*
 ASM_AST* tackyAstToASM_AST(TACKY_AST* ast) {
     ASM_AST* asm_ast = malloc(sizeof(ASM_AST));
     if (!asm_ast) return NULL;
@@ -54,6 +61,7 @@ void freeASM_AST(ASM_AST* asm_ast) {
         free(asm_ast);
     }
 }
+*/
 
 void freeAST(AST* ast) {
     if (ast) {
@@ -66,6 +74,7 @@ void printAST(AST* ast) {
     C_printProgram(ast->prog);
 }
 
+/*
 void printASM_AST(ASM_AST* asm_ast) {
     printASMProgram(asm_ast->prog);
 }
@@ -73,3 +82,4 @@ void printASM_AST(ASM_AST* asm_ast) {
 void printTACKY_AST(TACKY_AST* tacky_ast) {
     printTACKYProgram(tacky_ast->prog);
 }
+*/

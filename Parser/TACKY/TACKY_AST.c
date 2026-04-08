@@ -34,7 +34,7 @@ void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList
 void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* instructionList) {
     switch(blockItem->type) {
         case BLOCK_ITEM_DECL:
-            if (blockItem->item.decl->declType == DECL_WITH_EXP) {
+            if (blockItem->item.decl->declType == VAR_DECL_WITH_EXP) {
                 char* varName = blockItem->item.decl->identifier;
                 int isPostfixUnary = 0;
                 TACKYValue* src = emit_TACKY(blockItem->item.decl->exp, instructionList, &isPostfixUnary);
@@ -148,7 +148,7 @@ void parseForLoopInitInstructions(CForInit* init, TACKYInstructionList* instruct
     if (!init) return;
     switch (init->type) {
         case FOR_INIT_DECL:
-            if (init->decl->declType == DECL_WITH_EXP) {
+            if (init->decl->declType == VAR_DECL_WITH_EXP) {
                 char* varName = init->decl->identifier;
                 int isPostfixUnary = 0;
                 TACKYValue* src = emit_TACKY(init->decl->exp, instructionList, &isPostfixUnary);

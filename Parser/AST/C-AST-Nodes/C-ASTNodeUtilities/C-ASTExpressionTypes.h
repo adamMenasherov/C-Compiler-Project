@@ -1,7 +1,11 @@
 #pragma once
 
 typedef struct CBlockItem CBlockItem;
+typedef struct CFactor CFactor;
+
 #include "../../../../DataStructures/DynamicArray/Wrappers/BlockItemArrayWrapper.h"
+#include "../../../../DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
+#include "../../../../DataStructures/DynamicArray/Wrappers/ExpressionFactorWrapper.h"
 typedef BlockItemArray CBlockItemList;
 
 typedef enum {
@@ -10,7 +14,8 @@ typedef enum {
     FACTOR_BINARY,
     FACTOR_VAR,
     FACTOR_ASSIGNMENT,
-    FACTOR_CONDITIONAL
+    FACTOR_CONDITIONAL,
+    FACTOR_FUNCTION_CALL
 } factorType;
 
 typedef enum {
@@ -30,7 +35,6 @@ typedef enum {
     IF_WITHOUT_ELSE,
     IF_WITH_ELSE
 } ifType;
-
 
 typedef enum {
     BIN_SUBTRACT,
@@ -68,9 +72,19 @@ typedef enum {
 } statementType;
 
 typedef enum {
-    DECL_WITH_EXP,
-    DECL_WITHOUT_EXP
-} declerationType;
+    VAR_DECL_WITH_EXP,
+    VAR_DECL_WITHOUT_EXP
+} varDeclType;
+
+typedef enum {
+    DECL_VAR,
+    DECL_FUNC
+} declType;
+
+typedef enum {
+    FUNC_DECL,
+    FUNC_DEF
+} funcDeclType;
 
 typedef enum {
     BLOCK_ITEM_DECL,
@@ -120,6 +134,11 @@ typedef struct CBinary {
     binType type;
 } CBinary;
 
+typedef struct {
+    char * identifier;
+    ExpressionFactorArray* arguments;
+} CFunctionCall;
+
 typedef struct CFactor {
     factorType type;
     union {
@@ -129,6 +148,7 @@ typedef struct CFactor {
         CVar * var;
         CAssignment * assignment;
         CConditional * conditional;
+        CFunctionCall* funcCall;
     } exp;
 } CFactor; 
 
@@ -172,6 +192,7 @@ typedef struct {
     char* identifier;
 } CForLoop;
 
+
 typedef struct {
     char* identifier;
 } CLoopStmt;
@@ -194,10 +215,22 @@ typedef struct CStatement {
 } CStatement;
 
 typedef struct CDeclaration {
-    declerationType declType;
-    char * identifier;
-    CFactor* exp;
+    declType type;
+    union {
+        struct {
+            varDeclType declType;
+            char * identifier;
+            CFactor* exp;
+        } variableDecl;
+        struct {
+            funcDeclType type;
+            char * identifier;
+            IdentifierArray* parameters;
+            CBlock* body;
+        } functionDecl;
+    } decl;
 } CDeclaration;
+    
 
 typedef struct CBlockItem {
     blockItemType type;

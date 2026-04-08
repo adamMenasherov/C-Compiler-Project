@@ -8,7 +8,7 @@
       "program": "${workspaceFolder}/compiler",
       "preLaunchTask": "build compiler",
       "args": [
-        "${workspaceFolder}/testFiles/valid/for_decl_no_init.c"
+        "${workspaceFolder}/test.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

@@ -13,6 +13,12 @@ int check(TokenList* tokens, TokenType type) {
     return tok ? tok->type == type : 0;
 }
 
+int lookAheadOne(TokenList* tokens, TokenType type) {
+    if (TokenList_getCursor(tokens) + 1 >= TokenList_size(tokens)) return 0;
+    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens) + 1);
+    return tok ? tok->type == type : 0;
+}
+
 int checkCompoundAssignment(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
     Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));

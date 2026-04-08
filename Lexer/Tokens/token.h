@@ -50,10 +50,12 @@ typedef enum {
     IF_KEYWORD,
     ELSE_KEYWORD,
     QUESTION_MARK,
-    COLON,
+    COMMA,
+    LEXER,
     WHILE_KEYWORD,
     FOR_KEYWORD,
     DO_KEYWORD,
+    COLON,
     BREAK_KEYWORD,
     CONTINUE_KEYWORD,
     ERROR

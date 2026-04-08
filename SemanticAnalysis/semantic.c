@@ -147,7 +147,7 @@ void resolveDeclaration(CDeclaration* decl, SemanticVariableMap* varMap) {
     semanticMapPut(varMap, decl->identifier, uniqueName);
     decl->identifier = uniqueName;
 
-    if (decl->declType == DECL_WITH_EXP && decl->exp) {
+    if (decl->declType == VAR_DECL_WITH_EXP && decl->exp) {
         resolveExpression(decl->exp, varMap);
     }
 }

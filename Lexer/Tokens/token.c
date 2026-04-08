@@ -52,6 +52,7 @@ const char *tokenTypeStr[] = {
     [IF_KEYWORD] = "IF_KEYWORD",
     [ELSE_KEYWORD] = "ELSE_KEYWORD",
     [QUESTION_MARK] = "QUESTION_MARK",
+    [COMMA] = "COMMA",
     [COLON] = "COLON",
     [WHILE_KEYWORD] = "WHILE_KEYWORD",
     [FOR_KEYWORD] = "FOR_KEYWORD",
@@ -109,6 +110,7 @@ const char *tokenTypeToSymbol[] = {
     [IF_KEYWORD] = "if",
     [ELSE_KEYWORD] = "else",
     [QUESTION_MARK] = "?",
+    [COMMA] = ",",
     [COLON] = ":",
     [WHILE_KEYWORD] = "while",
     [FOR_KEYWORD] = "for",
@@ -160,6 +162,7 @@ TokenType identifyType(char * tokenSource, char ** tokenStr) {
         case '|': type = BAR; break;
         case '^': type = CARET; break;
         case '?': type = QUESTION_MARK; break;
+        case ',': type = COMMA; break;
         case ':': type = COLON; break;
         default: type = ERROR;
     }

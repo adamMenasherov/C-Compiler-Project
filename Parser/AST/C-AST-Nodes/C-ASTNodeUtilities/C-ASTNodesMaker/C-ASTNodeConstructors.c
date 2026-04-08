@@ -22,16 +22,19 @@ CReturn* C_CreateReturn(CFactor* exp) {
 }
 
 
-CFunction* C_CreateFunction(char* function_name, CBlock* block) {
-    CFunction* func = malloc(sizeof(CFunction));
+CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body) {
+    CDeclaration* func = calloc(1, sizeof(CDeclaration));
     if (!func) return NULL;
-    func->function_name = strdup(function_name);
-    func->block = block;
+    func->type = DECL_FUNC;
+    func->decl.functionDecl.type = type;
+    func->decl.functionDecl.identifier = strdup(identifier);
+    func->decl.functionDecl.parameters = parameters;
+    func->decl.functionDecl.body = body;
 
     return func;
 }
 
-CProgram* C_CreateProgram(CFunction* function_def) {
+CProgram* C_CreateProgram(CDeclarationArray* function_def) {
     CProgram* prog = malloc(sizeof(CProgram));
     if (!prog) return NULL;
     prog->function_def = function_def;
@@ -88,6 +91,16 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
                                         C_CreateCopyOfFactor(((CConditional*)expVal)->else_stmt));
             break;
         }
+        case FACTOR_FUNCTION_CALL: {
+            new_exp->type = FACTOR_FUNCTION_CALL;
+            new_exp->exp.funcCall = C_CreateFunctionCall(((CFunctionCall*)expVal)->identifier, ((CFunctionCall*)expVal)->arguments);
+            break;
+        }
+        default: {
+            fprintf(stderr, "Invalid factor type in C_CreateFactor\n");
+            free(new_exp);
+            return NULL;
+        }
     }
     return new_exp;
 }
@@ -110,8 +123,21 @@ CBlock* C_CreateBlockEmpty() {
     return block;
 }
 
+CFunctionCall* C_CreateFunctionCall(char* identifier, ExpressionFactorArray* arguments) {
+    CFunctionCall* funcCall = malloc(sizeof(CFunctionCall));
+    if (!funcCall) return NULL;
+    funcCall->identifier = strdup(identifier);
+    funcCall->arguments = arguments;
+    return funcCall;
+}
+
 CFactor* C_CreateFactorFromConstant(CConstant * exp) {
     return C_CreateFactor(FACTOR_CONSTANT, exp);
+}
+
+
+CFactor* C_CreateFactorFromFunctionCall(CFunctionCall* funcCall) {
+    return C_CreateFactor(FACTOR_FUNCTION_CALL, funcCall);
 }
 
 CFactor* C_CreateFactorFromUnary(CUnary * exp) {
@@ -289,12 +315,13 @@ CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {
     return binary;
 }
 
-CDeclaration* C_CreateDecleration(declerationType type, char* iden, CFactor* assign) {
+CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign) {
     CDeclaration* decl = malloc(sizeof(CDeclaration));
     if (!decl) return NULL;
-    decl->declType = type;
-    decl->exp = assign;
-    decl->identifier = iden;
+    decl->type = DECL_VAR;
+    decl->decl.variableDecl.declType = type;
+    decl->decl.variableDecl.exp = assign;
+    decl->decl.variableDecl.identifier = iden;
     return decl;
 }
 

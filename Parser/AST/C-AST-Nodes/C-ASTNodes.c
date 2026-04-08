@@ -3,6 +3,7 @@
 #include <string.h>
 #include "C-ASTNodes.h"
 #include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
+#include "DataStructures/DynamicArray/Wrappers/ExpressionFactorWrapper.h"
 
 static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
     while (checkIncrementDecrement(tokens)) {
@@ -14,6 +15,16 @@ static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
 }
 
 CFactor* C_parseFactor(TokenList* tokens) {
+    if (check(tokens, IDENTIFIER) && lookAheadOne(tokens, OPEN_PAREN)) {
+        char* identifier = expectIdentifier(tokens);
+        expect(tokens, OPEN_PAREN);
+
+        CFactor* fact =  parsePostfixOperators(C_CreateFactorFromFunctionCall(
+            C_CreateFunctionCall(identifier, parseArgumentList(tokens))), tokens);
+        expect(tokens, CLOSE_PAREN);
+        return fact;
+    }
+
     if (check(tokens, CONSTANT)) {
         return parsePostfixOperators(C_CreateFactorFromConstant(C_parseConstant(tokens)), tokens);
     }
@@ -194,7 +205,13 @@ CIf* C_parseIf(TokenList* tokens) {
 
 CForInit* C_parseForInit(TokenList* tokens) {
     if (check(tokens, INT_KEYWORD)) {
-        CDeclaration* decl = C_parseDecleration(tokens);
+        expect(tokens, INT_KEYWORD);
+        char* identifier = expectIdentifier(tokens);
+        if (!identifier){
+            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenList_getAt(tokens, TokenList_getCursor(tokens)));
+            exit(1);
+        }
+        CDeclaration* decl = C_parseVarDeclaration(tokens, identifier);
         return C_CreateForInit(FOR_INIT_DECL, decl);
     }
     else if (!check(tokens, SEMICOLON)) {
@@ -246,18 +263,12 @@ CForLoop* C_parseFor(TokenList* tokens) {
     return C_CreateForLoop(init, condition, post, body);
 }
 
-CDeclaration* C_parseDecleration(TokenList* tokens) {
+CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier) {
     CFactor* fact = NULL;
-    declerationType type = DECL_WITHOUT_EXP;
-    expect(tokens, INT_KEYWORD);
-    char* identifier = expectIdentifier(tokens);
-    if (!identifier){
-        fprintf(stderr, "Decleration: Expected identifier and got %s", TokenList_getAt(tokens, TokenList_getCursor(tokens)));
-        exit(1);
-    }
-
+    varDeclType type = VAR_DECL_WITHOUT_EXP;
+    
     if (check(tokens, ONE_EQUAL)) {
-        type = DECL_WITH_EXP;
+        type = VAR_DECL_WITH_EXP;
         expect(tokens, ONE_EQUAL);
         fact = C_parseExpression(tokens, 0);
         expect(tokens, SEMICOLON);
@@ -266,16 +277,33 @@ CDeclaration* C_parseDecleration(TokenList* tokens) {
         expect(tokens, SEMICOLON);
     }
     
-    return C_CreateDecleration(type, identifier, fact);
+    return C_CreateVariableDeclaration(type, identifier, fact);
 }
 
+
+CDeclaration* C_parseDeclaration(TokenList* tokens) {
+    expect(tokens, INT_KEYWORD);
+
+    char* identifier = expectIdentifier(tokens);
+    if (!identifier){
+        fprintf(stderr, "Decleration: Expected identifier and got %s", TokenList_getAt(tokens, TokenList_getCursor(tokens)));
+        exit(1);
+    }
+
+    if (check(tokens, OPEN_PAREN)) {
+        return C_parseFunction(tokens, identifier);
+    }
+    else {
+        return C_parseVarDeclaration(tokens, identifier);
+    }
+}
 
 CBlockItem* C_parseBlockItem(TokenList* tokens) {
     blockItemType type;
     void* data;
     if (check(tokens, INT_KEYWORD)) {
         type = BLOCK_ITEM_DECL;
-        CDeclaration* decl = C_parseDecleration(tokens);
+        CDeclaration* decl = C_parseDeclaration(tokens);
         data = decl;
     }    
     else {
@@ -296,31 +324,97 @@ CReturn* C_parseReturn(TokenList* tokens) {
     return C_CreateReturn(return_exp);
 }
 
+IdentifierArray* C_parseFuncParameters(TokenList* tokens) {
+    int containsParam = 0;
+    IdentifierArray* params = createIdentifierArray();
+    while (!check(tokens, CLOSE_PAREN)) {
+        if (check(tokens, VOID_KEYWORD)) {
+            expect(tokens, VOID_KEYWORD);
+            if (!check(tokens, CLOSE_PAREN) || containsParam) {
+                fprintf(stderr, "Parser Error: 'void' must be the only parameter if present\n");
+                exit(1);
+            }
+            break;
+        }
 
-CFunction* C_parseFunction(TokenList* tokens) {
+        expect(tokens, INT_KEYWORD);
+        char* identifier = expectIdentifier(tokens);
+        addIdentifierArray(params, identifier);
+        if (!check(tokens, CLOSE_PAREN)) {
+            expect(tokens, COMMA);
+            if (check(tokens, CLOSE_PAREN)) {
+                fprintf(stderr, "Parser Error: Trailing comma in parameter list\n");
+                exit(1);
+            }
+        }
+        containsParam = 1;
+    }
+    return params;
+}
+
+CDeclaration* C_parseFunction(TokenList* tokens, char* identifier) {
+    funcDeclType type = FUNC_DEF;
     CBlock* body;
-
-    expect(tokens, INT_KEYWORD);
-    char* identifier = strdup(expectIdentifier(tokens));
     expect(tokens, OPEN_PAREN);
-    expect(tokens, VOID_KEYWORD);
+    IdentifierArray* parameters = C_parseFuncParameters(tokens);
     expect(tokens, CLOSE_PAREN);
-    expect(tokens, OPEN_BRACE);
-    body = C_parseBlock(tokens);
-    expect(tokens, CLOSE_BRACE);
+    if (check(tokens, OPEN_BRACE)) {
+        expect(tokens, OPEN_BRACE);
+        body = C_parseBlock(tokens);
+        expect(tokens, CLOSE_BRACE);
+    } else {
+        type = FUNC_DECL;
+        body = NULL;
+        expect(tokens, SEMICOLON);
+    }
 
-    return C_CreateFunction(identifier, body);
+    return C_CreateFunction(type, identifier, parameters, body);
+}
+
+CDeclarationArray* C_parseFunctions(TokenList* tokens) {
+    CDeclarationArray* functions = createCDeclarationArray();
+    while (check(tokens, INT_KEYWORD)) {
+        expect(tokens, INT_KEYWORD);
+        char* identifier = expectIdentifier(tokens);
+        if (!identifier){
+            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenList_getAt(tokens, TokenList_getCursor(tokens)));
+            exit(1);
+        }
+        CDeclaration* func = C_parseFunction(tokens, identifier);
+        if (!func) return NULL;
+        addCDeclarationArray(functions, func);
+    }
+    return functions;
 }
 
 
 CProgram* C_parseProgram(TokenList* tokens) {
-    CFunction* func = C_parseFunction(tokens);
-    if (!func) return NULL;
+    CDeclarationArray* functions = C_parseFunctions(tokens);
+    if (!functions) return NULL;
 
     if (tokensLeft(tokens)) {
         fprintf(stderr, "Parser Error: Invalid tokens left\n");
         exit(1);
     }
 
-    return C_CreateProgram(func);
+    return C_CreateProgram(functions);
+}
+
+
+ExpressionFactorArray* parseArgumentList(TokenList* tokens) {
+    ExpressionFactorArray* arguments = ExpressionFactorArray_create();
+    if (check(tokens, CLOSE_PAREN)) {
+        return arguments;
+    }
+
+    while (1) {
+        CFactor* exp = C_parseExpression(tokens, 0);
+        if (!exp) return NULL;
+        ExpressionFactorArray_append(arguments, exp);
+        if (check(tokens, CLOSE_PAREN)) {
+            break;
+        }
+        expect(tokens, COMMA);
+    }
+    return arguments;
 }

@@ -13,33 +13,18 @@ OBJ_DIR = $(BUILD_DIR)/obj
 TARGET = compiler
 
 # Source files
-SOURCES = ASM-File-Generation/ASMGenerator.c \
-	      ASM-File-Generation/ASM_AST_fix.c \
-	      DataStructures/HashTable/HashTable.c \
-	      DataStructures/Map/Wrappers/SemanticVariableMap.c \
-	      DataStructures/Map/map.c \
+SOURCES = DataStructures/HashTable/HashTable.c \
 	      EntryPoint/FileHandling.c \
 	      EntryPoint/main.c \
 	      Lexer/Tokens/token.c \
 	      Lexer/Tokens/tokenList.c \
 	      Lexer/lex.c \
-	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodes.c \
-	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.c \
-	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.c \
-	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesGeneralUtils.c \
-	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodes.c \
-	      Parser/Parser.c \
-	      Parser/TACKY/TACKYUtils/TACKYConstructors.c \
-	      Parser/TACKY/TACKYUtils/TACKYEmitters.c \
-	      Parser/TACKY/TACKYUtils/TACKY_AST_FREE.c \
-	      Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.c \
-	      Parser/TACKY/TACKY_AST.c \
-	      SemanticAnalysis/semantic.c
+	      Parser/Parser.c
 
 
 # Object files (derived from sources, placed in OBJ_DIR)
