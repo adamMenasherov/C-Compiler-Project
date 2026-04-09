@@ -378,6 +378,21 @@ int isIncrementDecrementOp(unaryType type) {
     return 1;
 }
 
+int isIncrementDecrementOpIncludingFix(unaryType type) {
+    switch(type) {
+        case UNARY_INCREMENT:
+        case UNARY_DECREMENT:
+        case UNARY_INCREMENT_PREFIX:
+        case UNARY_INCREMENT_POSTFIX:
+        case UNARY_DECREMENT_PREFIX:
+        case UNARY_DECREMENT_POSTFIX:
+            break;
+        default: return 0;
+    }
+
+    return 1;
+}
+
 int checkFactorStart(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
     return check(tokens, CONSTANT) || check(tokens, IDENTIFIER) || checkUnaryOp(tokens) 

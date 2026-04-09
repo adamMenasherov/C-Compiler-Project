@@ -9,7 +9,6 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "No files provided for compilation.\n");
         return 1;
     }
-
     startProcess(argc, argv);    
     return 0;
 }

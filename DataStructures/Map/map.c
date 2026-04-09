@@ -27,7 +27,7 @@ Map* copyMap(Map* original, void* (*copyKey)(void*), void* (*copyValue)(void*)) 
         while (entry) {
             void* newKey = copyKey ? copyKey(entry->key) : entry->key;
             void* newValue = copyValue ? copyValue(entry->value) : entry->value;
-            mapPut(newMap, newKey, newValue, 0);
+            mapPut(newMap, newKey, newValue, 0, entry->hasLinkage);
             entry = entry->next;
         }
     }
@@ -53,7 +53,7 @@ void freeMap(Map* map, void (*freeKey)(void*), void (*freeValue)(void*)) {
     free(map);
 }
 
-int mapPut(Map* map, void* key, void* value, int isInBlock) {
+int mapPut(Map* map, void* key, void* value, int isInScope, int hasLinkage) {
     if (!map) return 0;
 
     size_t hash = map->hashFunc(key) % map->bucket_count;
@@ -61,7 +61,7 @@ int mapPut(Map* map, void* key, void* value, int isInBlock) {
     while (entry) {
         if (map->equalsFunc(entry->key, key)) {
             entry->value = value; 
-            entry->isInBlock = isInBlock;
+            entry->isInScope = isInScope;
             return 1;
         }
         entry = entry->next;
@@ -71,7 +71,8 @@ int mapPut(Map* map, void* key, void* value, int isInBlock) {
     if (!new_entry) return 0;
     new_entry->key = key;
     new_entry->value = value;
-    new_entry->isInBlock = isInBlock;
+    new_entry->isInScope = isInScope;
+    new_entry->hasLinkage = hasLinkage;
     new_entry->next = map->buckets[hash];
     map->buckets[hash] = new_entry;
 

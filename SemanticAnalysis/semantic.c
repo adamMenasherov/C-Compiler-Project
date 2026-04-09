@@ -13,14 +13,33 @@ void resolveAST(AST* ast) {
 
 void resolveProgram(CProgram* prog) {
     if (!prog) return;
-    resolveFunction(prog->function_def);
+    resolveFunctions(prog->function_def);
 }
-void resolveFunction(CFunction* func) {
+void resolveFunctions(CDeclarationArray* func) {
     if (!func) return;
-    SemanticVariableMap* varMap = createSemanticVariableMap();
-    resolveBlock(func->block, varMap);
-    resolveBlockWithLabeling(func->block);
-    freeSemanticVariableMap(varMap);
+    SemanticIdentifierMap* varMap = createSemanticIdentifierMap();
+    for (int i = 0; i < func->size; i++) {
+        CDeclaration* function = (CDeclaration*)func->data[i];
+        resolveFunction(function, varMap);
+    }
+    
+}
+
+void resolveFunction(CDeclaration* func, SemanticIdentifierMap* varMap) {
+    char* uniqueName = semanticMapGet(varMap, func->decl.functionDecl.identifier);
+    if (uniqueName) {
+        MapEntry* entry = getSemanticMapEntry(varMap, func->decl.functionDecl.identifier);
+        if (entry->isInScope && !entry->hasLinkage) {
+            fprintf(stderr, "Semantic Error: Function '%s' redeclared\n", func->decl.functionDecl.identifier);
+            exit(1);
+        }
+    }
+
+    semanticMapPut(varMap, func->decl.functionDecl.identifier, func->decl.functionDecl.identifier, 1, 1);
+    if (func->decl.functionDecl.identifier)
+    resolveBlock(func->decl.functionDecl.body, varMap);
+    resolveBlockWithLabeling(func->decl.functionDecl.body);
+    freeSemanticIdentifierMap(varMap);
 }
 
 void resolveBlockWithLabeling(CBlock* block) {
@@ -33,7 +52,7 @@ void resolveBlockWithLabeling(CBlock* block) {
 }
 
 
-void resolveBlock(CBlock* block, SemanticVariableMap* varMap) {
+void resolveBlock(CBlock* block, SemanticIdentifierMap* varMap) {
     if (!block) return;
     DArray_forEach(block->items, elem,
     {
@@ -119,7 +138,7 @@ void labelStatement(CStatement* stmt, char* currentLabel) {
     }
 }
 
-void resolveBlockItem(CBlockItem* blockItem, SemanticVariableMap* varMap) {
+void resolveBlockItem(CBlockItem* blockItem, SemanticIdentifierMap* varMap) {
     if (!blockItem) return;
     switch (blockItem->type) {
         case BLOCK_ITEM_DECL:
@@ -131,28 +150,42 @@ void resolveBlockItem(CBlockItem* blockItem, SemanticVariableMap* varMap) {
     }
 }
 
-void resolveDeclaration(CDeclaration* decl, SemanticVariableMap* varMap) {
+void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap) {
     if (!decl) return;
-    
-    if (semanticMapContainsKey(varMap, decl->identifier) && isFromCurrentBlock(varMap, decl->identifier)) {
-        fprintf(stderr, "Semantic Error: Variable '%s' redeclared\n", decl->identifier);
-        exit(1);
-    }
-
-    char* uniqueName = generateUniqueVariableName(decl->identifier);
-    if (!uniqueName) {
-        fprintf(stderr, "Semantic Error: Failed to generate unique variable name for '%s'\n", decl->identifier);
-        exit(1);
-    }
-    semanticMapPut(varMap, decl->identifier, uniqueName);
-    decl->identifier = uniqueName;
-
-    if (decl->declType == VAR_DECL_WITH_EXP && decl->exp) {
-        resolveExpression(decl->exp, varMap);
+    switch (decl->type) {
+        case DECL_VAR:
+            resolveVarDeclaration(decl, varMap);
+            break;
+        case DECL_FUNC:
+            resolveFunction(decl, varMap);
+            break;
     }
 }
 
-void resolveStatement(CStatement* stmt, SemanticVariableMap* varMap) {
+void resolveVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap) {
+    if (!decl) return;
+    
+    if (semanticMapContainsKey(varMap, decl->decl.variableDecl.identifier) && 
+            isFromCurrentBlock(varMap, decl->decl.variableDecl.identifier)) {
+        fprintf(stderr, "Semantic Error: Variable '%s' redeclared\n", decl->decl.variableDecl.identifier);
+        exit(1);
+    }
+
+    char* uniqueName = generateUniqueVariableName(decl->decl.variableDecl.identifier);
+    if (!uniqueName) {
+        fprintf(stderr, "Semantic Error: Failed to generate unique variable name for '%s'\n", decl->decl.variableDecl.identifier);
+        exit(1);
+    }
+    semanticMapPut(varMap, decl->decl.variableDecl.identifier, uniqueName);
+    decl->decl.variableDecl.identifier = uniqueName;
+
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
+        resolveExpression(decl->decl.variableDecl.exp, varMap);
+    }
+}
+
+
+void resolveStatement(CStatement* stmt, SemanticIdentifierMap* varMap) {
     if (!stmt) return;
     switch(stmt->type) {
         case STMT_EXPRESSION:
@@ -170,32 +203,32 @@ void resolveStatement(CStatement* stmt, SemanticVariableMap* varMap) {
             break;
         }
         case STMT_COMPOUND: {
-            SemanticVariableMap* newVarMap = copySemanticVariableMap(varMap);
+            SemanticIdentifierMap* newVarMap = copySemanticIdentifierMap(varMap);
             resolveBlock(stmt->stmt.compound_stmt->block, newVarMap);
-            freeSemanticVariableMap(newVarMap);
+            freeSemanticIdentifierMap(newVarMap);
             break;
         }
         case STMT_FOR: {
-            SemanticVariableMap* newVarMap = copySemanticVariableMap(varMap);
+            SemanticIdentifierMap* newVarMap = copySemanticIdentifierMap(varMap);
             resolveForInit(stmt->stmt.for_stmt->init, newVarMap);
             resolveExpression(stmt->stmt.for_stmt->condition, newVarMap);
             resolveExpression(stmt->stmt.for_stmt->post, newVarMap);
             resolveStatement(stmt->stmt.for_stmt->body, newVarMap);
-            freeSemanticVariableMap(newVarMap);
+            freeSemanticIdentifierMap(newVarMap);
             break;
         }
         case STMT_WHILE: {
-            SemanticVariableMap* newVarMap = copySemanticVariableMap(varMap);
+            SemanticIdentifierMap* newVarMap = copySemanticIdentifierMap(varMap);
             resolveExpression(stmt->stmt.while_stmt->condition, newVarMap);
             resolveStatement(stmt->stmt.while_stmt->body, newVarMap);
-            freeSemanticVariableMap(newVarMap);
+            freeSemanticIdentifierMap(newVarMap);
             break;
         }
         case STMT_DO_WHILE: {
-            SemanticVariableMap* newVarMap = copySemanticVariableMap(varMap);
+            SemanticIdentifierMap* newVarMap = copySemanticIdentifierMap(varMap);
             resolveStatement(stmt->stmt.do_while_stmt->body, newVarMap);
             resolveExpression(stmt->stmt.do_while_stmt->condition, newVarMap);
-            freeSemanticVariableMap(newVarMap);
+            freeSemanticIdentifierMap(newVarMap);
             break;
         }
         case STMT_NULL:
@@ -205,11 +238,11 @@ void resolveStatement(CStatement* stmt, SemanticVariableMap* varMap) {
 }
 
 
-void resolveForInit(CForInit* init, SemanticVariableMap* varMap) {
+void resolveForInit(CForInit* init, SemanticIdentifierMap* varMap) {
     if (!init) return;
     switch (init->type) {
         case FOR_INIT_DECL:
-            resolveDeclaration(init->decl, varMap);
+            resolveVarDeclaration(init->decl, varMap);
             break;
         case FOR_INIT_EXP:
             resolveExpression(init->exp, varMap);
@@ -220,17 +253,14 @@ void resolveForInit(CForInit* init, SemanticVariableMap* varMap) {
 }
 
 
-void resolveExpression(CFactor* fact, SemanticVariableMap* varMap) {
+void resolveExpression(CFactor* fact, SemanticIdentifierMap* varMap) {
     if (!fact) return;
 
     switch (fact->type) {
         case FACTOR_CONSTANT:
             break;
         case FACTOR_UNARY:
-            if ((fact->exp.unary->type == UNARY_INCREMENT_PREFIX ||
-                 fact->exp.unary->type == UNARY_INCREMENT_POSTFIX ||
-                 fact->exp.unary->type == UNARY_DECREMENT_PREFIX ||
-                 fact->exp.unary->type == UNARY_DECREMENT_POSTFIX) &&
+            if ((isIncrementDecrementOpIncludingFix(fact->exp.unary->type)) &&
                 fact->exp.unary->exp->type != FACTOR_VAR) {
                 fprintf(stderr, "Semantic Error: Operand of %s must be a variable\n",
                     (fact->exp.unary->type == UNARY_INCREMENT_PREFIX ||
@@ -262,11 +292,29 @@ void resolveExpression(CFactor* fact, SemanticVariableMap* varMap) {
             resolveExpression(fact->exp.assignment->exp2, varMap);
             break;
         }
-        case FACTOR_CONDITIONAL:
+        case FACTOR_CONDITIONAL: {
             resolveExpression(fact->exp.conditional->condition, varMap);
             resolveExpression(fact->exp.conditional->then, varMap);
             resolveExpression(fact->exp.conditional->else_stmt, varMap);
             break;
+        }
+
+        case FACTOR_FUNCTION_CALL: {
+            char* uniqueName = semanticMapGet(varMap, fact->exp.funcCall->identifier);
+            if (!uniqueName) {
+                fprintf(stderr, "Semantic Error: Undeclared function '%s'\n", fact->exp.funcCall->identifier);
+                exit(1);
+            }
+            fact->exp.funcCall->identifier = uniqueName;
+            ExpressionFactorArray* args = fact->exp.funcCall->arguments;
+            if (!args) break;
+            for (int i = 0; i < args->size; i++) {
+                CFactor* arg = (CFactor*)args->data[i];
+                resolveExpression(arg, varMap);
+            }
+            break;
+        }
+            
     }
 }
 
