@@ -33,29 +33,3 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec);
 CFactor* C_parseConditionalMiddle(TokenList* tokens);
 CBlock* C_parseBlock(TokenList* tokens);
 ExpressionFactorArray* parseArgumentList(TokenList* tokens);
-
-
-// CBlockItemList functions
-static inline CBlockItemList* createCBlockItemList() {
-    return BlockItemArray_create();
-}
-static inline void addCBlockItem(CBlockItemList* list, CBlockItem* item) {
-    BlockItemArray_append(list, item);
-}
-
-static inline IdentifierArray* createIdentifierArray() {
-    return IdentifierArray_create();
-}
-
-static inline void addIdentifierArray(IdentifierArray* list, char* identifier) {
-    IdentifierArray_append(list, identifier);
-}
-
-static inline CDeclarationArray* createCDeclarationArray() {
-    return CDeclarationArray_create();
-}
-
-static inline void addCDeclarationArray(CDeclarationArray* list, CDeclaration* declaration) {
-    CDeclarationArray_append(list, declaration);
-}
-

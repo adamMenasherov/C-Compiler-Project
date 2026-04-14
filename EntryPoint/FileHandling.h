@@ -1,10 +1,9 @@
 #pragma once
 
 char* readSourceFile(char* fileName);
-char* generatePreprocessedFileName(char* originalFileName, char **execFileName);
+char* generatePreprocessedFileName(char* originalFileName, char **objectFileName, char **asmFileName);
 void commandForPreprocessing(char* originalFileName, char* preprocessedFileName);
 void commandForObjectFile(char* asmFileName, char* executableFileName);
-char* generateASMFileName(char* originalFileName);
 char* compileFile(char* fileName);
 void startProcess(int argc, char* argv[]);
 void runExecutableCommand(char* command);

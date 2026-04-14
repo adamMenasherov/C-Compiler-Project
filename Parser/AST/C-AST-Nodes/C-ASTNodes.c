@@ -4,6 +4,8 @@
 #include "C-ASTNodes.h"
 #include "C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
 #include "DataStructures/DynamicArray/Wrappers/ExpressionFactorWrapper.h"
+#include "DataStructures/DynamicArray/Wrappers/TokenArrayWrapper.h"
+
 
 static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
     while (checkIncrementDecrement(tokens)) {
@@ -68,7 +70,7 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
             left = C_CreateFactorFromAssignment(new_left);
         }
         else if (checkCompoundAssignment(tokens)) {
-            binType type = compoundAssignmentToBinType(TokenList_getAt(tokens, TokenList_getCursor(tokens))->type);
+            binType type = compoundAssignmentToBinType(TokenArray_get(tokens, TokenArray_getCursor(tokens))->type);
             expectCompoundAssignment(tokens);
             CFactor* right = C_parseExpression(tokens, previous_prec);
             if (!right) return NULL;
