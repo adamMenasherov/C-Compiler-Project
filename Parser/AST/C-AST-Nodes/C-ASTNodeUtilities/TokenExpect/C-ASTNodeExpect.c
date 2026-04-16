@@ -4,42 +4,42 @@
 #include "../../../../../Lexer/Tokens/token.h"
 
 int tokensLeft(TokenList* tokens) {
-    return TokenList_getCursor(tokens) < TokenList_size(tokens);
+    return TokenArray_getCursor(tokens->array) < TokenArray_size(tokens->array);
 }
 
 int check(TokenList* tokens, TokenType type) {
     if (!tokensLeft(tokens)) return 0;
-    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
     return tok ? tok->type == type : 0;
 }
 
 int lookAheadOne(TokenList* tokens, TokenType type) {
-    if (TokenList_getCursor(tokens) + 1 >= TokenList_size(tokens)) return 0;
-    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens) + 1);
+    if (TokenArray_getCursor(tokens->array) + 1 >= TokenArray_size(tokens->array)) return 0;
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array) + 1);
     return tok ? tok->type == type : 0;
 }
 
 int checkCompoundAssignment(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
-    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
     return tok ? (isCompoundAssignment(tok)) : 0;
 }
 
 int checkBinaryOp(TokenList* tokens)  {
     if (!tokensLeft(tokens)) return 0;
-    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
     return tok ? isBinaryOp(tok) : 0;
 }
 
 int checkUnaryOp(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
-    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
     return tok ? isUnaryOp(tok) : 0;
 }
 
 int checkIncrementDecrement(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
-    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
     return tok ? (tok->type == TWO_PLUS || tok->type == TWO_HYPHENS) : 0;
 }
 
@@ -49,14 +49,14 @@ int expectConstant(TokenList* tokens) {
         exit(1);
     }
 
-    int cursor = TokenList_getCursor(tokens);
-    Token* tok = TokenList_getAt(tokens, cursor);
+    int cursor = TokenArray_getCursor(tokens->array);
+    Token* tok = TokenArray_get(tokens->array, cursor);
     if (!tok || tok->type != CONSTANT) {
         fprintf(stderr, "Parser Error: Expected constant value but got %s\n", 
             tok ? tok->value : "NULL");
         exit(1);
     }
-    TokenList_setCursor(tokens, cursor + 1);
+    TokenArray_setCursor(tokens->array, cursor + 1);
     return atoi(tok->value);
 }
 
@@ -86,14 +86,14 @@ void expect(TokenList* tokens, TokenType type) {
         exit(1);
     }
 
-    int cursor = TokenList_getCursor(tokens);
-    Token* tok = TokenList_getAt(tokens, cursor);
+    int cursor = TokenArray_getCursor(tokens->array);
+    Token* tok = TokenArray_get(tokens->array, cursor);
     if (!tok || tok->type != type) {
         fprintf(stderr, "Parser Error: Expected %s but got %s\n", 
             tokenTypeToToken(type), tok ? tok->value : "NULL");
         exit(1);
     }
-    TokenList_setCursor(tokens, cursor + 1);
+    TokenArray_setCursor(tokens->array, cursor + 1);
 }
 
 char* expectIdentifier(TokenList* tokens) {
@@ -101,14 +101,14 @@ char* expectIdentifier(TokenList* tokens) {
         fprintf(stderr, "Parser Error: Expected identifier but got end of file\n");
         exit(1);
     }
-    int cursor = TokenList_getCursor(tokens);
-    Token* tok = TokenList_getAt(tokens, cursor);
+    int cursor = TokenArray_getCursor(tokens->array);
+    Token* tok = TokenArray_get(tokens->array, cursor);
     if (!tok || tok->type != IDENTIFIER) {
         fprintf(stderr, "Parser Error: Expected identifier but got %s\n", 
             tok ? tok->value : "NULL");
         exit(1);
     }
-    TokenList_setCursor(tokens, cursor + 1);
+    TokenArray_setCursor(tokens->array, cursor + 1);
     return tok->value;
 }
 
@@ -117,14 +117,14 @@ void expectCompoundAssignment(TokenList* tokens) {
         fprintf(stderr, "Parser Error: Expected compound assignment operator but got end of file\n");
         exit(1);
     }
-    int cursor = TokenList_getCursor(tokens);
-    Token* tok = TokenList_getAt(tokens, cursor);
+    int cursor = TokenArray_getCursor(tokens->array);
+    Token* tok = TokenArray_get(tokens->array, cursor);
     if (!tok || !isCompoundAssignment(tok)) {
         fprintf(stderr, "Parser Error: Expected compound assignment operator but got %s\n", 
             tok ? tok->value : "NULL");
         exit(1);
     }
-    TokenList_setCursor(tokens, cursor + 1);
+    TokenArray_setCursor(tokens->array, cursor + 1);
 }
 
 int isUnaryOp(Token* tok) {
@@ -187,15 +187,15 @@ unaryType expectUnaryOp(TokenList* tokens) {
         exit(1);
     }
 
-    int cursor = TokenList_getCursor(tokens);
-    Token* tok = TokenList_getAt(tokens, cursor);
+    int cursor = TokenArray_getCursor(tokens->array);
+    Token* tok = TokenArray_get(tokens->array, cursor);
     if (!tok || !isUnaryOp(tok)) {
         fprintf(stderr, "Parser Error: Expected unary operator but got %s\n",
                     tok ? tok->value : "NULL");
         exit(1);
     }
 
-    TokenList_setCursor(tokens, cursor + 1);
+    TokenArray_setCursor(tokens->array, cursor + 1);
     return tokenTypeToUnaryType(tok->type);
 }
 
@@ -206,15 +206,15 @@ binType expectBinaryOp(TokenList* tokens) {
         exit(1);
     }
 
-    int cursor = TokenList_getCursor(tokens);
-    Token* tok = TokenList_getAt(tokens, cursor);
+    int cursor = TokenArray_getCursor(tokens->array);
+    Token* tok = TokenArray_get(tokens->array, cursor);
     if (!tok || !isBinaryOp(tok)) {
         fprintf(stderr, "Parser Error: Expected binary operator but got %s\n",
                     tok ? tok->value : "NULL");
         exit(1);
     }
 
-    TokenList_setCursor(tokens, cursor + 1);
+    TokenArray_setCursor(tokens->array, cursor + 1);
     return tokenTypeToBinType(tok->type);
 }
 
@@ -250,8 +250,8 @@ statementType loopStatementKeywordToStatementType(TokenList* tokens) {
         fprintf(stderr, "Parser Error: Expected loop statement keyword but got end of file\n");
         exit(1);
     }
-    int cursor = TokenList_getCursor(tokens);
-    Token* tok = TokenList_getAt(tokens, cursor);
+    int cursor = TokenArray_getCursor(tokens->array);
+    Token* tok = TokenArray_get(tokens->array, cursor);
     if (!tok) {
         fprintf(stderr, "Parser Error: Expected loop statement keyword but got NULL\n");
         exit(1);
@@ -272,7 +272,7 @@ statementType loopStatementKeywordToStatementType(TokenList* tokens) {
 
 int checkIsLoopStatement(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
-    Token* tok = TokenList_getAt(tokens, TokenList_getCursor(tokens));
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
     return tok ? isLoopStatement(tok) : 0;
 
 }

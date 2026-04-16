@@ -1,0 +1,207 @@
+#include "IdentifierTypeInfoWrapper.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static size_t hashIdentifier(void* key) {
+    IdentifierTypeInfo* info = (IdentifierTypeInfo*)key;
+    char* str;
+    size_t hash = 0;
+
+    if (!info || !info->identifier) return 0;
+
+    str = info->identifier;
+    while (*str) {
+        hash = hash * 31 + (unsigned char)(*str++);
+    }
+
+    return hash;
+}
+
+static int equalIdentifier(void* lhs, void* rhs) {
+    IdentifierTypeInfo* left = (IdentifierTypeInfo*)lhs;
+    IdentifierTypeInfo* right = (IdentifierTypeInfo*)rhs;
+
+    if (!left || !right) return lhs == rhs;
+    if (!left->identifier || !right->identifier) return left->identifier == right->identifier;
+    return strcmp(left->identifier, right->identifier) == 0;
+}
+
+static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, IdentifierType type, int paramCount, int isDefined) {
+    IdentifierTypeInfo* info = calloc(1, sizeof(IdentifierTypeInfo));
+    if (!info) return NULL;
+
+    info->identifier = strdup(identifier);
+    if (!info->identifier) {
+        free(info);
+        return NULL;
+    }
+
+    info->type = type;
+    switch (type) {
+        case TYPE_INT:
+            info->varInfo.uniqueName = NULL;
+            break;
+        case TYPE_FUNCTION:
+            info->funcInfo.uniqueName = NULL;
+            info->funcInfo.paramCount = paramCount;
+            info->funcInfo.isDefined = isDefined;
+            break;
+    }
+    return info;
+}
+
+static IdentifierTypeInfo* copyIdentifierTypeInfo(const IdentifierTypeInfo* info) {
+    IdentifierTypeInfo* copy;
+
+    if (!info || !info->identifier) return NULL;
+
+    copy = calloc(1, sizeof(IdentifierTypeInfo));
+    if (!copy) return NULL;
+
+    copy->identifier = strdup(info->identifier);
+    if (!copy->identifier) {
+        free(copy);
+        return NULL;
+    }
+
+    copy->type = info->type;
+    switch (info->type) {
+        case TYPE_INT:
+            copy->varInfo.uniqueName = info->varInfo.uniqueName ? strdup(info->varInfo.uniqueName) : NULL;
+            if (info->varInfo.uniqueName && !copy->varInfo.uniqueName) {
+                free(copy->identifier);
+                free(copy);
+                return NULL;
+            }
+            break;
+        case TYPE_FUNCTION:
+            copy->funcInfo.uniqueName = info->funcInfo.uniqueName ? strdup(info->funcInfo.uniqueName) : NULL;
+            if (info->funcInfo.uniqueName && !copy->funcInfo.uniqueName) {
+                free(copy->identifier);
+                free(copy);
+                return NULL;
+            }
+            copy->funcInfo.paramCount = info->funcInfo.paramCount;
+            copy->funcInfo.isDefined = info->funcInfo.isDefined;
+            break;
+    }
+
+    return copy;
+}
+
+static void freeIdentifierTypeInfo(void* key) {
+    IdentifierTypeInfo* info = (IdentifierTypeInfo*)key;
+
+    if (!info) return;
+
+    free(info->identifier);
+    switch (info->type) {
+        case TYPE_INT:
+            free(info->varInfo.uniqueName);
+            break;
+        case TYPE_FUNCTION:
+            free(info->funcInfo.uniqueName);
+            break;
+    }
+    free(info);
+}
+
+static void printIdentifierTypeInfo(void* key) {
+    IdentifierTypeInfo* info = (IdentifierTypeInfo*)key;
+
+    if (!info) {
+        printf("(null)");
+        return;
+    }
+
+    switch (info->type) {
+        case TYPE_INT:
+            printf("{ identifier: \"%s\", type: INT, uniqueName: \"%s\" }",
+                info->identifier,
+                info->varInfo.uniqueName ? info->varInfo.uniqueName : "");
+            break;
+        case TYPE_FUNCTION:
+            printf("{ identifier: \"%s\", type: FUNCTION, uniqueName: \"%s\", paramCount: %d }",
+                info->identifier,
+                info->funcInfo.uniqueName ? info->funcInfo.uniqueName : "",
+                info->funcInfo.paramCount);
+            break;
+    }
+}
+
+IdentifierToTypeTable* createIdentifierToTypeTable() {
+    return createHashTable(hashIdentifier, equalIdentifier);
+}
+
+int identifierToTypeTableInsert(IdentifierToTypeTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined) {
+    IdentifierTypeInfo probe; // For checking whether the key already exists
+    IdentifierTypeInfo* existing; // To hold the existing entry if found
+    IdentifierTypeInfo* stored; // The new entry to be stored if the key doesn't already exist
+
+    if (!table || !identifier) return 0;
+
+    existing = (IdentifierTypeInfo*)ht_getKey(table, &probe);
+    if (existing) {
+        switch (existing->type) {
+            case TYPE_INT:
+                free(existing->varInfo.uniqueName);
+                break;
+            case TYPE_FUNCTION:
+                free(existing->funcInfo.uniqueName);
+                break;
+        }
+
+        existing->type = type;
+        switch (type) {
+            case TYPE_INT:
+                existing->varInfo.uniqueName = NULL;
+                return 1;
+            case TYPE_FUNCTION:
+                existing->funcInfo.uniqueName = NULL;
+                existing->funcInfo.paramCount = paramCount;
+                return 1;
+        }
+    }
+
+    stored = createIdentifierTypeInfo(identifier, type, paramCount, isDefined);
+    if (!stored) return 0;
+
+    if (!ht_insert(table, stored)) {
+        freeIdentifierTypeInfo(stored);
+        return 0;
+    }
+
+    return 1;
+}
+
+IdentifierTypeInfo* identifierToTypeTableLookup(IdentifierToTypeTable* table, const char* identifier) {
+    IdentifierTypeInfo probe;
+
+    if (!table || !identifier) return NULL;
+
+    probe.identifier = (char*)identifier;
+    return (IdentifierTypeInfo*)ht_getKey(table, &probe);
+}
+
+int identifierToTypeTableContains(IdentifierToTypeTable* table, const char* identifier) {
+    return identifierToTypeTableLookup(table, identifier) != NULL;
+}
+
+int identifierToTypeTableRemove(IdentifierToTypeTable* table, const char* identifier) {
+    IdentifierTypeInfo probe;
+
+    if (!table || !identifier) return 0;
+
+    probe.identifier = (char*)identifier;
+    return ht_delete(table, &probe, freeIdentifierTypeInfo);
+}
+
+void freeIdentifierToTypeTable(IdentifierToTypeTable* table) {
+    freeHashTable(table, freeIdentifierTypeInfo);
+}
+
+void identifierToTypeTablePrint(IdentifierToTypeTable* table) {
+    ht_print(table, printIdentifierTypeInfo);
+}

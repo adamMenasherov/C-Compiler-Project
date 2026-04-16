@@ -1,6 +1,7 @@
 #include "TACKY_AST.h"
 #include "TACKYUtils/TACKYEmitters.h"
 #include "TACKYUtils/TACKYConstructors.h"
+#include "../generateUtils.h"
 #include <stdlib.h>
 
 TACKYFunction* parseTACKYFunction(CFunction* func) {

@@ -1,13 +1,13 @@
 #pragma once
-#include "../DataStructures/HashTable/HashTable.h"
+#include "../DataStructures/Map/Wrappers/CharIntMap.h"
 #include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodes.h"
 #include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
 
 
-void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table);
-void insertPseudoToTable(HashTable* table, char* identifier, int *offset);
+void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table);
+void insertPseudoToTable(CharIntMap* table, char* identifier, int *offset);
 ASMOperand* changePseudoToStackOp(int offset, ASMOperand* operandToFree);
-ASMOperand* handlePseudoOp(ASMOperand* operand, HashTable* table, int* offset);
+ASMOperand* handlePseudoOp(ASMOperand* operand, CharIntMap* table, int* offset);
 int isBothStackOps(ASMOperand* op1, ASMOperand* op2);
 void handleStackToStackForMov(ASMInstruction* inst);
 void handleStackToStackForBinary(ASMInstruction* inst);

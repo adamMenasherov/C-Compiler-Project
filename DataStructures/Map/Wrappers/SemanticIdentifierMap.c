@@ -33,8 +33,8 @@ void freeSemanticIdentifierMap(SemanticIdentifierMap* map) {
     freeMap(map, free, free);
 }
 
-int semanticMapPut(SemanticIdentifierMap* map, char* key, char* value, int isInScope, int hasLinkage) {
-    return mapPut(map, strdup(key), strdup(value), isInScope, hasLinkage);
+int semanticMapPut(SemanticIdentifierMap* map, char* key, char* value, int isInScope, int hasExternalLinkage) {
+    return mapPut(map, strdup(key), strdup(value), isInScope, hasExternalLinkage);
 }
 
 char* semanticMapGet(SemanticIdentifierMap* map, char* key) {

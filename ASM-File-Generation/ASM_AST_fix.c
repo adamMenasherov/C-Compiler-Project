@@ -1,9 +1,8 @@
 #include "ASM_AST_fix.h"
-#include "../DataStructures/HashTable/HashTable.h"
 #include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
 #include <stdlib.h>
 
-void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
+void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table) {
     int offset = -4;
     ASMInstruction* inst;
     ASMOperand* newOp;
@@ -71,15 +70,15 @@ void pseudoToStackPositions(ASMInstructionList* instList, HashTable* table) {
         }
     }
 
-    ht_print(table);
+    charIntMapPrint(table);
     addASMInstructionAtBeginning(instList, createAllocStackInstruction(-(offset + 4)));
 }
 
 
-void insertPseudoToTable(HashTable* table, char* identifier, int* offset) {
+void insertPseudoToTable(CharIntMap* table, char* identifier, int* offset) {
     int val;
-    if (ht_get(table, identifier, &val)) return;
-    ht_insert(table, identifier, *offset);
+    if (charIntMapGet(table, identifier, &val)) return;
+    charIntMapPut(table, identifier, *offset);
     *offset -= 4;
 }
 
@@ -91,12 +90,12 @@ ASMOperand* changePseudoToStackOp(int offset, ASMOperand* operandToFree) {
 }
 
 
-ASMOperand* handlePseudoOp(ASMOperand* operand, HashTable* table, int* offset) {
+ASMOperand* handlePseudoOp(ASMOperand* operand, CharIntMap* table, int* offset) {
     if (operand->type != ASM_OP_PSEUDO) return NULL;
     insertPseudoToTable(table, operand->OperandValue.identifier, offset);
 
     int storedOffset;
-    ht_get(table, operand->OperandValue.identifier, &storedOffset);
+    charIntMapGet(table, operand->OperandValue.identifier, &storedOffset);
     return changePseudoToStackOp(storedOffset, operand);
 }
 

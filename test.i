@@ -1,10 +1,6 @@
-int foo(int a, int b);
 int main(void) {
-    int c = 5;
-    int d = ;
-    int foo(int c, int d);
-    return foo(c, d);
+    return x + 4;
 }
-int foo(int a, int b) {
-    return a * b;
+int foo(int x) {
+    return x * 2;
 }

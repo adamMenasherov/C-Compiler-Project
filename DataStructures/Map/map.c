@@ -27,7 +27,7 @@ Map* copyMap(Map* original, void* (*copyKey)(void*), void* (*copyValue)(void*)) 
         while (entry) {
             void* newKey = copyKey ? copyKey(entry->key) : entry->key;
             void* newValue = copyValue ? copyValue(entry->value) : entry->value;
-            mapPut(newMap, newKey, newValue, 0, entry->hasLinkage);
+            mapPut(newMap, newKey, newValue, 0, entry->hasExternalLinkage);
             entry = entry->next;
         }
     }
@@ -53,7 +53,7 @@ void freeMap(Map* map, void (*freeKey)(void*), void (*freeValue)(void*)) {
     free(map);
 }
 
-int mapPut(Map* map, void* key, void* value, int isInScope, int hasLinkage) {
+int mapPut(Map* map, void* key, void* value, int isInScope, int hasExternalLinkage) {
     if (!map) return 0;
 
     size_t hash = map->hashFunc(key) % map->bucket_count;
@@ -72,7 +72,7 @@ int mapPut(Map* map, void* key, void* value, int isInScope, int hasLinkage) {
     new_entry->key = key;
     new_entry->value = value;
     new_entry->isInScope = isInScope;
-    new_entry->hasLinkage = hasLinkage;
+    new_entry->hasExternalLinkage = hasExternalLinkage;
     new_entry->next = map->buckets[hash];
     map->buckets[hash] = new_entry;
 

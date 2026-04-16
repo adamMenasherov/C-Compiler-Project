@@ -6,7 +6,7 @@ typedef struct MapEntry {
     void* key;
     void* value;
     int isInScope;
-    int hasLinkage;
+    int hasExternalLinkage;
     struct MapEntry* next; // For handling collisions (chaining)
 } MapEntry;
 
@@ -20,7 +20,7 @@ typedef struct {
 Map* createMap(size_t (*hashFunc)(void* key), int (*equalsFunc)(void* lhs, void* rhs));
 Map* copyMap(Map* original, void* (*copyKey)(void*), void* (*copyValue)(void*));
 void freeMap(Map* map, void (*freeKey)(void*), void (*freeValue)(void*));
-int mapPut(Map* map, void* key, void* value, int isInScope, int hasLinkage);
+int mapPut(Map* map, void* key, void* value, int isInScope, int hasExternalLinkage);
 MapEntry* mapGetEntry(Map* map, void* key);
 void* mapGet(Map* map, void* key);
 int mapContainsKey(Map* map, void* key);

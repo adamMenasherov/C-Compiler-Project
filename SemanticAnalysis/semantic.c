@@ -1,9 +1,12 @@
 #include "semantic.h"
 #include "../DataStructures/DynamicArray/DynamicArray.h"
-#include "../Parser/TACKY/TACKYUtils/TACKYConstructors.h"
+#include "../Parser/generateUtils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap);
+static int isIncrementDecrementOpIncludingFix(unaryType type);
 
 
 void resolveAST(AST* ast) {
@@ -20,26 +23,46 @@ void resolveFunctions(CDeclarationArray* func) {
     SemanticIdentifierMap* varMap = createSemanticIdentifierMap();
     for (int i = 0; i < func->size; i++) {
         CDeclaration* function = (CDeclaration*)func->data[i];
-        resolveFunction(function, varMap);
+        resolveFunctionDeclaration(function, varMap);
     }
-    
 }
 
-void resolveFunction(CDeclaration* func, SemanticIdentifierMap* varMap) {
+void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMap) {
     char* uniqueName = semanticMapGet(varMap, func->decl.functionDecl.identifier);
     if (uniqueName) {
         MapEntry* entry = getSemanticMapEntry(varMap, func->decl.functionDecl.identifier);
-        if (entry->isInScope && !entry->hasLinkage) {
-            fprintf(stderr, "Semantic Error: Function '%s' redeclared\n", func->decl.functionDecl.identifier);
+        if (entry->isInScope && !entry->hasExternalLinkage) {
+            fprintf(stderr, "Semantic Error: Function '%s' with static linkage redeclared\n", func->decl.functionDecl.identifier);
             exit(1);
         }
     }
 
     semanticMapPut(varMap, func->decl.functionDecl.identifier, func->decl.functionDecl.identifier, 1, 1);
-    if (func->decl.functionDecl.identifier)
-    resolveBlock(func->decl.functionDecl.body, varMap);
+    SemanticIdentifierMap* newVarMap = copySemanticIdentifierMap(varMap);
+    // Checking whether a parameter name conflicts with an existing variable in the function parameter list
+    resolveParams(func->decl.functionDecl.parameters, newVarMap);     
+    resolveBlock(func->decl.functionDecl.body, newVarMap);
     resolveBlockWithLabeling(func->decl.functionDecl.body);
-    freeSemanticIdentifierMap(varMap);
+    freeSemanticIdentifierMap(newVarMap);
+}
+
+
+void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap) {
+    for (int i = 0; i < IdentifierArray_size(params); i++) {
+        char* param = IdentifierArray_get(params, i);
+        char* uniqueParamName = generateUniqueVariableName(param);
+        if (!uniqueParamName) {
+            fprintf(stderr, "Semantic Error: Failed to generate unique variable name for parameter '%s'\n", param);
+            exit(1);
+        }
+        char* varInMap = semanticMapGet(varMap, param);
+        if (varInMap) {
+            fprintf(stderr, "Semantic Error: Parameter '%s' conflicts with an existing variable in the function parameter list\n", param);
+            exit(1);
+        }
+        semanticMapPut(varMap, param, uniqueParamName, 1, 0);
+        IdentifierArray_set(params, i, uniqueParamName);
+    }
 }
 
 void resolveBlockWithLabeling(CBlock* block) {
@@ -150,14 +173,14 @@ void resolveBlockItem(CBlockItem* blockItem, SemanticIdentifierMap* varMap) {
     }
 }
 
-void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap) {
+static void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap) {
     if (!decl) return;
     switch (decl->type) {
         case DECL_VAR:
             resolveVarDeclaration(decl, varMap);
             break;
         case DECL_FUNC:
-            resolveFunction(decl, varMap);
+            resolveFunctionDeclaration(decl, varMap);
             break;
     }
 }
@@ -176,7 +199,7 @@ void resolveVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap) {
         fprintf(stderr, "Semantic Error: Failed to generate unique variable name for '%s'\n", decl->decl.variableDecl.identifier);
         exit(1);
     }
-    semanticMapPut(varMap, decl->decl.variableDecl.identifier, uniqueName);
+    semanticMapPut(varMap, decl->decl.variableDecl.identifier, uniqueName, 1, 0);
     decl->decl.variableDecl.identifier = uniqueName;
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
@@ -318,9 +341,98 @@ void resolveExpression(CFactor* fact, SemanticIdentifierMap* varMap) {
     }
 }
 
+void typeCheckVariableDeclaration(CDeclaration* decl, IdentifierToTypeTable* identifierTable) {
+    if (!decl) return;
+    identifierToTypeTableInsert(identifierTable, decl->decl.variableDecl.identifier, TYPE_INT, 0, 1);
+
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
+        typeCheckExpression(decl->decl.variableDecl.exp, identifierTable);
+    }
+}
+
+void typeCheckFunctionDeclaration(CDeclaration* decl, IdentifierToTypeTable* identifierTable) {
+    IdentifierTypeInfo* existing;
+    int alreadyDefined;
+    if (!decl) return;
+
+    IdentifierArray* params = decl->decl.functionDecl.parameters;
+    size_t paramCount = IdentifierArray_size(params);
+    identifierToTypeTableInsert(identifierTable, decl->decl.functionDecl.identifier, TYPE_FUNCTION, paramCount, 1);
+
+    if (identifierToTypeTableContains(identifierTable, decl->decl.functionDecl.identifier)) {
+        existing = identifierToTypeTableLookup(identifierTable, decl->decl.functionDecl.identifier);
+        if (existing->type != TYPE_FUNCTION || existing->funcInfo.paramCount != paramCount) // Making sure the signature matches if the function is already declared
+        {
+            fprintf(stderr, "Semantic Error: Incompatible function declarations for '%s'\n", decl->decl.functionDecl.identifier);
+            exit(1);
+        }
+        alreadyDefined = existing->funcInfo.isDefined;
+        if (alreadyDefined && decl->decl.functionDecl.body) {
+            fprintf(stderr, "Semantic Error: Function '%s' is defined more than once\n", decl->decl.functionDecl.identifier);
+            exit(1);
+        }
+    }
+
+    identifierToTypeTableInsert(identifierTable, decl->decl.functionDecl.identifier, 
+        TYPE_FUNCTION, paramCount, alreadyDefined || decl->decl.functionDecl.body != NULL);
+    
+    for (int i = 0; i < IdentifierArray_size(params); i++) {
+        char* param = IdentifierArray_get(params, i);
+        identifierToTypeTableInsert(identifierTable, param, TYPE_INT, 0, 1);
+    }
+
+    typeCheckBlock(decl->decl.functionDecl.body);
+}
+
+void typeCheckExpression(CFactor* expr, IdentifierToTypeTable* identifierTable) {
+    if (!expr) return;
+    switch (expr->type) {
+        case FACTOR_FUNCTION_CALL: {
+            IdentifierTypeInfo* info = identifierToTypeTableLookup(identifierTable, expr->exp.funcCall->identifier);
+            if (!info) {
+                fprintf(stderr, "Semantic Error: Undeclared function '%s'\n", expr->exp.funcCall->identifier);
+                exit(1);
+            }
+            if (info->type != TYPE_FUNCTION) {
+                fprintf(stderr, "Semantic Error: '%s' is not a function\n", expr->exp.funcCall->identifier);
+                exit(1);
+            }
+            ExpressionFactorArray* args = expr->exp.funcCall->arguments;
+            if (IdentifierArray_size(args) != info->funcInfo.paramCount) {
+                fprintf(stderr, "Semantic Error: Function '%s' called with incorrect number of arguments\n", expr->exp.funcCall->identifier);
+                exit(1);
+            }
+            for (int i = 0; i < args->size; i++) {
+                CFactor* arg = (CFactor*)args->data[i];
+                typeCheckExpression(arg, identifierTable);
+            }
+            break;
+        }
+
+        case FACTOR_VAR: {
+            IdentifierTypeInfo* info = identifierToTypeTableLookup(identifierTable, expr->exp.var->identifier);
+            if (!info) {
+                fprintf(stderr, "Semantic Error: Undeclared variable '%s'\n", expr->exp.var->identifier);
+                exit(1);
+            }
+            if (info->type != TYPE_INT) {
+                fprintf(stderr, "Semantic Error: '%s' is not a variable\n", expr->exp.var->identifier);
+                exit(1);
+            }
+            break;
+        }
+        default: return;
+    }
+}
+
 char* generateUniqueVariableName(char* baseName) {  
     char* uniqueName = malloc(strlen(baseName) + 20); 
     if (!uniqueName) return NULL;
     sprintf(uniqueName, "%s.%d", baseName, currGlobalInt++);
     return uniqueName;
+}
+
+static int isIncrementDecrementOpIncludingFix(unaryType type) {
+    return type == UNARY_INCREMENT_PREFIX || type == UNARY_INCREMENT_POSTFIX ||
+           type == UNARY_DECREMENT_PREFIX || type == UNARY_DECREMENT_POSTFIX;
 }

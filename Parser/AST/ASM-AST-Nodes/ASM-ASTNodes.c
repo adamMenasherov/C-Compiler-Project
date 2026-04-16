@@ -18,7 +18,7 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func) {
     
     asm_func->function_name = tacky_func->function_name; 
     asm_func->inst = createASMInstructionList();
-    asm_func->pseudoTable = createHashTable();
+    asm_func->pseudoTable = createCharIntMap();
 
     while (InstructionArray_getCursor(tacky_func->instruction_list) < InstructionArray_size(tacky_func->instruction_list)) {
         parseASMInstruction(tacky_func->instruction_list, asm_func->inst);

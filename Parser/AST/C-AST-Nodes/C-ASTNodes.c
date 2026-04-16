@@ -17,7 +17,8 @@ static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
 }
 
 CFactor* C_parseFactor(TokenList* tokens) {
-    if (check(tokens, IDENTIFIER) && lookAheadOne(tokens, OPEN_PAREN)) {
+    if (check(tokens, IDENTIFIER) && lookAheadOne(tokens, OPEN_PAREN)) // Factor is a function call
+    {
         char* identifier = expectIdentifier(tokens);
         expect(tokens, OPEN_PAREN);
 
@@ -61,7 +62,7 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
     CFactor* left = C_parseFactor(tokens);
     if (!left) return NULL;
     int isBinary = checkBinaryOp(tokens), previous_prec; 
-    while (isBinary && (previous_prec = precedence(TokenList_getAt(tokens, TokenList_getCursor(tokens)))) >= min_prec) {
+    while (isBinary && (previous_prec = precedence(TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array)))) >= min_prec) {
         if (check(tokens, ONE_EQUAL)) {
             expect(tokens, ONE_EQUAL);
             CFactor* right = C_parseExpression(tokens, previous_prec);
@@ -70,7 +71,7 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
             left = C_CreateFactorFromAssignment(new_left);
         }
         else if (checkCompoundAssignment(tokens)) {
-            binType type = compoundAssignmentToBinType(TokenArray_get(tokens, TokenArray_getCursor(tokens))->type);
+            binType type = compoundAssignmentToBinType(TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->type);
             expectCompoundAssignment(tokens);
             CFactor* right = C_parseExpression(tokens, previous_prec);
             if (!right) return NULL;
@@ -184,7 +185,7 @@ CBlock* C_parseBlock(TokenList* tokens) {
     while (!check(tokens, CLOSE_BRACE)) {
         CBlockItem* item = C_parseBlockItem(tokens);
         if (!item) return NULL;
-        addCBlockItem(block->items, item);
+        BlockItemArray_append(block->items, item);
     }
     return block;
 }
@@ -210,7 +211,7 @@ CForInit* C_parseForInit(TokenList* tokens) {
         expect(tokens, INT_KEYWORD);
         char* identifier = expectIdentifier(tokens);
         if (!identifier){
-            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenList_getAt(tokens, TokenList_getCursor(tokens)));
+            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
             exit(1);
         }
         CDeclaration* decl = C_parseVarDeclaration(tokens, identifier);
@@ -288,7 +289,7 @@ CDeclaration* C_parseDeclaration(TokenList* tokens) {
 
     char* identifier = expectIdentifier(tokens);
     if (!identifier){
-        fprintf(stderr, "Decleration: Expected identifier and got %s", TokenList_getAt(tokens, TokenList_getCursor(tokens)));
+        fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
         exit(1);
     }
 
@@ -328,7 +329,7 @@ CReturn* C_parseReturn(TokenList* tokens) {
 
 IdentifierArray* C_parseFuncParameters(TokenList* tokens) {
     int containsParam = 0;
-    IdentifierArray* params = createIdentifierArray();
+    IdentifierArray* params = IdentifierArray_create();
     while (!check(tokens, CLOSE_PAREN)) {
         if (check(tokens, VOID_KEYWORD)) {
             expect(tokens, VOID_KEYWORD);
@@ -341,7 +342,7 @@ IdentifierArray* C_parseFuncParameters(TokenList* tokens) {
 
         expect(tokens, INT_KEYWORD);
         char* identifier = expectIdentifier(tokens);
-        addIdentifierArray(params, identifier);
+        IdentifierArray_append(params, identifier);
         if (!check(tokens, CLOSE_PAREN)) {
             expect(tokens, COMMA);
             if (check(tokens, CLOSE_PAREN)) {
@@ -374,17 +375,17 @@ CDeclaration* C_parseFunction(TokenList* tokens, char* identifier) {
 }
 
 CDeclarationArray* C_parseFunctions(TokenList* tokens) {
-    CDeclarationArray* functions = createCDeclarationArray();
+    CDeclarationArray* functions = CDeclarationArray_create();
     while (check(tokens, INT_KEYWORD)) {
         expect(tokens, INT_KEYWORD);
         char* identifier = expectIdentifier(tokens);
         if (!identifier){
-            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenList_getAt(tokens, TokenList_getCursor(tokens)));
+            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
             exit(1);
         }
         CDeclaration* func = C_parseFunction(tokens, identifier);
         if (!func) return NULL;
-        addCDeclarationArray(functions, func);
+        CDeclarationArray_append(functions, func);
     }
     return functions;
 }

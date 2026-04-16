@@ -1,5 +1,5 @@
 #include "ASM-ASTNodesFree.h"
-#include "../../../../DataStructures/HashTable/HashTable.h"
+#include "../../../../DataStructures/Map/Wrappers/CharIntMap.h"
 #include <stdlib.h>
 
 void freeASMOperand(ASMOperand* operand) {
@@ -69,7 +69,7 @@ void freeASMFunction(ASMFunction* func) {
     if (!func) return;
     free(func->function_name);
     freeASMInstructionList(func->inst);
-    freeHashTable(func->pseudoTable);
+    freeCharIntMap(func->pseudoTable);
     free(func);
 }
 

@@ -6,13 +6,14 @@
 #include "EntryPoint/FileHandling.h"
 #include "Lexer/lex.h"
 #include "Parser/Parser.h"
+#include "SemanticAnalysis/semantic.h"
 /*
 #include "ASM-File-Generation/ASMGenerator.h"
 #include "Parser/TACKY/TACKY_AST.h"
 #include "Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
 #include "Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
 #include "ASM-File-Generation/ASM_AST_fix.h"
-#include "SemanticAnalysis/semantic.h"
+
 */
 
 
@@ -103,12 +104,15 @@ char* compileFile(char* fileName) {
     if (!source) {
         fprintf(stderr, "Error: Failed to read preprocessed file %s\n", preprocessFileName);
         free(preprocessFileName);
-        return 1;
+        return NULL;
     }
     
     char* sourcePtr = source; 
     lex(&sourcePtr, tokenList); // TokensList is filled with tokens of the source file in the Lexer stage
     AST* ast = parse(tokenList); // Parsing the program to a AST structure
+    resolveAST(ast);
+    printf("\n\n---------------------------------\n\n");
+    printAST(ast); 
 
     /*
     TACKY_AST* tacky_ast = astToTACKY_AST(ast);

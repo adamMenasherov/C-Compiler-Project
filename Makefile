@@ -14,6 +14,7 @@ TARGET = compiler
 
 # Source files
 SOURCES = DataStructures/HashTable/HashTable.c \
+	      DataStructures/HashTable/Wrappers/IdentifierTypeInfoWrapper.c \
 	      EntryPoint/FileHandling.c \
 	      EntryPoint/main.c \
 	      Lexer/Tokens/token.c \
@@ -24,7 +25,13 @@ SOURCES = DataStructures/HashTable/HashTable.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodes.c \
-	      Parser/Parser.c
+	      Parser/Parser.c \
+	      Parser/generateUtils.c \
+		  SemanticAnalysis/semantic.c \
+		  DataStructures/Map/map.c \
+		  DataStructures/Map/Wrappers/CharIntMap.c \
+		  DataStructures/Map/Wrappers/SemanticIdentifierMap.c
+
 
 
 # Object files (derived from sources, placed in OBJ_DIR)

@@ -1,7 +1,7 @@
 #pragma once
 #include "../../C-AST-Nodes/C-ASTNodes.h"
 #include "../../../TACKY/TACKY_AST.h"
-#include "../../../../DataStructures/HashTable/HashTable.h"
+#include "../../../../DataStructures/Map/Wrappers/CharIntMap.h"
 
 /* ============================================================
  * Enum Definitions
@@ -138,7 +138,7 @@ typedef struct {
 typedef struct ASMFunction {
     char* function_name;
     ASMInstructionList* inst;
-    HashTable* pseudoTable; // Maps pseudo-register names to stack offsets
+    CharIntMap* pseudoTable; // Maps pseudo-register names to stack offsets
 } ASMFunction;
 
 

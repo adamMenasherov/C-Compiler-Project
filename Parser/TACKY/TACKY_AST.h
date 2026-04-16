@@ -2,8 +2,6 @@
 #include "../AST/C-AST-Nodes/C-ASTNodes.h"
 #include "../../DataStructures/DynamicArray/Wrappers/InstructionArrayWrapper.h"
 
-extern int currGlobalInt;
-
 typedef enum {
     TACKY_UNARY,
     TACKY_BINARY,
