@@ -1,6 +1,9 @@
-int main(void) {
-    return x + 4;
+static int a;
+static int foo() {
+    return 42;
 }
-int foo(int x) {
-    return x * 2;
+extern int foo();
+int main() {
+    int static foo();
+    return 1;
 }

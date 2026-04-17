@@ -197,7 +197,11 @@ ASMInstruction* createASMJumpInstruction(char* label) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_JUMP;
-    inst->instValue.jmp.label = label;
+    inst->instValue.jmp.label = strdup(label);
+    if (!inst->instValue.jmp.label) {
+        free(inst);
+        return NULL;
+    }
     return inst;
 }
 
@@ -222,7 +226,11 @@ ASMInstruction* createASMJumpCCInstruction(ASMCondCode cond, char* label) {
     if (!inst) return NULL;
     inst->type = ASM_JUMPCC;
     inst->instValue.jumpcc.cond = cond;
-    inst->instValue.jumpcc.label = label;
+    inst->instValue.jumpcc.label = strdup(label);
+    if (!inst->instValue.jumpcc.label) {
+        free(inst);
+        return NULL;
+    }
     return inst;
 }
 
@@ -239,7 +247,11 @@ ASMInstruction* createASMLabelInstruction(char* label) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_LABEL;
-    inst->instValue.label.identifier = label;
+    inst->instValue.label.identifier = strdup(label);
+    if (!inst->instValue.label.identifier) {
+        free(inst);
+        return NULL;
+    }
     return inst;
 }
 
@@ -247,5 +259,33 @@ ASMInstruction* createASMReturnInstruction() {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_RET;
+    return inst;
+}
+
+ASMInstruction* createASMAllocateStackInstruction(int size) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_ALLOCATESTACK;
+    inst->instValue.allocatestack.size = size;
+    return inst;
+}
+
+ASMInstruction* createASMCallInstruction(char* functionName) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_CALL;
+    inst->instValue.call.functionName = strdup(functionName);
+    if (!inst->instValue.call.functionName) {
+        free(inst);
+        return NULL;
+    }
+    return inst;
+}
+
+ASMInstruction* createASMDeallocateStackInstruction(int size) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_DEALLOCATESTACK; 
+    inst->instValue.allocatestack.size = size; 
     return inst;
 }

@@ -19,6 +19,13 @@ typedef enum {
 } factorType;
 
 typedef enum {
+    SPEC_INT,
+    SPEC_STATIC,
+    SPEC_EXTERN,
+    SPEC_NULL
+} specifierType;
+
+typedef enum {
     UNARY_COMPLEMENT,
     UNARY_NEGATE,
     UNARY_NOT,
@@ -219,11 +226,15 @@ typedef struct CDeclaration {
     union {
         struct {
             varDeclType declType;
+            specifierType varType;
+            specifierType storageClass;
             char * identifier;
             CFactor* exp;
         } variableDecl;
         struct {
-            funcDeclType type;
+            funcDeclType declType;
+            specifierType funcType;
+            specifierType storageClass;
             char * identifier;
             IdentifierArray* parameters;
             CBlock* body;

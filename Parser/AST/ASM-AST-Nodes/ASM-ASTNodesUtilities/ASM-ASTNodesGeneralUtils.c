@@ -1,5 +1,7 @@
 #include "ASM-ASTNodesGeneralUtils.h"
 
+const int argResigters[] = {DI, SI, DX, CX, R8, R9};
+
 int isRelationalOp(binType type) {
     return type == BIN_LESS_THAN || type == BIN_LESS_EQUAL || 
            type == BIN_GREATER_THAN || type == BIN_GREATER_EQUAL || 

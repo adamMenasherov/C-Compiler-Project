@@ -2,9 +2,7 @@
 #include "ASM-ASTNodesUtilities/ASM-ASTNodesGeneralUtils.h"
 #include "ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.h"
 
-/* ============================================================
- * ASM Parser Functions
- * ============================================================ */
+
 
 /**
  * Converts a TACKYProgram into its ASM representation.
@@ -22,6 +20,14 @@ ASMProgram* parseASMprogram(TACKYProgram* tacky_prog);
 ASMFunction* parseASMfunction(TACKYFunction* tacky_func);
 
 /**
+ * @brief Adds the ASM instructions to move the arguments from the caller locations to stack positions
+ * 
+ * @param instruction The TACKY function call instruction containing the arguments to be moved
+ * @param asmInstructionList The ASM instruction list to which the generated instructions will be appended
+ */
+void addArgsAsInstructionsToFunc(TACKYInstructionList* instruction, ASMInstructionList* asmInstructionList);
+
+/**
  * @brief Parses a TACKY return instruction and emits the corresponding ASM instructions to move the return value into the AX register and perform the return.
  * 
  * @param tacky_ret The TACKYValue representing the return value to be returned
@@ -36,6 +42,15 @@ void parseASMReturn(TACKYValue* tacky_ret, ASMInstructionList* instruction_list)
  * @param asmInstructionList The destination ASM instruction list
  */
 void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList* asmInstructionList);
+
+
+/**
+ * @brief Parses a TACKY function call instruction and emits the corresponding ASM instructions to perform the function call, including argument setup and handling of the return value.
+ * 
+ * @param instruction The TACKY instruction representing the function call
+ * @param asmInstructionList The ASM instruction list to which the generated instructions will be appended
+ */
+void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList);
 
 
 /**

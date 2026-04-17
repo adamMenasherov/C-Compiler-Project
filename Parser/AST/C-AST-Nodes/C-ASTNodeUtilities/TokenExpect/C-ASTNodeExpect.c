@@ -43,6 +43,13 @@ int checkIncrementDecrement(TokenList* tokens) {
     return tok ? (tok->type == TWO_PLUS || tok->type == TWO_HYPHENS) : 0;
 }
 
+int checkSpecifier(TokenList* tokens) {
+    if (!tokensLeft(tokens)) return 0;
+    return check(tokens, INT_KEYWORD)
+        || check(tokens, STATIC_KEYWORD)
+        || check(tokens, EXTERN_KEYWORD);
+}
+
 int expectConstant(TokenList* tokens) {
     if (!tokensLeft(tokens)) {
         fprintf(stderr, "Parser Error: Expected constant value but got end of file\n");

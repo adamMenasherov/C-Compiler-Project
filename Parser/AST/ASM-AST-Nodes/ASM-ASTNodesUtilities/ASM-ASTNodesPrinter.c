@@ -31,6 +31,10 @@ static const char* getRegisterNameForASM_AST(Register reg) {
         case AX: return "AX";
         case CX: return "CX";
         case DX: return "DX";
+        case DI: return "DI";
+        case SI: return "SI";
+        case R8: return "R8";
+        case R9: return "R9";
         case R10: return "R10";
         case R11: return "R11";
         default: return "Unknown";
@@ -105,6 +109,10 @@ void printASMInstruction(const ASMInstruction* inst) {
             printf("AllocateStack(%d)", inst->instValue.allocatestack.size);
             break;
 
+        case ASM_DEALLOCATESTACK:
+            printf("DeallocateStack(%d)", inst->instValue.deallocatestack.size);
+            break;
+
         case ASM_RET:
             printf("Ret");
             break;
@@ -164,6 +172,10 @@ void printASMInstruction(const ASMInstruction* inst) {
             printf(")");
             break;
 
+        case ASM_CALL:
+            printf("Call(\"%s\")", inst->instValue.call.functionName);
+            break;
+
         default:
             printf("<unknown instruction type>");
             break;
@@ -202,9 +214,11 @@ void printASMProgram(const ASMProgram* program) {
     }
 
     printf("Program(\n");
-    if (program->function_def) {
+    for (int i = 0; i < ASMFunctionArray_size(program->function_defs); i++) {
+        ASMFunction* function = ASMFunctionArray_get(program->function_defs, i);
+        if (!function) continue;
         printf("    ");
-        printASMFunction(program->function_def);
+        printASMFunction(function);
     }
     printf(")\n");
 }

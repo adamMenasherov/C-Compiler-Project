@@ -71,7 +71,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table) {
     }
 
     charIntMapPrint(table);
-    addASMInstructionAtBeginning(instList, createAllocStackInstruction(-(offset + 4)));
+    addASMInstructionAtBeginning(instList, createAllocStackInstruction(fixStackSizeForFunction(-(offset + 4))));
 }
 
 
@@ -91,6 +91,7 @@ ASMOperand* changePseudoToStackOp(int offset, ASMOperand* operandToFree) {
 
 
 ASMOperand* handlePseudoOp(ASMOperand* operand, CharIntMap* table, int* offset) {
+    if (!operand) return NULL;
     if (operand->type != ASM_OP_PSEUDO) return NULL;
     insertPseudoToTable(table, operand->OperandValue.identifier, offset);
 
@@ -260,11 +261,12 @@ void handleImulOperation(ASMInstruction* inst) {
     if (inst->instValue.binary.op2->type != ASM_OP_STACK) return;
 
     ASMOperand* memOp2 = inst->instValue.binary.op2;
+    ASMOperand* memOp2Copy = createStackOperand(memOp2->OperandValue.immediate);
     ASMInstruction* mov1 = createMovInstruction(memOp2, createRegisterOperand(R11));
-    ASMInstruction* mov2 = createMovInstruction(createRegisterOperand(R11), memOp2);
+    ASMInstruction* mov2 = createMovInstruction(createRegisterOperand(R11), memOp2Copy);
     inst->instValue.binary.op2 = createRegisterOperand(R11);
 
-    if (mov1) {
+    if (mov1 && mov2 && memOp2Copy) {
         ASMInstruction* iMulInst = calloc(1, sizeof(ASMInstruction));
         *iMulInst = *inst;
 
@@ -274,5 +276,14 @@ void handleImulOperation(ASMInstruction* inst) {
         *inst = *mov1;
         inst->next = iMulInst;
         free(mov1);
+        return;
     }
+
+    freeASMOperand(memOp2Copy);
+    freeASMInstruction(mov1);
+    freeASMInstruction(mov2);
+}
+
+int fixStackSizeForFunction(int stackSize) {
+    return stackSize + (16 - stackSize % 16);
 }

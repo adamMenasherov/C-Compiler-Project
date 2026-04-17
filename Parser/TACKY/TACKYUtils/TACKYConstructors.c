@@ -145,3 +145,53 @@ TACKYValue* copyTackyValue(TACKYValue* original) {
 
     return copy;
 }
+
+TACKYInstruction* createFunCall(char* functionName, TACKYValueArray* args, TACKYValue* resultVar) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+
+    inst->type = TACKY_FUNCTION_CALL;
+    inst->instValue.funCall.functionName = strdup(functionName);
+    if (!inst->instValue.funCall.functionName) {
+        free(inst);
+        return NULL;
+    }
+
+    inst->instValue.funCall.args = args;
+    inst->instValue.funCall.resultVar = resultVar;
+    return inst;
+}
+
+TACKYProgram* createTACKYProgram() {
+    TACKYProgram* program = malloc(sizeof(TACKYProgram));
+    if (!program) return NULL;
+
+    program->functions = TACKYFunctionArray_create();
+    if (!program->functions) {
+        free(program);
+        return NULL;
+    }
+
+    return program;
+}
+
+TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* parameters, TACKYInstructionList* instruction_list) {
+    TACKYFunction* function = malloc(sizeof(TACKYFunction));
+    if (!function) return NULL;
+
+    function->function_name = strdup(function_name);
+    if (!function->function_name) {
+        free(function);
+        return NULL;
+    }
+
+    function->parameters = IdentifierArray_copy(parameters);
+    if (!function->parameters) {
+        free(function->function_name);
+        free(function);
+        return NULL;
+    }
+
+    function->instruction_list = instruction_list;
+    return function;
+}

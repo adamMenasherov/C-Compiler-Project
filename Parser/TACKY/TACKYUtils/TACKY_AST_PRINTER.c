@@ -93,6 +93,18 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printTACKYValue(inst->instValue.returnVal.retVal);
             printf(")");
             break;
+        case TACKY_FUNCTION_CALL:
+            printf("FunctionCall(\"%s\", [", inst->instValue.funCall.functionName);
+            for (int i = 0; i < TACKYValueArray_size(inst->instValue.funCall.args); i++) {
+                printTACKYValue(TACKYValueArray_get(inst->instValue.funCall.args, i));
+                if (i < TACKYValueArray_size(inst->instValue.funCall.args) - 1) {
+                    printf(", ");
+                }
+            }
+            printf("], ");
+            printTACKYValue(inst->instValue.funCall.resultVar);
+            printf(")");
+            break;
         default:
             printf("<unknown instruction type>");
             break;
@@ -131,6 +143,11 @@ void printTACKYProgram(const TACKYProgram* program) {
         printf("<null program>\n");
         return;
     }
+    printf("Program with %d function(s):\n", TACKYFunctionArray_size(program->functions));
 
-    printTACKYFunction(program->function_def);
+    for (int i = 0; i < TACKYFunctionArray_size(program->functions); i++) {
+        TACKYFunction* func = TACKYFunctionArray_get(program->functions, i);
+        printTACKYFunction(func);
+    }
+    
 }

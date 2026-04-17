@@ -2,18 +2,25 @@
 #include "Parser/AST/C-AST-Nodes/C-ASTNodes.h"
 #include "Parser/Parser.h"
 #include "DataStructures/Map/Wrappers/SemanticIdentifierMap.h"
-#include "DataStructures/HashTable/Wrappers/IdentifierTypeInfoWrapper.h"
+#include "DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
 
-void resolveAST(AST* ast);
-void resolveProgram(CProgram* prog);
-void resolveForInit(CForInit* init, SemanticIdentifierMap* varMap);
-void resolveFunctions(CDeclarationArray* func);
-void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMap);
-void resolveBlockItem(CBlockItem* blockItem, SemanticIdentifierMap* varMap);
-void resolveVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap);
-void resolveBlock(CBlock* block, SemanticIdentifierMap* varMap);
-void resolveStatement(CStatement* stmt, SemanticIdentifierMap* varMap);
-void resolveExpression(CFactor* fact, SemanticIdentifierMap* varMap);
+typedef enum {
+    TOP_LEVEL,
+    BLOCK_LEVEL,
+} level;
+
+
+SymbolTable* resolveAST(AST* ast);
+void resolveProgram(CProgram* prog, SymbolTable* symbolTable);
+void resolveForInit(CForInit* init, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
+void resolveDeclarations(CDeclarationArray* func, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
+void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMap, SymbolTable* symbolTable, level declLevel);
+void resolveBlockItem(CBlockItem* blockItem, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
+void resolveVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
+void resolveBlock(CBlock* block, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
+void resolveStatement(CStatement* stmt, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
+void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, SymbolTable* symbolTable, level declLevel);
+void resolveExpression(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
 char* generateUniqueVariableName(char* baseName);
 
 // Loop labeling
@@ -22,9 +29,12 @@ void resolveBlockStatementsWithLabeling(CBlockItem* block);
 void labelStatement(CStatement* stmt, char* currentLabel);
 
 // Expanded identifier resolution - checking for redeclarations and conflicts in function parameters
-void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap);
+void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
+void resolveFileScopeVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap);
+void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap);
 
 // Type checking
-void typeCheckVariableDeclaration(CDeclaration* decl, IdentifierToTypeTable* identifierTable);
-void typeCheckFunctionDeclaration(CDeclaration* decl, IdentifierToTypeTable* identifierTable);
-void typeCheckExpression(CFactor* expr, IdentifierToTypeTable* identifierTable);
+void typeCheckVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable);
+void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable);
+void typeCheckBlock(CBlock* block, SymbolTable* symbolTable);
+void typeCheckExpression(CFactor* expr, SymbolTable* symbolTable);

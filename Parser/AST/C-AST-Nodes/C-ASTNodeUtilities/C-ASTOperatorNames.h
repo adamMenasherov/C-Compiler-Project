@@ -41,3 +41,13 @@ static inline const char* getBinaryOpName(binType type) {
         default:                return "Unknown";
     }
 }
+
+static inline const char* getSpecifierTypeName(specifierType type) {
+    switch (type) {
+        case SPEC_INT: return "int";
+        case SPEC_NULL: return "no spec";
+        case SPEC_STATIC: return "static";
+        case SPEC_EXTERN: return "extern";
+        default: return "Unknown";
+    }
+}

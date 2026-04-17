@@ -2,6 +2,7 @@
 #include "../../C-AST-Nodes/C-ASTNodes.h"
 #include "../../../TACKY/TACKY_AST.h"
 #include "../../../../DataStructures/Map/Wrappers/CharIntMap.h"
+#include "../../../../DataStructures/DynamicArray/Wrappers/ASMFunctionArrayWrapper.h"
 
 /* ============================================================
  * Enum Definitions
@@ -10,6 +11,7 @@
 typedef enum {
     ASM_UNARY,
     ASM_ALLOCATESTACK,
+    ASM_DEALLOCATESTACK,
     ASM_MOV,
     ASM_BINARY,
     ASM_CDQ,
@@ -21,6 +23,7 @@ typedef enum {
     ASM_PUSH,
     ASM_POP,
     ASM_JUMPCC,
+    ASM_CALL,
     ASM_RET
 } ASMInstructionType;
 
@@ -62,9 +65,15 @@ typedef enum {
     AX,
     CX,
     DX,
+    DI,
+    SI,
+    R8,
+    R9,
     R10,
     R11
 } Register;
+
+extern const int argResigters[];
 
 /* ============================================================
  * Type Definitions / Structs
@@ -94,6 +103,9 @@ typedef struct ASMInstruction {
         struct {
             int size;
         } allocatestack;
+        struct {
+            int size;
+        } deallocatestack;
         struct {
             ASMBinaryOperator type;
             ASMOperand* op1;
@@ -126,6 +138,9 @@ typedef struct ASMInstruction {
         struct {
             ASMOperand* op;
         } pop;
+        struct {
+            char* functionName;
+        } call;
     } instValue;
     struct ASMInstruction* next;
 } ASMInstruction;
@@ -143,7 +158,7 @@ typedef struct ASMFunction {
 
 
 typedef struct {
-    ASMFunction* function_def;
+    ASMFunctionArray* function_defs;
 } ASMProgram;
 
 

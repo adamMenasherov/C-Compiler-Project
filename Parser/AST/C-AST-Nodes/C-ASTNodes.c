@@ -214,7 +214,9 @@ CForInit* C_parseForInit(TokenList* tokens) {
             fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
             exit(1);
         }
-        CDeclaration* decl = C_parseVarDeclaration(tokens, identifier);
+        specifierType varType, storageClass;
+        C_parseTypeAndStorageClass(tokens, &varType, &storageClass);
+        CDeclaration* decl = C_parseVarDeclaration(tokens, identifier, varType, storageClass);
         return C_CreateForInit(FOR_INIT_DECL, decl);
     }
     else if (!check(tokens, SEMICOLON)) {
@@ -266,7 +268,7 @@ CForLoop* C_parseFor(TokenList* tokens) {
     return C_CreateForLoop(init, condition, post, body);
 }
 
-CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier) {
+CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier, specifierType varType, specifierType storageClass) {
     CFactor* fact = NULL;
     varDeclType type = VAR_DECL_WITHOUT_EXP;
     
@@ -280,12 +282,13 @@ CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier) {
         expect(tokens, SEMICOLON);
     }
     
-    return C_CreateVariableDeclaration(type, identifier, fact);
+    return C_CreateVariableDeclaration(type, identifier, fact, varType, storageClass);
 }
 
 
 CDeclaration* C_parseDeclaration(TokenList* tokens) {
-    expect(tokens, INT_KEYWORD);
+    specifierType type, storageClass;
+    C_parseTypeAndStorageClass(tokens, &type, &storageClass);
 
     char* identifier = expectIdentifier(tokens);
     if (!identifier){
@@ -294,17 +297,17 @@ CDeclaration* C_parseDeclaration(TokenList* tokens) {
     }
 
     if (check(tokens, OPEN_PAREN)) {
-        return C_parseFunction(tokens, identifier);
+        return C_parseFunction(tokens, identifier, type, storageClass);
     }
     else {
-        return C_parseVarDeclaration(tokens, identifier);
+        return C_parseVarDeclaration(tokens, identifier, type, storageClass);
     }
 }
 
 CBlockItem* C_parseBlockItem(TokenList* tokens) {
     blockItemType type;
     void* data;
-    if (check(tokens, INT_KEYWORD)) {
+    if (checkSpecifier(tokens)) {
         type = BLOCK_ITEM_DECL;
         CDeclaration* decl = C_parseDeclaration(tokens);
         data = decl;
@@ -355,7 +358,7 @@ IdentifierArray* C_parseFuncParameters(TokenList* tokens) {
     return params;
 }
 
-CDeclaration* C_parseFunction(TokenList* tokens, char* identifier) {
+CDeclaration* C_parseFunction(TokenList* tokens, char* identifier, specifierType funcType, specifierType storageClass) {
     funcDeclType type = FUNC_DEF;
     CBlock* body;
     expect(tokens, OPEN_PAREN);
@@ -371,28 +374,21 @@ CDeclaration* C_parseFunction(TokenList* tokens, char* identifier) {
         expect(tokens, SEMICOLON);
     }
 
-    return C_CreateFunction(type, identifier, parameters, body);
+    return C_CreateFunction(type, identifier, parameters, body, funcType, storageClass);
 }
 
-CDeclarationArray* C_parseFunctions(TokenList* tokens) {
-    CDeclarationArray* functions = CDeclarationArray_create();
-    while (check(tokens, INT_KEYWORD)) {
-        expect(tokens, INT_KEYWORD);
-        char* identifier = expectIdentifier(tokens);
-        if (!identifier){
-            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
-            exit(1);
-        }
-        CDeclaration* func = C_parseFunction(tokens, identifier);
+CDeclarationArray* C_parseDeclarations(TokenList* tokens) {
+    CDeclarationArray* declArr = CDeclarationArray_create();
+    while (checkSpecifier(tokens)) {
+        CDeclaration* func = C_parseDeclaration(tokens);
         if (!func) return NULL;
-        CDeclarationArray_append(functions, func);
+        CDeclarationArray_append(declArr, func);
     }
-    return functions;
+    return declArr;
 }
-
 
 CProgram* C_parseProgram(TokenList* tokens) {
-    CDeclarationArray* functions = C_parseFunctions(tokens);
+    CDeclarationArray* functions = C_parseDeclarations(tokens);
     if (!functions) return NULL;
 
     if (tokensLeft(tokens)) {
@@ -401,6 +397,40 @@ CProgram* C_parseProgram(TokenList* tokens) {
     }
 
     return C_CreateProgram(functions);
+}
+
+void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifierType* storageClass) {
+    int types[10] = {0}, storageClasses[10] = {0};
+    int typesLen = 0, storageClassesLen = 0;
+
+    while (tokensLeft(tokens) && checkSpecifier(tokens)) 
+    {
+        if (check(tokens, INT_KEYWORD)) {
+            expect(tokens, INT_KEYWORD);
+            types[typesLen++] = SPEC_INT;
+        }
+        else if (check(tokens, STATIC_KEYWORD)) {
+            expect(tokens, STATIC_KEYWORD);
+            storageClasses[storageClassesLen++] = SPEC_STATIC;
+        }
+        else if (check(tokens, EXTERN_KEYWORD)) {
+            expect(tokens, EXTERN_KEYWORD);
+            storageClasses[storageClassesLen++] = SPEC_EXTERN;
+        }
+    }
+
+    if (typesLen != 1) {
+        fprintf(stderr, "Parser Error: Expected exactly one type specifier\n");
+        exit(1);
+    }
+
+    if (storageClassesLen > 1) {
+        fprintf(stderr, "Parser Error: Expected at most one storage class specifier\n");
+        exit(1);
+    }
+
+    *type = types[0];
+    *storageClass = (storageClassesLen == 1) ? storageClasses[0] : SPEC_NULL;
 }
 
 

@@ -4,35 +4,39 @@
 #include <stdlib.h>
 #include "ASM_AST_fix.h"
 #include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
+#include "../DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
 
 
-void generateASMFile(ASM_AST* ast, char* asm_file_name) {
+void generateASMFile(ASM_AST* ast, char* asm_file_name, SymbolTable* symbolTable) {
     FILE* fp = fopen(asm_file_name, "w");
     if (!fp) {
         fprintf(stderr, "Couldn't create ASM file");
         exit(1);
     } 
-    printAsmFileFromAst(ast, fp);
+    printAsmFileFromAst(ast, fp, symbolTable);
     printf("ASM file %s generated successfully.\n", asm_file_name);
     fclose(fp);
 }
 
-void printAsmFileFromAst(ASM_AST *ast, FILE *fp) {
-    printProgramToASMFile(ast->prog, fp);
+void printAsmFileFromAst(ASM_AST *ast, FILE *fp, SymbolTable* symbolTable) {
+    printProgramToASMFile(ast->prog, fp, symbolTable);
     fputs("   .section .note.GNU-stack,\"\",@progbits\n", fp);
 }   
 
-void printProgramToASMFile(ASMProgram* prog, FILE *fp) {
-    printFunctionToASMFile(prog->function_def, fp);
+void printProgramToASMFile(ASMProgram* prog, FILE *fp, SymbolTable* symbolTable) {
+    for (int i = 0; i < ASMFunctionArray_size(prog->function_defs); i++) {
+        ASMFunction* func = ASMFunctionArray_get(prog->function_defs, i);
+        printFunctionToASMFile(func, fp, symbolTable);
+    }
 }
 
 
-void printFunctionToASMFile(ASMFunction* func, FILE *fp) {
+void printFunctionToASMFile(ASMFunction* func, FILE *fp, SymbolTable* symbolTable) {
     printFunctionPrologueToASMFile(func, fp);
     ASMInstructionList* p = func->inst;
     ASMInstruction* current;
     for (current = p->head; current; current = current->next) {
-        printInstructionsToASMFile(current, fp);
+        printInstructionsToASMFile(current, fp, symbolTable);
     }
 }
 
@@ -45,7 +49,7 @@ void printFunctionEpilogueToASMFile(FILE* fp) {
     fputs("\tmovq %rbp, %rsp\n\tpopq %rbp\n", fp);
 }
 
-void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp) {
+void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, SymbolTable* symbolTable) {
     switch(inst->type) {
         case ASM_MOV:
         {
@@ -115,7 +119,17 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp) {
         }
         case ASM_RET: {
             printFunctionEpilogueToASMFile(fp);
-            fputs("\tret\n", fp);
+            fputs("\tret\n\n", fp);
+            break;
+        }
+        case ASM_CALL: {
+            char* functionNameToCall = callingWithPLTOrNot((const char*)inst->instValue.call.functionName, symbolTable);
+            fprintf(fp, "\tcall %s\n", functionNameToCall);
+            if (functionNameToCall) free(functionNameToCall);
+            break;
+        }
+        case ASM_DEALLOCATESTACK: {
+            fprintf(fp, "\taddq $%d, %%rsp\n", inst->instValue.deallocatestack.size);
             break;
         }
 
@@ -169,6 +183,10 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case AX: return "al";
                 case DX: return "dl";
                 case CX: return "cl";
+                case R8: return "r8b";
+                case SI: return "sil";
+                case DI: return "dil";
+                case R9: return "r9b";
                 case R10: return "r10b";
                 case R11: return "r11b";
                 default: return "<unknown register>";
@@ -178,6 +196,10 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case AX: return "ax";
                 case DX: return "dx";
                 case CX: return "cx";
+                case R8: return "r8w";
+                case R9: return "r9w";
+                case SI: return "si";
+                case DI: return "di";
                 case R10: return "r10w";
                 case R11: return "r11w";
                 default: return "<unknown register>";
@@ -187,6 +209,10 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case AX: return "eax";
                 case DX: return "edx";
                 case CX: return "ecx";
+                case R8: return "r8d";
+                case SI: return "esi";
+                case DI: return "edi";
+                case R9: return "r9d";
                 case R10: return "r10d";
                 case R11: return "r11d";
                 default: return "<unknown register>";
@@ -196,6 +222,10 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case AX: return "rax";
                 case DX: return "rdx";
                 case CX: return "rcx";
+                case R8: return "r8";
+                case R9: return "r9";
+                case SI: return "rsi";
+                case DI: return "rdi";
                 case R10: return "r10";
                 case R11: return "r11";
                 default: return "<unknown register>";
@@ -238,4 +268,16 @@ const char* asmCondCodeToString(ASMCondCode cond) {
         case ASM_COND_CODE_GE: return "ge";
         default: return "<unknown condition code>";
     }
+}
+
+char* callingWithPLTOrNot(const char* functionName, SymbolTable* symbolTable) {
+    if (symbolTableContains(symbolTable, functionName)) {
+        IdentifierTypeInfo* info = symbolTableLookup(symbolTable, functionName);
+        if (info->funcInfo.isDefined != 0) {
+            return strdup(functionName);
+        }
+    }
+    char* pltName = malloc(strlen(functionName) + strlen("@PLT") + 1); 
+    sprintf(pltName,"%s@PLT", functionName);
+    return pltName;
 }

@@ -6,7 +6,9 @@ CConstant* C_CreateConstant(int val);
 CVar* C_CreateVar(char* identifier);
 CReturn* C_CreateReturn(CFactor* exp);
 CLoopStmt* C_CreateLoopStmt();
-CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body);
+CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, 
+    specifierType funcType, specifierType storageClass);
+
 CProgram* C_CreateProgram(CDeclarationArray* function_def);
 CUnary* C_CreateUnary(unaryType type, CFactor* exp);
 CFactor* C_CreateFactor(factorType type, void * expVal);
@@ -26,7 +28,9 @@ CForInit* C_CreateForInit(forInitType type, void* initVal);
 CIf* C_CreateIf(ifType type, CFactor* condition, CStatement* then, CStatement* else_stmt);
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right);
 CStatement* C_CreateStatement(statementType type, void * stmtVal);
-CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign);
+CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign, 
+    specifierType varType, specifierType storageClass);
+    
 CBlockItem* C_CreateBlockItem(blockItemType type, void * stmtVal);
 CAssignment* C_CreateAssignment(CFactor* fact1, CFactor* fact2);
 CFunctionCall* C_CreateFunctionCall(char* identifier, ExpressionFactorArray* arguments);

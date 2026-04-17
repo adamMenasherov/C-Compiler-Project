@@ -1,14 +1,25 @@
 #include "ASM-ASTNodes.h"
 #include "ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.h"
+#include "ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
 #include <stdlib.h>
 #include <string.h>
 #include "../../../ASM-File-Generation/ASM_AST_fix.h"
+#include "../../../Parser/TACKY/TACKYUtils/TACKYConstructors.h"
 
 ASMProgram* parseASMprogram(TACKYProgram* tacky_prog) {
     ASMProgram* asm_prog = malloc(sizeof(ASMProgram));
     if (!asm_prog) return NULL;
-    
-    asm_prog->function_def = parseASMfunction(tacky_prog->function_def);
+    asm_prog->function_defs = ASMFunctionArray_create();
+
+    for (int i = 0; i < TACKYFunctionArray_size(tacky_prog->functions); i++) {
+        TACKYFunction* tacky_func = TACKYFunctionArray_get(tacky_prog->functions, i);
+        ASMFunction* asm_func = parseASMfunction(tacky_func);
+        if (!asm_func) {
+            freeASMProgram(asm_prog);
+            return NULL;
+        }
+        ASMFunctionArray_append(asm_prog->function_defs, asm_func);
+    }
     return asm_prog;
 }
 
@@ -16,13 +27,31 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func) {
     ASMFunction* asm_func = malloc(sizeof(ASMFunction));
     if (!asm_func) return NULL;
     
-    asm_func->function_name = tacky_func->function_name; 
+    asm_func->function_name = strdup(tacky_func->function_name);
+    if (!asm_func->function_name) {
+        free(asm_func);
+        return NULL;
+    }
     asm_func->inst = createASMInstructionList();
     asm_func->pseudoTable = createCharIntMap();
 
+    if (!asm_func->inst || !asm_func->pseudoTable) {
+        free(asm_func->function_name);
+        free(asm_func->inst);
+        free(asm_func->pseudoTable);
+        free(asm_func);
+        return NULL;
+    }
+
+    addArgsAsInstructionsToFunc(tacky_func->parameters, asm_func->inst);
     while (InstructionArray_getCursor(tacky_func->instruction_list) < InstructionArray_size(tacky_func->instruction_list)) {
         parseASMInstruction(tacky_func->instruction_list, asm_func->inst);
     }
+    addASMInstructionAtEnd(
+        asm_func->inst,
+        createMovInstruction(createImmediateOperand(0), createRegisterOperand(AX))
+    );
+    addASMInstructionAtEnd(asm_func->inst, createASMReturnInstruction());
     pseudoToStackPositions(asm_func->inst, asm_func->pseudoTable);
     
     return asm_func;
@@ -35,6 +64,26 @@ void parseASMReturn(TACKYValue* tacky_ret, ASMInstructionList* instruction_list)
 
     ASMInstruction* ret_inst = createASMReturnInstruction();
     addASMInstructionAtEnd(instruction_list, ret_inst);
+}
+
+void addArgsAsInstructionsToFunc(IdentifierArray* params, ASMInstructionList* asmInstructionList) {
+    int lenArgs = IdentifierArray_size(params);
+    for (int i = 0; i < lenArgs && i < 6; i++) {
+        char* arg = IdentifierArray_get(params, i);
+        ASMInstruction* mov_arg_inst = createMovInstruction(
+            createRegisterOperand(argResigters[i]),
+            tackyValueToASMOperand(createVarValue(arg)));
+        addASMInstructionAtEnd(asmInstructionList, mov_arg_inst);
+    }
+    int stackPos = 16;
+    for (int i = 6; i < lenArgs; i++) {
+        char* arg = IdentifierArray_get(params, i);
+        ASMInstruction* movInst = createMovInstruction(
+            createStackOperand(stackPos), 
+            tackyValueToASMOperand(createVarValue(arg))); 
+        addASMInstructionAtEnd(asmInstructionList, movInst);
+        stackPos += 8;
+    }
 }
 
 
@@ -73,16 +122,68 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
         case TACKY_RETURN: {
             parseASMReturn(instruction->instValue.returnVal.retVal, asmInstructionList);
             break;
-
         }
         case TACKY_JUMP_IF_ZERO:
         case TACKY_JUMP_IF_NOT_ZERO: {
             parseCondJumpInstruction(instruction, asmInstructionList);
             break;
         }
+        case TACKY_FUNCTION_CALL: {
+            parseFunctionCallInstruction(instruction, asmInstructionList);
+            break;
+        }
         default: break; // Handle other instruction types as needed
     }
 }
+
+void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
+    int lenArgs = TACKYValueArray_size(instruction->instValue.funCall.args);
+    int stackArgs = (lenArgs > 6) ? (lenArgs - 6) : 0;
+    int stackPadding = (stackArgs % 2) ? 8 : 0; 
+    if (stackPadding) {
+        addASMInstructionAtEnd(asmInstructionList, 
+            createASMAllocateStackInstruction(stackPadding));
+    }
+
+    for (int i = 0; i < lenArgs && i < 6; i++) {
+        TACKYValue* arg = TACKYValueArray_get(instruction->instValue.funCall.args, i);
+        ASMInstruction* mov_arg_inst = createMovInstruction(
+            tackyValueToASMOperand(arg), 
+            createRegisterOperand(argResigters[i]));
+        addASMInstructionAtEnd(asmInstructionList, mov_arg_inst);
+    }
+
+    for (int i = lenArgs - 1; i >= 6; i--) {
+        TACKYValue* arg = TACKYValueArray_get(instruction->instValue.funCall.args, i);
+        ASMOperand* argOp = tackyValueToASMOperand(arg);
+        if (argOp->type == ASM_OP_IMMEDIATE) {
+            ASMInstruction* push_inst = createASMPushInstruction(argOp);
+            addASMInstructionAtEnd(asmInstructionList, push_inst);
+        } 
+        else {
+            ASMInstruction* mov_arg_inst = createMovInstruction(
+                argOp, 
+                createRegisterOperand(AX)); // Use AX as temp register for pushing
+            addASMInstructionAtEnd(asmInstructionList, mov_arg_inst);
+
+            ASMInstruction* push_inst = createASMPushInstruction(createRegisterOperand(AX));
+            addASMInstructionAtEnd(asmInstructionList, push_inst);
+        }
+    }
+
+    addASMInstructionAtEnd(asmInstructionList, 
+        createASMCallInstruction(instruction->instValue.funCall.functionName));
+    
+    int bytesToRemove = 8 * stackArgs + stackPadding;
+    if (bytesToRemove) {
+        addASMInstructionAtEnd(asmInstructionList, 
+            createASMDeallocateStackInstruction(bytesToRemove));
+    }
+    ASMOperand* retDest = tackyValueToASMOperand(instruction->instValue.funCall.resultVar);
+    addASMInstructionAtEnd(asmInstructionList, 
+        createMovInstruction(createRegisterOperand(AX), retDest)); 
+}
+
 
 void parseCondJumpInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList) {
     ASMCondCode cond = (instruction->type == TACKY_JUMP_IF_ZERO) ? ASM_COND_CODE_E : ASM_COND_CODE_NE;

@@ -12,15 +12,15 @@ static void indent() {
 void C_printProgram(CProgram* prog) {
     printf("Program(\n");
     depth++;
-    indent(); C_printFunctions(prog->function_def);
+    indent(); C_printDeclarations(prog->function_def);
     depth--;
     printf("\n)\n");
 }
 
-void C_printFunctions(CDeclarationArray* functions) {
-    for (int i = 0; i < CDeclarationArray_size(functions); i++) {
-        C_printFunction(CDeclarationArray_get(functions, i));
-        if (i < CDeclarationArray_size(functions) - 1) printf(",\n");
+void C_printDeclarations(CDeclarationArray* declArr) {
+    for (int i = 0; i < CDeclarationArray_size(declArr); i++) {
+        C_printDeclaration(CDeclarationArray_get(declArr, i));
+        if (i < CDeclarationArray_size(declArr) - 1) printf(",\n");
     }
 }
 
@@ -31,7 +31,9 @@ void C_printFunction(CDeclaration* func) {
         return;
     }
 
-    printf("Function(\"%s\",\n", func->decl.functionDecl.identifier);
+    printf("Function(\"%s\",", func->decl.functionDecl.identifier);
+    printf("Type: %s, StorageClass: %s,\n", getSpecifierTypeName(func->decl.functionDecl.funcType), 
+                    getSpecifierTypeName(func->decl.functionDecl.storageClass));
     depth++;
 
     indent(); printf("Parameters([");
@@ -180,6 +182,8 @@ void C_printVarDeclaration(CDeclaration* decl) {
     }
 
     printf("Declaration(\"%s\"", decl->decl.variableDecl.identifier);
+    printf(", Type: %s, StorageClass: %s", getSpecifierTypeName(decl->decl.variableDecl.varType), 
+                getSpecifierTypeName(decl->decl.variableDecl.storageClass));
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
         printf(", ");
         depth++;

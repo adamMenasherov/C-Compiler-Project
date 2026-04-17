@@ -172,6 +172,31 @@ ASMInstruction* createASMPushInstruction(ASMOperand* src);
 ASMInstruction* createASMPopInstruction(ASMOperand* dest);
 
 /**
+ * @brief Create an Allocate Stack Instruction object
+ * 
+ * @param size The size of the stack to allocate (in bytes)
+ * @return ASMInstruction* pointer to the created ALLOCATE STACK instruction
+ */
+ASMInstruction* createASMAllocateStackInstruction(int size);
+
+
+/**
+ * @brief Create a Deallocate Stack Instruction object
+ * 
+ * @param size The size of the stack to deallocate (in bytes)
+ * @return ASMInstruction* pointer to the created DEALLOCATE STACK instruction
+ */
+ASMInstruction* createASMDeallocateStackInstruction(int size);
+
+/**
+ * @brief Create a Call Instruction object
+ * 
+ * @param functionName The name of the function to call
+ * @return ASMInstruction* pointer to the created CALL instruction
+ */
+ASMInstruction* createASMCallInstruction(char* functionName);
+
+/**
  * @brief Create a Return Instruction object
  * 
  * @return ASMInstruction* pointer to the created RETURN instruction

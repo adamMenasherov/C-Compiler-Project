@@ -10,6 +10,8 @@ const char *tokenTypeStr[] = {
     [CONSTANT] = "CONSTANT",
     [INT_KEYWORD] = "INT_KEYWORD",
     [VOID_KEYWORD] = "VOID_KEYWORD",
+    [STATIC_KEYWORD] = "STATIC_KEYWORD",
+    [EXTERN_KEYWORD] = "EXTERN_KEYWORD",
     [RETURN_KEYWORD] = "RETURN_KEYWORD",
     [OPEN_PAREN] = "OPEN_PAREN",
     [CLOSE_PAREN] = "CLOSE_PAREN",
@@ -68,6 +70,8 @@ const char *tokenTypeToSymbol[] = {
     [CONSTANT] = "",
     [INT_KEYWORD] = "int",
     [VOID_KEYWORD] = "void",
+    [STATIC_KEYWORD] = "static",
+    [EXTERN_KEYWORD] = "extern",
     [RETURN_KEYWORD] = "return",
     [OPEN_PAREN] = "(",
     [CLOSE_PAREN] = ")",
@@ -261,6 +265,8 @@ TokenType keywordOrIdentifier(char* tokenSource, char ** tokenStr) {
     
     if (strcmp(start, "int") == 0) type = INT_KEYWORD;
     else if (strcmp(start, "void") == 0) type = VOID_KEYWORD;
+    else if (strcmp(start, "static") == 0) type = STATIC_KEYWORD;
+    else if (strcmp(start, "extern") == 0) type = EXTERN_KEYWORD;
     else if (strcmp(start, "return") == 0) type = RETURN_KEYWORD;
     else if (strcmp(start, "if") == 0) type = IF_KEYWORD;
     else if (strcmp(start, "else") == 0) type = ELSE_KEYWORD;

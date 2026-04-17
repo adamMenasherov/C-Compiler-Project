@@ -3,11 +3,10 @@
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
 #include <stdio.h>
-/*
+#include "AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
 #include "TACKY/TACKYUtils/TACKY_AST_FREE.h"
-#include "AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
 #include "TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
-*/
+#include "AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
 
 
 AST* parse(TokenList* tokens) {
@@ -19,22 +18,6 @@ AST* parse(TokenList* tokens) {
     printAST(ast);
 
     return ast;
-}
-
-/*
- * Disabled for lexing/parsing-only stage.
- * Keep TACKY/ASM pipeline code commented until those stages are re-enabled.
- */
-/*
-ASM_AST* tackyAstToASM_AST(TACKY_AST* ast) {
-    ASM_AST* asm_ast = malloc(sizeof(ASM_AST));
-    if (!asm_ast) return NULL;
-    asm_ast->prog = parseASMprogram(ast->prog);
-    if (!asm_ast->prog) {
-        free(asm_ast);
-        return NULL;
-    }
-    return asm_ast;
 }
 
 TACKY_AST* astToTACKY_AST(AST* ast) {
@@ -55,13 +38,30 @@ void freeTACKY_AST(TACKY_AST* tacky_ast) {
     }
 }
 
+void printTACKY_AST(TACKY_AST* tacky_ast) {
+    if (tacky_ast) {
+        printTACKYProgram(tacky_ast->prog);
+    }
+}
+
+
+ASM_AST* tackyAstToASM_AST(TACKY_AST* ast) {
+    ASM_AST* asm_ast = malloc(sizeof(ASM_AST));
+    if (!asm_ast) return NULL;
+    asm_ast->prog = parseASMprogram(ast->prog);
+    if (!asm_ast->prog) {
+        free(asm_ast);
+        return NULL;
+    }
+    return asm_ast;
+}
+
 void freeASM_AST(ASM_AST* asm_ast) {
     if (asm_ast) {
-        free(asm_ast->prog);
+        freeASMProgram(asm_ast->prog);
         free(asm_ast);
     }
 }
-*/
 
 void freeAST(AST* ast) {
     if (ast) {
@@ -74,12 +74,6 @@ void printAST(AST* ast) {
     C_printProgram(ast->prog);
 }
 
-/*
 void printASM_AST(ASM_AST* asm_ast) {
     printASMProgram(asm_ast->prog);
 }
-
-void printTACKY_AST(TACKY_AST* tacky_ast) {
-    printTACKYProgram(tacky_ast->prog);
-}
-*/

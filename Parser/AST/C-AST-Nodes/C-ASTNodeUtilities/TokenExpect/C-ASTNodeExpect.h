@@ -14,6 +14,7 @@ void expectCompoundAssignment(TokenList* tokens);
 char* expectIdentifier(TokenList* tokens);
 unaryType expectUnaryOp(TokenList* tokens);
 int checkIncrementDecrement(TokenList* tokens);
+int checkSpecifier(TokenList* tokens);
 binType expectBinaryOp(TokenList* tokens);
 binType tokenTypeToBinType(TokenType type);
 binType compoundAssignmentToBinType(TokenType type);

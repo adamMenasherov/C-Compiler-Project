@@ -7,14 +7,10 @@
 #include "Lexer/lex.h"
 #include "Parser/Parser.h"
 #include "SemanticAnalysis/semantic.h"
-/*
-#include "ASM-File-Generation/ASMGenerator.h"
 #include "Parser/TACKY/TACKY_AST.h"
 #include "Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
 #include "Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
-#include "ASM-File-Generation/ASM_AST_fix.h"
-
-*/
+#include "ASM-File-Generation/ASMGenerator.h"
 
 
 char* readSourceFile(char* fileName) {
@@ -93,7 +89,8 @@ void commandForObjectFile(char* asmFileName, char* objectFileName) {
 
 
 char* compileFile(char* fileName) {
-    char* *objectFileName, *asmFileName;
+    char* objectFileName;
+    char* asmFileName;
     TokenList* tokenList = createTokenList();
 
     // Generating all file names and preprocessing
@@ -110,27 +107,27 @@ char* compileFile(char* fileName) {
     char* sourcePtr = source; 
     lex(&sourcePtr, tokenList); // TokensList is filled with tokens of the source file in the Lexer stage
     AST* ast = parse(tokenList); // Parsing the program to a AST structure
-    resolveAST(ast);
+    SymbolTable* symTable = resolveAST(ast);
     printf("\n\n---------------------------------\n\n");
     printAST(ast); 
-
-    /*
-    TACKY_AST* tacky_ast = astToTACKY_AST(ast);
+    printf("\n\n---------------------------------\n\n");
+    symbolTablePrint(symTable);
+ 
+    /*TACKY_AST* tacky_ast = astToTACKY_AST(ast);
     printTACKY_AST(tacky_ast);
     ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
     printASM_AST(asm_ast);
-    generateASMFile(asm_ast, asmFileName);
+    generateASMFile(asm_ast, asmFileName, symTable);
     commandForObjectFile(asmFileName, objectFileName);
-    
     freeASM_AST(asm_ast);
     freeTACKY_AST(tacky_ast);
-    */
+    freeSymbolTable(symTable);
 
     freeAST(ast);
     free(source); 
     free(asmFileName);
     free(preprocessFileName);
-    freeTokenList(tokenList);
+    freeTokenList(tokenList);*/
 
     return objectFileName;
 }
@@ -139,7 +136,7 @@ char* compileFile(char* fileName) {
 
 void startProcess(int argc, char* argv[]) {
     char* finalExecutableName = "a.out";
-    int isCFlagPresent = 0, countObject = 0;
+    int isCFlagPresent = 0, countObject = 0, outputSpecified = 0;
     char** objectFileNames = malloc(sizeof(char*) * argc);
     if (!objectFileNames) {
         fprintf(stderr, "Memory allocation failed for object file names.\n");
@@ -148,11 +145,16 @@ void startProcess(int argc, char* argv[]) {
 
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--lex") == 0 || strcmp(argv[i], "--parse") == 0) continue; // Skipping the flags for now 
-        if (strcmp(argv[i], "-c") == 0) isCFlagPresent = 1; // Marking if -c flag is present for not compiling to executable immediately
+        if (strcmp(argv[i], "-c") == 0) {
+            isCFlagPresent = 1;
+            continue;
+        }
 
         else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
-            finalExecutableName = argv[i + 1]; // Saving the executable file name given in the argument array
+            finalExecutableName = argv[i + 1];  
+            outputSpecified = 1;
             i++; 
+            continue;
         }
 
         else if (strcmp(argv[i], finalExecutableName) == 0) continue;
@@ -166,7 +168,25 @@ void startProcess(int argc, char* argv[]) {
     }
 
     if (!isCFlagPresent) {
-        generateExecutableCommand(objectFileNames, countObject, finalExecutableName); // Generating executable file name if -c was not present
+        char* derivedExecutableName = NULL;
+        char* executableNameToUse = finalExecutableName;
+
+        if (!outputSpecified && countObject == 1) {
+            derivedExecutableName = strdup(objectFileNames[0]);
+            if (!derivedExecutableName) {
+                fprintf(stderr, "Memory allocation failed for executable name.\n");
+                exit(1);
+            }
+
+            char* extension = strrchr(derivedExecutableName, '.');
+            if (extension) {
+                *extension = '\0';
+            }
+            executableNameToUse = derivedExecutableName;
+        }
+
+        generateExecutableCommand(objectFileNames, countObject, executableNameToUse); // Generating executable file name if -c was not present
+        free(derivedExecutableName);
     }
     freeObjectFileNames(objectFileNames, countObject);
 }
@@ -187,7 +207,7 @@ void freeObjectFileNames(char** objectFileNames, int count) {
 }
 
 void generateExecutableCommand(char** objectFileNames, int count, char* finalExecutableName) {
-    size_t commandLength = strlen("gcc ") + strlen(finalExecutableName) + 1;
+    size_t commandLength = strlen("gcc ") + strlen("-o ") + strlen(finalExecutableName) + 1;
     for (int i = 0; i < count; i++) {
         commandLength += strlen(objectFileNames[i]) + 1; // Adding space for each object file name in array
     }

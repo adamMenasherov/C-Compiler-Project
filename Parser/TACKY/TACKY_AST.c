@@ -3,26 +3,34 @@
 #include "TACKYUtils/TACKYConstructors.h"
 #include "../generateUtils.h"
 #include <stdlib.h>
+#include <stdio.h>
 
-TACKYFunction* parseTACKYFunction(CFunction* func) {
+TACKYFunction* parseTACKYFunction(CDeclaration* func) {
     TACKYInstructionList* instruction_list = createTACKYInstructionList();
-    TACKYFunction* tackyFunc = malloc(sizeof(TACKYFunction));
+    parseBlock(func->decl.functionDecl.body, instruction_list); 
+    TACKYFunction* tackyFunc = createTACKYFunction(func->decl.functionDecl.identifier, 
+        func->decl.functionDecl.parameters, instruction_list);
     if (!tackyFunc) return NULL;
 
-    parseBlock(func->block, instruction_list);
-    addInstructionToList(instruction_list, createReturnInstruction(createTackyValueFromConstant(0))); 
-
-    tackyFunc->function_name = func->function_name;
-    tackyFunc->instruction_list = instruction_list;
     return tackyFunc;
 }
 
 TACKYProgram* parseTACKYProgram(CProgram* program) {
-    TACKYFunction* function_def = parseTACKYFunction(program->function_def);
-    TACKYProgram* tackyProg = malloc(sizeof(TACKYProgram));
+    TACKYProgram* tackyProg = createTACKYProgram();
     if (!tackyProg) return NULL;
 
-    tackyProg->function_def = function_def;
+    TACKYFunction* function_def;
+    for (int i = 0; i < CDeclarationArray_size(program->function_def); i++) {
+        CDeclaration* func = CDeclarationArray_get(program->function_def, i);
+        if (!func) continue;
+
+        if (func->decl.functionDecl.declType == FUNC_DEF) {
+            function_def = parseTACKYFunction(func);
+            if (!function_def) return NULL;
+            TACKYFunctionArray_append(tackyProg->functions, function_def);
+        }
+    }
+
     return tackyProg;
 }
 
@@ -35,16 +43,17 @@ void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList
 void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* instructionList) {
     switch(blockItem->type) {
         case BLOCK_ITEM_DECL:
-            if (blockItem->item.decl->declType == VAR_DECL_WITH_EXP) {
-                char* varName = blockItem->item.decl->identifier;
+            if (blockItem->item.decl->type == DECL_FUNC) return;
+            if (blockItem->item.decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
+                char* varName = blockItem->item.decl->decl.variableDecl.identifier;
                 int isPostfixUnary = 0;
-                TACKYValue* src = emit_TACKY(blockItem->item.decl->exp, instructionList, &isPostfixUnary);
+                TACKYValue* src = emit_TACKY(blockItem->item.decl->decl.variableDecl.exp, instructionList, &isPostfixUnary);
                 TACKYValue* dst = createVarValue(varName);
                 addInstructionToList(instructionList,
                     createCopyInstruction(src, dst));
 
                 if (isPostfixUnary) addInstructionToList(instructionList,
-                    emitUnaryPostfixInstruction(blockItem->item.decl->exp));
+                    emitUnaryPostfixInstruction(blockItem->item.decl->decl.variableDecl.exp));
             }
             break;
         case BLOCK_ITEM_STMT:
@@ -149,16 +158,16 @@ void parseForLoopInitInstructions(CForInit* init, TACKYInstructionList* instruct
     if (!init) return;
     switch (init->type) {
         case FOR_INIT_DECL:
-            if (init->decl->declType == VAR_DECL_WITH_EXP) {
-                char* varName = init->decl->identifier;
+            if (init->decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
+                char* varName = init->decl->decl.variableDecl.identifier;
                 int isPostfixUnary = 0;
-                TACKYValue* src = emit_TACKY(init->decl->exp, instructionList, &isPostfixUnary);
+                TACKYValue* src = emit_TACKY(init->decl->decl.variableDecl.exp, instructionList, &isPostfixUnary);
                 TACKYValue* dst = createVarValue(varName);
                 addInstructionToList(instructionList,
                     createCopyInstruction(src, dst));
 
                 if (isPostfixUnary) addInstructionToList(instructionList,
-                    emitUnaryPostfixInstruction(init->decl->exp));
+                    emitUnaryPostfixInstruction(init->decl->decl.variableDecl.exp));
             }
             break;
         case FOR_INIT_EXP:
@@ -221,8 +230,8 @@ void parseIfStatementInstructions(CIf* if_stmt, TACKYInstructionList* instructio
 }
 
 void parseBlock(CBlock* block, TACKYInstructionList* instructionList) {
-    DArray_forEach(block->items, elem,
-    {
-        parseBlockItemInstructions((CBlockItem*)elem, instructionList);
-    });
+    for (int i = 0; i < BlockItemArray_size(block->items); i++) {
+        CBlockItem* elem = BlockItemArray_get(block->items, i);
+        parseBlockItemInstructions(elem, instructionList);
+    }
 }

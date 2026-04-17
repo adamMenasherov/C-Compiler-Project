@@ -17,3 +17,4 @@ void handleImmediateAsDestForShift(ASMInstruction* inst);
 void handleConstantAsDestIdivOperation(ASMInstruction* inst);
 void handleConstantAsDestCmpOperation(ASMInstruction* inst);
 void handleImulOperation(ASMInstruction* inst);
+int fixStackSizeForFunction(int stackSize);

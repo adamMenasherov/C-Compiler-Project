@@ -1,4 +1,4 @@
-#include "IdentifierTypeInfoWrapper.h"
+#include "SymbolTableWrapper.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,15 +87,12 @@ static IdentifierTypeInfo* copyIdentifierTypeInfo(const IdentifierTypeInfo* info
             copy->funcInfo.isDefined = info->funcInfo.isDefined;
             break;
     }
-
     return copy;
 }
 
-static void freeIdentifierTypeInfo(void* key) {
-    IdentifierTypeInfo* info = (IdentifierTypeInfo*)key;
-
+void freeIdentifierTypeInfo(void* data) {
+    IdentifierTypeInfo* info = (IdentifierTypeInfo*)data;
     if (!info) return;
-
     free(info->identifier);
     switch (info->type) {
         case TYPE_INT:
@@ -108,14 +105,9 @@ static void freeIdentifierTypeInfo(void* key) {
     free(info);
 }
 
-static void printIdentifierTypeInfo(void* key) {
-    IdentifierTypeInfo* info = (IdentifierTypeInfo*)key;
-
-    if (!info) {
-        printf("(null)");
-        return;
-    }
-
+void printIdentifierTypeInfo(void* data) {
+    IdentifierTypeInfo* info = (IdentifierTypeInfo*)data;
+    if (!info) return;
     switch (info->type) {
         case TYPE_INT:
             printf("{ identifier: \"%s\", type: INT, uniqueName: \"%s\" }",
@@ -123,25 +115,27 @@ static void printIdentifierTypeInfo(void* key) {
                 info->varInfo.uniqueName ? info->varInfo.uniqueName : "");
             break;
         case TYPE_FUNCTION:
-            printf("{ identifier: \"%s\", type: FUNCTION, uniqueName: \"%s\", paramCount: %d }",
+            printf("{ identifier: \"%s\", type: FUNCTION, uniqueName: \"%s\", paramCount: %d, isDefined: %s  }",
                 info->identifier,
                 info->funcInfo.uniqueName ? info->funcInfo.uniqueName : "",
-                info->funcInfo.paramCount);
+                info->funcInfo.paramCount,
+                info->funcInfo.isDefined ? "true" : "false");
             break;
     }
 }
 
-IdentifierToTypeTable* createIdentifierToTypeTable() {
+SymbolTable* createSymbolTable() {
     return createHashTable(hashIdentifier, equalIdentifier);
 }
 
-int identifierToTypeTableInsert(IdentifierToTypeTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined) {
+int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined) {
     IdentifierTypeInfo probe; // For checking whether the key already exists
     IdentifierTypeInfo* existing; // To hold the existing entry if found
     IdentifierTypeInfo* stored; // The new entry to be stored if the key doesn't already exist
 
     if (!table || !identifier) return 0;
 
+    probe.identifier = (char*)identifier;
     existing = (IdentifierTypeInfo*)ht_getKey(table, &probe);
     if (existing) {
         switch (existing->type) {
@@ -161,6 +155,7 @@ int identifierToTypeTableInsert(IdentifierToTypeTable* table, const char* identi
             case TYPE_FUNCTION:
                 existing->funcInfo.uniqueName = NULL;
                 existing->funcInfo.paramCount = paramCount;
+                existing->funcInfo.isDefined = isDefined;
                 return 1;
         }
     }
@@ -176,7 +171,7 @@ int identifierToTypeTableInsert(IdentifierToTypeTable* table, const char* identi
     return 1;
 }
 
-IdentifierTypeInfo* identifierToTypeTableLookup(IdentifierToTypeTable* table, const char* identifier) {
+IdentifierTypeInfo* symbolTableLookup(SymbolTable* table, const char* identifier) {
     IdentifierTypeInfo probe;
 
     if (!table || !identifier) return NULL;
@@ -185,11 +180,11 @@ IdentifierTypeInfo* identifierToTypeTableLookup(IdentifierToTypeTable* table, co
     return (IdentifierTypeInfo*)ht_getKey(table, &probe);
 }
 
-int identifierToTypeTableContains(IdentifierToTypeTable* table, const char* identifier) {
-    return identifierToTypeTableLookup(table, identifier) != NULL;
+int symbolTableContains(SymbolTable* table, const char* identifier) {
+    return symbolTableLookup(table, identifier) != NULL;
 }
 
-int identifierToTypeTableRemove(IdentifierToTypeTable* table, const char* identifier) {
+int symbolTableRemove(SymbolTable* table, const char* identifier) {
     IdentifierTypeInfo probe;
 
     if (!table || !identifier) return 0;
@@ -198,10 +193,10 @@ int identifierToTypeTableRemove(IdentifierToTypeTable* table, const char* identi
     return ht_delete(table, &probe, freeIdentifierTypeInfo);
 }
 
-void freeIdentifierToTypeTable(IdentifierToTypeTable* table) {
+void freeSymbolTable(SymbolTable* table) {
     freeHashTable(table, freeIdentifierTypeInfo);
 }
 
-void identifierToTypeTablePrint(IdentifierToTypeTable* table) {
+void symbolTablePrint(SymbolTable* table) {
     ht_print(table, printIdentifierTypeInfo);
 }

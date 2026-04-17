@@ -1,6 +1,9 @@
 #pragma once
 #include "../AST/C-AST-Nodes/C-ASTNodes.h"
 #include "../../DataStructures/DynamicArray/Wrappers/InstructionArrayWrapper.h"
+#include "../../DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
+#include "../../DataStructures/DynamicArray/Wrappers/TACKYFunctionArrayWrapper.h"
+#include "../../DataStructures/DynamicArray/Wrappers/TACKYValueArrayWrapper.h"
 
 typedef enum {
     TACKY_UNARY,
@@ -10,6 +13,7 @@ typedef enum {
     TACKY_JUMP_IF_ZERO,
     TACKY_JUMP_IF_NOT_ZERO,
     TACKY_RETURN,
+    TACKY_FUNCTION_CALL,
     TACKY_LABEL
 } TACKYInstructionType;
 
@@ -22,7 +26,7 @@ typedef struct {
     int value;
 } TACKYConstant;
 
-typedef struct {
+typedef struct TACKYValue {
     TACKYValueType type;
     TACKYConstant* constant;
     char* identifier; 
@@ -59,6 +63,11 @@ typedef struct TACKYInstruction {
         struct {
             TACKYValue* retVal;
         } returnVal;
+        struct {
+            char* functionName;
+            TACKYValueArray* args;
+            TACKYValue* resultVar;
+        } funCall;
     } instValue;
 } TACKYInstruction;
 
@@ -69,13 +78,14 @@ typedef struct {
     TACKYValue* val;
 } TACKYReturn;
 
-typedef struct {
+typedef struct TACKYFunction {
     char* function_name; 
+    IdentifierArray* parameters;
     TACKYInstructionList* instruction_list;
 } TACKYFunction;
 
-typedef struct {
-    TACKYFunction* function_def;
+typedef struct TACKYProgram {
+    TACKYFunctionArray* functions;
 } TACKYProgram;
 
 
@@ -84,7 +94,7 @@ typedef struct {
  * @param func The C AST function to convert
  * @return A pointer to the generated TACKYFunction
  */
-TACKYFunction* parseTACKYFunction(CFunction* func);
+TACKYFunction* parseTACKYFunction(CDeclaration* func);
 
 /**
  * Converts a C AST program into a TACKY program representation.

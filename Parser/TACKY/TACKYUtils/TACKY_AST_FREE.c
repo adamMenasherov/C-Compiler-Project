@@ -1,14 +1,22 @@
 #include "TACKY_AST_FREE.h"
 #include <stdlib.h>
 
+static void freeTackyFunctionCall(TACKYInstruction* instruction) {
+    free(instruction->instValue.funCall.functionName);
+    TACKYValueArray_freeWithValues(instruction->instValue.funCall.args);
+    freeTackyValue(instruction->instValue.funCall.resultVar);
+}
+
 void freeTackyProgram(TACKYProgram* prog) {
     if (!prog) return;
-    freeTackyFunction(prog->function_def);
+    TACKYFunctionArray_freeWithFunctions(prog->functions);
     free(prog);
 }
 
 void freeTackyFunction(TACKYFunction* func) {
     if (!func) return;
+    free(func->function_name);
+    IdentifierArray_free(func->parameters);
     freeTackyInstructionList(func->instruction_list);
     free(func);
 }
@@ -51,6 +59,9 @@ void freeTackyInstruction(TACKYInstruction* instruction) {
             break;
         case TACKY_RETURN:
             freeTackyValue(instruction->instValue.returnVal.retVal);
+            break;
+        case TACKY_FUNCTION_CALL:
+            freeTackyFunctionCall(instruction);
             break;
         default:
             break;

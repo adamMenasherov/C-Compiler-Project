@@ -19,6 +19,8 @@ TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int
             return emit_TACKYAssignment(exp, instruction_list);
         case FACTOR_CONDITIONAL:
             return emit_TACKYConditional(exp, instruction_list);
+        case FACTOR_FUNCTION_CALL:
+             return emit_TACKYFunctionCall(exp, instruction_list);
         default:
             return NULL;
     }
@@ -103,6 +105,29 @@ TACKYValue* emit_TACKYConditional(CFactor* exp, TACKYInstructionList* instructio
         createLabelInstruction(endLabel));
 
     return createVarValue(result);
+}
+
+TACKYValue* emit_TACKYFunctionCall(CFactor* exp, TACKYInstructionList* instruction_list) {
+    char* funcName = exp->exp.funcCall->identifier;
+    ExpressionFactorArray* args = exp->exp.funcCall->arguments;
+    TACKYValueArray* tackyArgs = TACKYValueArray_create();
+    TACKYValue* resultVar = createVarValue(generateResultVarName());
+
+    // Emit instructions for arguments
+    for (int i = 0; i < args->size; i++) {
+        char* temp_name = generateTempName();
+        CFactor* arg = (CFactor*)args->data[i];
+        TACKYValue* argVal = emit_TACKY(arg, instruction_list, NULL);
+        addInstructionToList(instruction_list,
+            createCopyInstruction(argVal, createVarValue(temp_name)));
+        
+        TACKYValueArray_append(tackyArgs, createVarValue(temp_name));
+    }
+
+    addInstructionToList(instruction_list,
+        createFunCall(funcName, tackyArgs, resultVar));
+
+    return copyTackyValue(resultVar);
 }
 
 TACKYInstruction* emitUnaryPostfixInstruction(CFactor* exp) {

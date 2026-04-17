@@ -44,6 +44,15 @@ void freeASMInstruction(ASMInstruction* inst) {
         case ASM_SETCC:
             freeASMOperand(inst->instValue.setcc.op);
             break;
+        case ASM_PUSH:
+            freeASMOperand(inst->instValue.push.op);
+            break;
+        case ASM_POP:
+            freeASMOperand(inst->instValue.pop.op);
+            break;
+        case ASM_CALL:
+            free(inst->instValue.call.functionName);
+            break;
         default: break;
     }
     free(inst);
@@ -76,7 +85,6 @@ void freeASMFunction(ASMFunction* func) {
 
 void freeASMProgram(ASMProgram* program) {
     if (!program) return;
-    ASMFunction* current = program->function_def;
-    freeASMFunction(current);
+    ASMFunctionArray_freeWithFunctions(program->function_defs);
     free(program);
 }

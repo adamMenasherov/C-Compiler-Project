@@ -22,12 +22,14 @@ CReturn* C_CreateReturn(CFactor* exp) {
 }
 
 
-CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body) {
+CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, specifierType funcType, specifierType storageClass) {
     CDeclaration* func = calloc(1, sizeof(CDeclaration));
     if (!func) return NULL;
     func->type = DECL_FUNC;
-    func->decl.functionDecl.type = type;
+    func->decl.functionDecl.declType = type;
     func->decl.functionDecl.identifier = strdup(identifier);
+    func->decl.functionDecl.funcType = funcType;
+    func->decl.functionDecl.storageClass = storageClass;
     func->decl.functionDecl.parameters = parameters;
     func->decl.functionDecl.body = body;
 
@@ -300,6 +302,8 @@ CFactor* C_CreateCopyOfFactor(CFactor* original) {
             return C_CreateFactorFromAssignment(original->exp.assignment);
         case FACTOR_CONDITIONAL:
             return C_CreateFactorFromConditional(original->exp.conditional);
+        case FACTOR_FUNCTION_CALL:
+            return C_CreateFactorFromFunctionCall(original->exp.funcCall);
         default:
             fprintf(stderr, "Invalid factor type in C_CreateCopyOfFactor\n");
             return NULL;
@@ -315,12 +319,14 @@ CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {
     return binary;
 }
 
-CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign) {
+CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign, specifierType varType, specifierType storageClass) {
     CDeclaration* decl = malloc(sizeof(CDeclaration));
     if (!decl) return NULL;
     decl->type = DECL_VAR;
     decl->decl.variableDecl.declType = type;
     decl->decl.variableDecl.exp = assign;
+    decl->decl.variableDecl.varType = varType;
+    decl->decl.variableDecl.storageClass = storageClass;
     decl->decl.variableDecl.identifier = iden;
     return decl;
 }

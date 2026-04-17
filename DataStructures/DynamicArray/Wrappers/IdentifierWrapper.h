@@ -63,3 +63,33 @@ static inline void IdentifierArray_free(IdentifierArray* arr) {
         free(arr);
     }
 }
+
+static inline IdentifierArray* IdentifierArray_copy(IdentifierArray* arr) {
+    if (!arr) return NULL;
+
+    IdentifierArray* copy = IdentifierArray_create();
+    if (!copy) return NULL;
+
+    for (int i = 0; i < IdentifierArray_size(arr); i++) {
+        char* identifier = IdentifierArray_get(arr, i);
+        if (identifier) {
+            char* identifierCopy = strdup(identifier);
+            if (!identifierCopy) {
+                IdentifierArray_free(copy);
+                return NULL;
+            }
+            if (!IdentifierArray_append(copy, identifierCopy)) {
+                free(identifierCopy);
+                IdentifierArray_free(copy);
+                return NULL;
+            }
+        } else {
+            if (!IdentifierArray_append(copy, NULL)) {
+                IdentifierArray_free(copy);
+                return NULL;
+            }
+        }
+    }
+
+    return copy;
+}

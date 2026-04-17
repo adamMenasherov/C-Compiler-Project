@@ -14,7 +14,7 @@ TARGET = compiler
 
 # Source files
 SOURCES = DataStructures/HashTable/HashTable.c \
-	      DataStructures/HashTable/Wrappers/IdentifierTypeInfoWrapper.c \
+	      DataStructures/HashTable/Wrappers/SymbolTableWrapper.c \
 	      EntryPoint/FileHandling.c \
 	      EntryPoint/main.c \
 	      Lexer/Tokens/token.c \
@@ -25,8 +25,20 @@ SOURCES = DataStructures/HashTable/HashTable.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.c \
 	      Parser/AST/C-AST-Nodes/C-ASTNodes.c \
+	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodes.c \
+	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.c \
+	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.c \
+	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesGeneralUtils.c \
+	      Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.c \
 	      Parser/Parser.c \
+	      Parser/TACKY/TACKY_AST.c \
+	      Parser/TACKY/TACKYUtils/TACKY_AST_FREE.c \
+	      Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.c \
+	      Parser/TACKY/TACKYUtils/TACKYConstructors.c \
+	      Parser/TACKY/TACKYUtils/TACKYEmitters.c \
 	      Parser/generateUtils.c \
+	      ASM-File-Generation/ASMGenerator.c \
+	      ASM-File-Generation/ASM_AST_fix.c \
 		  SemanticAnalysis/semantic.c \
 		  DataStructures/Map/map.c \
 		  DataStructures/Map/Wrappers/CharIntMap.c \
