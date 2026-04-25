@@ -30,7 +30,7 @@ void resolveDeclarations(CDeclarationArray* declarations, SemanticIdentifierMap*
         resolveDeclaration(declaration, varMap, symbolTable, TOP_LEVEL);
         switch(declaration->type) {
             case DECL_VAR:
-                typeCheckVariableDeclaration(declaration, symbolTable);
+                typeCheckFileScopeVariableDeclaration(declaration, symbolTable);
                 break;
             case DECL_FUNC:
                 typeCheckFunctionDeclaration(declaration, symbolTable);
@@ -61,7 +61,8 @@ void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMa
             func->decl.functionDecl.identifier,
             TYPE_FUNCTION,
             IdentifierArray_size(func->decl.functionDecl.parameters),
-            0
+            0,
+            createIdentifierAttrs(IDENTIFIER_FUN_ATTR, 0, NULL, 0)
         );
     }
     SemanticIdentifierMap* newVarMap = copySemanticIdentifierMap(varMap);
@@ -88,7 +89,8 @@ void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap, Symbo
         }
         semanticMapPut(varMap, param, uniqueParamName, 1, 0);
         IdentifierArray_set(params, i, uniqueParamName);
-        symbolTableInsert(symbolTable, uniqueParamName, TYPE_INT, 0, 1); 
+        symbolTableInsert(symbolTable, uniqueParamName, TYPE_INT, 0, 1, 
+            createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0)); 
     }
 }
 
@@ -217,7 +219,7 @@ void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, Symbo
         case BLOCK_LEVEL:
             switch(decl->type) {
                 case DECL_VAR:
-                    resolveLocalVarDeclaration(decl, varMap);
+                    resolveLocalVarDeclaration(decl, varMap, symbolTable);
                     break;
                 case DECL_FUNC:
                     resolveFunctionDeclaration(decl, varMap, symbolTable, declLevel);
@@ -226,30 +228,6 @@ void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, Symbo
             break;
     }
 }
-
-void resolveVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
-    if (!decl) return;
-    
-    if (semanticMapContainsKey(varMap, decl->decl.variableDecl.identifier) && 
-            isFromCurrentBlock(varMap, decl->decl.variableDecl.identifier)) {
-        fprintf(stderr, "Semantic Error: Variable '%s' redeclared\n", decl->decl.variableDecl.identifier);
-        exit(1);
-    }
-
-    char* uniqueName = generateUniqueVariableName(decl->decl.variableDecl.identifier);
-    if (!uniqueName) {
-        fprintf(stderr, "Semantic Error: Failed to generate unique variable name for '%s'\n", decl->decl.variableDecl.identifier);
-        exit(1);
-    }
-    semanticMapPut(varMap, decl->decl.variableDecl.identifier, uniqueName, 1, 0);
-    decl->decl.variableDecl.identifier = uniqueName;
-    symbolTableInsert(symbolTable, uniqueName, TYPE_INT, 0, 1);
-
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
-        resolveExpression(decl->decl.variableDecl.exp, varMap, symbolTable);
-    }
-}
-
 
 void resolveStatement(CStatement* stmt, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
     if (!stmt) return;
@@ -308,8 +286,8 @@ void resolveForInit(CForInit* init, SemanticIdentifierMap* varMap, SymbolTable* 
     if (!init) return;
     switch (init->type) {
         case FOR_INIT_DECL:
-            resolveVarDeclaration(init->decl, varMap, symbolTable);
-            typeCheckVariableDeclaration(init->decl, symbolTable);
+            resolveLocalVarDeclaration(init->decl, varMap, symbolTable);
+            typeCheckLocalVariableDeclaration(init->decl, symbolTable);
             break;
         case FOR_INIT_EXP:
             resolveExpression(init->exp, varMap, symbolTable);
@@ -347,7 +325,6 @@ void resolveExpression(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable
                 exit(1);
             }
             fact->exp.var->identifier = uniqueName;
-            typeCheckExpression(fact, symbolTable);
             break;
         }
         case FACTOR_ASSIGNMENT: {
@@ -381,7 +358,6 @@ void resolveExpression(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable
                     resolveExpression(arg, varMap, symbolTable);
                 }
             }
-            typeCheckExpression(fact, symbolTable);
             break;
         }
             
@@ -392,12 +368,12 @@ void resolveFileScopeVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* v
     semanticMapPut(varMap, decl->decl.variableDecl.identifier, decl->decl.variableDecl.identifier, 1, 1);
 }
 
-void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap) {
+void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
     if (semanticMapContainsKey(varMap, decl->decl.variableDecl.identifier)) {
         MapEntry* entry = getSemanticMapEntry(varMap, decl->decl.variableDecl.identifier);
         if (entry->isInScope) {
-            if (!(entry->hasExternalLinkage && 
-                    decl->decl.variableDecl.storageClass == SPEC_EXTERN)) {
+            if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) return;
+            if (!(entry->hasExternalLinkage && decl->decl.variableDecl.storageClass == SPEC_EXTERN)) { // If it doesn't have an external linkage, multiple declarations are invalid
                     fprintf(stderr, "Semantic Error: Variable '%s' - conflicting local declaration\n", 
                         decl->decl.variableDecl.identifier);
                     exit(1);
@@ -405,11 +381,13 @@ void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMa
         }
     }
 
-    if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) {
+    if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) // If "extern" is specified, we insert with the same name
+    {
         semanticMapPut(varMap, decl->decl.variableDecl.identifier, decl->decl.variableDecl.identifier, 1, 1);
         return;
     }
-    else {
+    else // Otherwise, if it's local, we generate a unique name to avoid conflicts 
+    {
         char* uniqueName = generateUniqueVariableName(decl->decl.variableDecl.identifier);
         if (!uniqueName) {
             fprintf(stderr, "Semantic Error: Failed to generate unique variable name for '%s'\n", decl->decl.variableDecl.identifier);
@@ -418,15 +396,56 @@ void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMa
         semanticMapPut(varMap, decl->decl.variableDecl.identifier, uniqueName, 1, 0);
         decl->decl.variableDecl.identifier = uniqueName;
     }    
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
+        resolveExpression(decl->decl.variableDecl.exp, varMap, symbolTable);
+    }
 }
 
 
-void typeCheckVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable) {
+void typeCheckLocalVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable) {
     if (!decl) return;
-    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, TYPE_INT, 0, 1);
+    initialValue* initValue = NULL;
 
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
-        typeCheckExpression(decl->decl.variableDecl.exp, symbolTable);
+    if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) {
+        if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) { // Cannot have a local extern declaration with a definition
+            fprintf(stderr, "Semantic Error: Local external variable '%s' cannot have an initializer\n", decl->decl.variableDecl.identifier);
+            exit(1);
+        }
+        if (symbolTableContains(symbolTable, decl->decl.variableDecl.identifier)) 
+        { // Checking for conflicting declarations with function declared in the symbol table
+            IdentifierTypeInfo* existing = symbolTableLookup(symbolTable, decl->decl.variableDecl.identifier);
+            if (existing->type != TYPE_INT) {
+                fprintf(stderr, "Semantic Error: Function '%s' redeclared as variable\n", decl->decl.variableDecl.identifier);
+                exit(1);
+            }
+        }
+        else {
+            symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, TYPE_INT, 0, 0, 
+                createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, createInitialValue(INITIAL_NO_VALUE, 0), 0));
+        }
+        return;
+    }
+
+    else if (decl->decl.variableDecl.storageClass == SPEC_STATIC) {
+        if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.varType == SPEC_INT) {
+            initValue = createInitialValue(INITIAL_WITH_VALUE, decl->decl.variableDecl.exp->exp.cnst->val);
+        }
+        else if (decl->decl.variableDecl.declType == VAR_DECL_WITHOUT_EXP) {
+            initValue = createInitialValue(INITIAL_WITH_VALUE, 0); // Static variables without an initializer are initialized to 0 by default
+        }
+        else {
+            fprintf(stderr, "Semantic Error: Non-constant initializer for local static variable '%s'\n", decl->decl.variableDecl.identifier);
+            exit(1);
+        }
+        symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, TYPE_INT, 0, 0, 
+            createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, 0, initValue, 0));
+    }
+    else {
+        symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, TYPE_INT, 0, 1, 
+            createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
+        if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
+            typeCheckExpression(decl->decl.variableDecl.exp, symbolTable);
+        }
     }
 }
 
@@ -437,6 +456,7 @@ void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) 
 
     IdentifierArray* params = decl->decl.functionDecl.parameters;
     size_t paramCount = IdentifierArray_size(params);
+    int global = decl->decl.functionDecl.storageClass == SPEC_STATIC ? 0 : 1;
 
     if (symbolTableContains(symbolTable, decl->decl.functionDecl.identifier)) {
         existing = symbolTableLookup(symbolTable, decl->decl.functionDecl.identifier);
@@ -450,14 +470,17 @@ void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) 
             fprintf(stderr, "Semantic Error: Function '%s' is defined more than once\n", decl->decl.functionDecl.identifier);
             exit(1);
         }
+        global = existing->attrs->global; 
     }
 
     symbolTableInsert(symbolTable, decl->decl.functionDecl.identifier, 
-        TYPE_FUNCTION, paramCount, alreadyDefined || decl->decl.functionDecl.body != NULL);
+        TYPE_FUNCTION, paramCount, alreadyDefined || decl->decl.functionDecl.body != NULL,
+        createIdentifierAttrs(IDENTIFIER_FUN_ATTR, global, NULL, alreadyDefined));
     
     for (int i = 0; i < IdentifierArray_size(params); i++) {
         char* param = IdentifierArray_get(params, i);
-        symbolTableInsert(symbolTable, param, TYPE_INT, 0, 1);
+        symbolTableInsert(symbolTable, param, TYPE_INT, 0, 1,
+            createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
     }
 
     typeCheckBlock(decl->decl.functionDecl.body, symbolTable);
@@ -511,7 +534,7 @@ void typeCheckBlock(CBlock* block, SymbolTable* symbolTable) {
         if (blockItem->type == BLOCK_ITEM_DECL) {
             switch (blockItem->item.decl->type) {
                 case DECL_VAR:
-                    typeCheckVariableDeclaration(blockItem->item.decl, symbolTable);
+                    typeCheckLocalVariableDeclaration(blockItem->item.decl, symbolTable);
                     break;
                 case DECL_FUNC:
                     typeCheckFunctionDeclaration(blockItem->item.decl, symbolTable);
@@ -519,6 +542,61 @@ void typeCheckBlock(CBlock* block, SymbolTable* symbolTable) {
             }
         }
     }
+}
+
+
+void typeCheckFileScopeVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable) {
+    if (!decl || decl->type != DECL_VAR) return;
+    initialValue* initValue = NULL;
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
+        if (decl->decl.variableDecl.varType != SPEC_INT) // Top level variables can only be initialized with consts 
+        {
+            fprintf(stderr, "Semantic Error: Only int variables can be initialized at file scope. Variable '%s' has invalid type\n", decl->decl.variableDecl.identifier);
+            exit(1);
+        }
+        initValue = createInitialValue(INITIAL_WITH_VALUE, decl->decl.variableDecl.exp->exp.cnst->val);
+    }
+    else  {
+        if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) { // an extern declaration - no initializer
+            initValue = createInitialValue(INITIAL_NO_VALUE, 0);
+        }
+         else  { // Otherwise, it's a tentative definition  
+            initValue = createInitialValue(INITIAL_TENTATIVE, 0);
+        }
+    }
+
+    int global = decl->decl.variableDecl.storageClass == SPEC_STATIC ? 0 : 1;
+
+    if (symbolTableContains(symbolTable, decl->decl.variableDecl.identifier)) {
+        IdentifierTypeInfo* existing = symbolTableLookup(symbolTable, decl->decl.variableDecl.identifier);
+        if (existing->type != TYPE_INT) {
+            fprintf(stderr, "Semantic Error: Function '%s' redeclared as variable\n", decl->decl.variableDecl.identifier);
+            exit(1);
+        }
+        // Repeated declaration with extern - must match existing linkage
+        if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) { 
+            global = existing->attrs->global;
+        }
+        else if (existing->attrs->global != global) {
+            fprintf(stderr, "Semantic Error: Conflicting variable linkage for variable '%s'\n", decl->decl.variableDecl.identifier);
+            exit(1);
+        }
+
+        if (existing->attrs->attrs.staticAttr.initValue->type == INITIAL_WITH_VALUE ) {
+            if (initValue && initValue->type == INITIAL_WITH_VALUE) // Can't have two initializers for the same variable 
+            {
+                fprintf(stderr, "Semantic Error: Multiple initializers for variable '%s'\n", decl->decl.variableDecl.identifier);
+                exit(1);
+            }
+            else {
+                initValue = existing->attrs->attrs.staticAttr.initValue;
+            }
+        }
+    }
+
+    // Inserting with static duration 
+    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, TYPE_INT, 0, global, 
+        createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, global, initValue, 0));
 }
 
 char* generateUniqueVariableName(char* baseName) {  

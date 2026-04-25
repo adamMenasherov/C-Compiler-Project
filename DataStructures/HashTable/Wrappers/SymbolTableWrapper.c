@@ -28,7 +28,23 @@ static int equalIdentifier(void* lhs, void* rhs) {
     return strcmp(left->identifier, right->identifier) == 0;
 }
 
-static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, IdentifierType type, int paramCount, int isDefined) {
+initialValue* createInitialValue(initialValueType type, int intValue) {
+    initialValue* value = malloc(sizeof(initialValue));
+    if (!value) return NULL;
+
+    value->type = type;
+    switch (type) {
+        case INITIAL_TENTATIVE:
+        case INITIAL_NO_VALUE:
+            break;
+        case INITIAL_WITH_VALUE:
+            value->value.intValue = intValue;
+            break;
+    }
+    return value;
+}
+
+static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, IdentifierType type, int paramCount, int isDefined, identifierAttrs* attrs) {
     IdentifierTypeInfo* info = calloc(1, sizeof(IdentifierTypeInfo));
     if (!info) return NULL;
 
@@ -38,6 +54,7 @@ static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, Iden
         return NULL;
     }
 
+    info->attrs = attrs;
     info->type = type;
     switch (type) {
         case TYPE_INT:
@@ -51,6 +68,29 @@ static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, Iden
     }
     return info;
 }
+
+identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global, initialValue* initValue, int defined) {
+    identifierAttrs* attrs = malloc(sizeof(identifierAttrs));
+    if (!attrs) return NULL;
+
+    if (!initValue) attrs->attrs.staticAttr.initValue = createInitialValue(INITIAL_NO_VALUE, 0);
+    else attrs->attrs.staticAttr.initValue = initValue;
+
+    attrs->attrType = attrType;
+    attrs->global = global;
+    switch (attrType) {
+        case IDENTIFIER_FUN_ATTR:
+            attrs->attrs.funAttr.defined = defined;
+            break;
+        case IDENTIFIER_STATIC_ATTR:
+            attrs->attrs.staticAttr.initValue = initValue;
+            break;
+        case IDENTIFIER_LOCAL_ATTR:
+            break;
+    }
+    return attrs;
+}
+
 
 static IdentifierTypeInfo* copyIdentifierTypeInfo(const IdentifierTypeInfo* info) {
     IdentifierTypeInfo* copy;
@@ -128,7 +168,7 @@ SymbolTable* createSymbolTable() {
     return createHashTable(hashIdentifier, equalIdentifier);
 }
 
-int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined) {
+int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined, identifierAttrs* attrs) {
     IdentifierTypeInfo probe; // For checking whether the key already exists
     IdentifierTypeInfo* existing; // To hold the existing entry if found
     IdentifierTypeInfo* stored; // The new entry to be stored if the key doesn't already exist
@@ -160,7 +200,7 @@ int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType
         }
     }
 
-    stored = createIdentifierTypeInfo(identifier, type, paramCount, isDefined);
+    stored = createIdentifierTypeInfo(identifier, type, paramCount, isDefined, attrs);
     if (!stored) return 0;
 
     if (!ht_insert(table, stored)) {

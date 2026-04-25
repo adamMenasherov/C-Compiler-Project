@@ -107,11 +107,12 @@ char* compileFile(char* fileName) {
     char* sourcePtr = source; 
     lex(&sourcePtr, tokenList); // TokensList is filled with tokens of the source file in the Lexer stage
     AST* ast = parse(tokenList); // Parsing the program to a AST structure
+    printAST(ast);
     SymbolTable* symTable = resolveAST(ast);
-    printf("\n\n---------------------------------\n\n");
-    printAST(ast); 
+    printf("\n\n---------------------------------\n\n"); 
     printf("\n\n---------------------------------\n\n");
     symbolTablePrint(symTable);
+    printAST(ast);
  
     /*TACKY_AST* tacky_ast = astToTACKY_AST(ast);
     printTACKY_AST(tacky_ast);
@@ -144,7 +145,8 @@ void startProcess(int argc, char* argv[]) {
     }
 
     for (int i = 0; i < argc; i++) {
-        if (strcmp(argv[i], "--lex") == 0 || strcmp(argv[i], "--parse") == 0) continue; // Skipping the flags for now 
+        if (strcmp(argv[i], "--lex") == 0 || strcmp(argv[i], "--parse") == 0
+                || strcmp(argv[i], "--validate") == 0) continue; // Skipping the flags for now 
         if (strcmp(argv[i], "-c") == 0) {
             isCFlagPresent = 1;
             continue;

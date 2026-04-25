@@ -29,7 +29,7 @@
       "program": "${workspaceFolder}/compiler",
       "preLaunchTask": "build compiler",
       "args": [
-        "${workspaceFolder}/test.c"
+        "/home/adammenasherov/CompilerProject/writing-a-c-compiler-tests/tests/chapter_10/invalid_types/redeclare_fun_as_var.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

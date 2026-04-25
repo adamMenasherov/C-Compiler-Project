@@ -28,14 +28,13 @@ typedef struct {
 
 typedef struct {
     identifierAttrsType attrType;
+    int global;
     union {
         struct {
             int defined;
-            int global;
         } funAttr;
         struct {
-            initialValue initValue;
-            int global;
+            initialValue* initValue;
         } staticAttr;
     } attrs;
 } identifierAttrs;
@@ -44,7 +43,7 @@ typedef struct {
 typedef struct {
     char* identifier;
     IdentifierType type;
-    identifierAttrs attrs;
+    identifierAttrs* attrs;
     union {
         struct {
             char* uniqueName; // The unique name assigned to the variable
@@ -60,9 +59,11 @@ typedef struct {
 typedef HashTable SymbolTable;
 
 SymbolTable* createSymbolTable();
-int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined);
+int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined, identifierAttrs* attrs);
 IdentifierTypeInfo* symbolTableLookup(SymbolTable* table, const char* identifier);
+identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global, initialValue* initValue, int defined);
 int symbolTableContains(SymbolTable* table, const char* identifier);
+initialValue* createInitialValue(initialValueType type, int intValue);
 int symbolTableRemove(SymbolTable* table, const char* identifier);
 void freeSymbolTable(SymbolTable* table);
 void symbolTablePrint(SymbolTable* table);

@@ -16,7 +16,6 @@ void resolveForInit(CForInit* init, SemanticIdentifierMap* varMap, SymbolTable* 
 void resolveDeclarations(CDeclarationArray* func, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
 void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMap, SymbolTable* symbolTable, level declLevel);
 void resolveBlockItem(CBlockItem* blockItem, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
-void resolveVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
 void resolveBlock(CBlock* block, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
 void resolveStatement(CStatement* stmt, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
 void resolveDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, SymbolTable* symbolTable, level declLevel);
@@ -31,10 +30,11 @@ void labelStatement(CStatement* stmt, char* currentLabel);
 // Expanded identifier resolution - checking for redeclarations and conflicts in function parameters
 void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
 void resolveFileScopeVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap);
-void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap);
+void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);
 
 // Type checking
-void typeCheckVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable);
+void typeCheckLocalVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable);
+void typeCheckFileScopeVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable);
 void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable);
 void typeCheckBlock(CBlock* block, SymbolTable* symbolTable);
 void typeCheckExpression(CFactor* expr, SymbolTable* symbolTable);
