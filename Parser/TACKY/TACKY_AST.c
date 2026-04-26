@@ -5,32 +5,33 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-TACKYFunction* parseTACKYFunction(CDeclaration* func) {
+TACKYFunction* parseTACKYFunction(CDeclaration* func, SymbolTable* symTable) {
+    if (func->type != DECL_FUNC) return NULL;
+    int global = isGlobalFunction(func, symTable);
     TACKYInstructionList* instruction_list = createTACKYInstructionList();
     parseBlock(func->decl.functionDecl.body, instruction_list); 
     TACKYFunction* tackyFunc = createTACKYFunction(func->decl.functionDecl.identifier, 
-        func->decl.functionDecl.parameters, instruction_list);
+        func->decl.functionDecl.parameters, instruction_list, global);
     if (!tackyFunc) return NULL;
 
     return tackyFunc;
 }
 
-TACKYProgram* parseTACKYProgram(CProgram* program) {
+
+TACKYProgram* parseTACKYProgram(CProgram* program, SymbolTable* symTable) {
     TACKYProgram* tackyProg = createTACKYProgram();
     if (!tackyProg) return NULL;
 
-    TACKYFunction* function_def;
     for (int i = 0; i < CDeclarationArray_size(program->function_def); i++) {
-        CDeclaration* func = CDeclarationArray_get(program->function_def, i);
-        if (!func) continue;
+        CDeclaration* decl = CDeclarationArray_get(program->function_def, i);
+        if (!decl) continue;
 
-        if (func->decl.functionDecl.declType == FUNC_DEF) {
-            function_def = parseTACKYFunction(func);
-            if (!function_def) return NULL;
-            TACKYFunctionArray_append(tackyProg->functions, function_def);
-        }
+        TACKYTopLevel* topLevel = createTACKYTopLevelFromFunction(parseTACKYFunction(decl, symTable), symTable);
+        if (!topLevel) continue;
+        TACKYTopLevelArray_append(tackyProg->topLevels, topLevel);
     }
 
+    symbolTableForEach(symTable, convertSymbolsToTACKY, tackyProg->topLevels);
     return tackyProg;
 }
 
@@ -233,5 +234,37 @@ void parseBlock(CBlock* block, TACKYInstructionList* instructionList) {
     for (int i = 0; i < BlockItemArray_size(block->items); i++) {
         CBlockItem* elem = BlockItemArray_get(block->items, i);
         parseBlockItemInstructions(elem, instructionList);
+    }
+}
+
+
+void convertSymbolsToTACKY(IdentifierTypeInfo* symbol, void* userData) {
+    TACKYTopLevelArray* topLevels = (TACKYTopLevelArray*)userData;
+    if (!symbol || !topLevels) return;
+    switch (symbol->attrs->attrType){
+    case IDENTIFIER_STATIC_ATTR: {
+        switch (symbol->attrs->attrs.staticAttr.initValue->type) {
+            case INITIAL_WITH_VALUE: {
+                int val = symbol->attrs->attrs.staticAttr.initValue->value.intValue;
+                TACKYTopLevelArray_append(
+                    topLevels,
+                    createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, val))
+                );
+                break;
+            }
+            case INITIAL_TENTATIVE: {
+                TACKYTopLevelArray_append(
+                    topLevels,
+                    createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, 0))
+                );
+                break;
+            }
+            case INITIAL_NO_VALUE:
+                break;
+        }
+        break;
+    }
+    default:
+        break;
     }
 }

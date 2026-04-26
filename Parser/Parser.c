@@ -19,10 +19,10 @@ AST* parse(TokenList* tokens) {
     return ast;
 }
 
-TACKY_AST* astToTACKY_AST(AST* ast) {
+TACKY_AST* astToTACKY_AST(AST* ast, SymbolTable* symTable) {
     TACKY_AST* tacky_ast = malloc(sizeof(TACKY_AST));
     if (!tacky_ast) return NULL;
-    tacky_ast->prog = parseTACKYProgram(ast->prog);
+    tacky_ast->prog = parseTACKYProgram(ast->prog, symTable);
     if (!tacky_ast->prog) {
         free(tacky_ast);
         return NULL;

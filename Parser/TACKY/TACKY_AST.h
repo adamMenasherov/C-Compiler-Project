@@ -2,8 +2,9 @@
 #include "../AST/C-AST-Nodes/C-ASTNodes.h"
 #include "../../DataStructures/DynamicArray/Wrappers/InstructionArrayWrapper.h"
 #include "../../DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
-#include "../../DataStructures/DynamicArray/Wrappers/TACKYFunctionArrayWrapper.h"
+#include "../../DataStructures/DynamicArray/Wrappers/TACKYTopLevelArrayWrapper.h"
 #include "../../DataStructures/DynamicArray/Wrappers/TACKYValueArrayWrapper.h"
+#include "../../DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
 
 typedef enum {
     TACKY_UNARY,
@@ -16,6 +17,16 @@ typedef enum {
     TACKY_FUNCTION_CALL,
     TACKY_LABEL
 } TACKYInstructionType;
+
+typedef enum {
+    TACKY_INT,
+    TACKY_LONG
+} TACKYStaticVarType;
+
+typedef enum {
+    TACKY_STATIC_VAR,
+    TACKY_FUNC
+} TACKYTopLevelType;
 
 typedef enum {
     TACKY_VAR,
@@ -82,10 +93,26 @@ typedef struct TACKYFunction {
     char* function_name; 
     IdentifierArray* parameters;
     TACKYInstructionList* instruction_list;
+    int global;
 } TACKYFunction;
 
+typedef struct {
+    char* identifier;
+    int global;
+    TACKYStaticVarType type;
+    int init;
+} TACKYStaticVar;
+
+typedef struct TACKYTopLevel {
+    TACKYTopLevelType type;
+    union {
+        TACKYStaticVar* staticVar;
+        TACKYFunction* function;
+    } topLevel;
+} TACKYTopLevel;
+
 typedef struct TACKYProgram {
-    TACKYFunctionArray* functions;
+    TACKYTopLevelArray* topLevels;
 } TACKYProgram;
 
 
@@ -94,14 +121,14 @@ typedef struct TACKYProgram {
  * @param func The C AST function to convert
  * @return A pointer to the generated TACKYFunction
  */
-TACKYFunction* parseTACKYFunction(CDeclaration* func);
+TACKYFunction* parseTACKYFunction(CDeclaration* func, SymbolTable* symTable);
 
 /**
  * Converts a C AST program into a TACKY program representation.
  * @param program The C AST program to convert
  * @return A pointer to the generated TACKYProgram
  */
-TACKYProgram* parseTACKYProgram(CProgram* program);
+TACKYProgram* parseTACKYProgram(CProgram* program, SymbolTable* symTable);
 
 /**
  * Converts a C AST return statement into a TACKY return representation.
@@ -176,4 +203,10 @@ void parseForLoopInstructions(CForLoop* forLoop, TACKYInstructionList* instructi
  */
 void parseForLoopInitInstructions(CForInit* init, TACKYInstructionList* instructionList);
 
-
+/**
+ * @brief Converts the symbol table entries for global variables into TACKY top-level variable declarations, adding them to the provided top-level array.
+ * 
+ * @param symTable The symbol table containing identifier information, including global variables
+ * @param topLevels The TACKY top-level array to which generated TACKYVariable top-level nodes will be added for each global variable found in the symbol table
+ */
+void convertSymbolsToTACKY(IdentifierTypeInfo* symTable, void* userData);

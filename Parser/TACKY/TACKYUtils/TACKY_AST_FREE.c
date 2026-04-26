@@ -9,8 +9,30 @@ static void freeTackyFunctionCall(TACKYInstruction* instruction) {
 
 void freeTackyProgram(TACKYProgram* prog) {
     if (!prog) return;
-    TACKYFunctionArray_freeWithFunctions(prog->functions);
+    TACKYTopLevelArray_freeWithTopLevels(prog->topLevels);
     free(prog);
+}
+
+void freeTackyTopLevel(TACKYTopLevel* topLevel) {
+    if (!topLevel) return;
+
+    switch (topLevel->type) {
+        case TACKY_STATIC_VAR:
+            freeTackyStaticVar(topLevel->topLevel.staticVar);
+            break;
+        case TACKY_FUNC:
+            freeTackyFunction(topLevel->topLevel.function);
+            break;
+        default:
+            break;
+    }
+
+    free(topLevel);
+}
+
+void freeTackyStaticVar(TACKYStaticVar* staticVar) {
+    if (!staticVar) return;
+    free(staticVar);
 }
 
 void freeTackyFunction(TACKYFunction* func) {

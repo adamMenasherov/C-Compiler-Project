@@ -111,6 +111,37 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
     }
 }
 
+void printTACKYStaticVar(const TACKYStaticVar* staticVar) {
+    if (!staticVar) {
+        printf("<null static var>\n");
+        return;
+    }
+
+    printf("StaticVar(\"%s\", global=%d, init=%d)\n",
+           staticVar->identifier ? staticVar->identifier : "<unnamed>",
+           staticVar->global,
+           staticVar->init);
+}
+
+void printTACKYTopLevel(const TACKYTopLevel* topLevel) {
+    if (!topLevel) {
+        printf("<null top-level>\n");
+        return;
+    }
+
+    switch (topLevel->type) {
+        case TACKY_STATIC_VAR:
+            printTACKYStaticVar(topLevel->topLevel.staticVar);
+            break;
+        case TACKY_FUNC:
+            printTACKYFunction(topLevel->topLevel.function);
+            break;
+        default:
+            printf("<unknown top-level type>\n");
+            break;
+    }
+}
+
 void printTACKYInstructionList(const TACKYInstructionList* list) {
     if (!list) {
         printf("<null instruction list>\n");
@@ -132,8 +163,9 @@ void printTACKYFunction(const TACKYFunction* func) {
         return;
     }
 
-    printf("-- function: %s --\n",
-           func->function_name ? func->function_name : "<unnamed>");
+    printf("-- function: %s --\n, global = %d\n",
+           func->function_name ? func->function_name : "<unnamed>",
+           func->global);
 
     printTACKYInstructionList(func->instruction_list);
 }
@@ -143,11 +175,11 @@ void printTACKYProgram(const TACKYProgram* program) {
         printf("<null program>\n");
         return;
     }
-    printf("Program with %d function(s):\n", TACKYFunctionArray_size(program->functions));
+    printf("Program with %d top-level declaration(s):\n", TACKYTopLevelArray_size(program->topLevels));
 
-    for (int i = 0; i < TACKYFunctionArray_size(program->functions); i++) {
-        TACKYFunction* func = TACKYFunctionArray_get(program->functions, i);
-        printTACKYFunction(func);
+    for (int i = 0; i < TACKYTopLevelArray_size(program->topLevels); i++) {
+        TACKYTopLevel* topLevel = TACKYTopLevelArray_get(program->topLevels, i);
+        printTACKYTopLevel(topLevel);
     }
     
 }

@@ -11,8 +11,11 @@ ASMProgram* parseASMprogram(TACKYProgram* tacky_prog) {
     if (!asm_prog) return NULL;
     asm_prog->function_defs = ASMFunctionArray_create();
 
-    for (int i = 0; i < TACKYFunctionArray_size(tacky_prog->functions); i++) {
-        TACKYFunction* tacky_func = TACKYFunctionArray_get(tacky_prog->functions, i);
+    for (int i = 0; i < TACKYTopLevelArray_size(tacky_prog->topLevels); i++) {
+        TACKYTopLevel* topLevel = TACKYTopLevelArray_get(tacky_prog->topLevels, i);
+        if (!topLevel || topLevel->type != TACKY_FUNC) continue;
+
+        TACKYFunction* tacky_func = topLevel->topLevel.function;
         ASMFunction* asm_func = parseASMfunction(tacky_func);
         if (!asm_func) {
             freeASMProgram(asm_prog);

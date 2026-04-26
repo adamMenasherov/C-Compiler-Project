@@ -8,6 +8,18 @@
 void freeTackyProgram(TACKYProgram* prog);
 
 /**
+ * Frees one top-level declaration and any resources owned by it.
+ * @param topLevel The top-level node to free
+ */
+void freeTackyTopLevel(TACKYTopLevel* topLevel);
+
+/**
+ * Frees a static variable top-level payload.
+ * @param staticVar The static variable node to free
+ */
+void freeTackyStaticVar(TACKYStaticVar* staticVar);
+
+/**
  * Frees a TACKYFunction, including its instruction list and return node.
  * @param func The function to free
  */

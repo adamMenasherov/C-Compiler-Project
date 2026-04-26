@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../HashTable.h"
+#include "Parser/AST/C-AST-Nodes/C-ASTNodes.h"
 
 typedef enum {
     TYPE_INT,
@@ -57,6 +58,7 @@ typedef struct {
 } IdentifierTypeInfo;
 
 typedef HashTable SymbolTable;
+typedef void (*SymbolTableForEachFn)(IdentifierTypeInfo* entry, void* userData);
 
 SymbolTable* createSymbolTable();
 int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined, identifierAttrs* attrs);
@@ -67,3 +69,7 @@ initialValue* createInitialValue(initialValueType type, int intValue);
 int symbolTableRemove(SymbolTable* table, const char* identifier);
 void freeSymbolTable(SymbolTable* table);
 void symbolTablePrint(SymbolTable* table);
+int isGlobalFunction(CDeclaration* decl, SymbolTable* symTable);
+
+/* Template iteration utility: applies callback to every entry in every bucket chain. */
+void symbolTableForEach(SymbolTable* table, SymbolTableForEachFn callback, void* userData);

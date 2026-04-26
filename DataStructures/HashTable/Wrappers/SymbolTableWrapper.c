@@ -1,4 +1,5 @@
 #include "SymbolTableWrapper.h"
+#include "Parser/AST/C-AST-Nodes/C-ASTNodes.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,13 @@ static size_t hashIdentifier(void* key) {
 
     return hash;
 }
+
+int isGlobalFunction(CDeclaration* decl, SymbolTable* symTable) {
+    if (!decl || decl->type != DECL_FUNC) return 0;
+    IdentifierTypeInfo* existing = symbolTableLookup(symTable, decl->decl.functionDecl.identifier);
+    return existing && existing->type == TYPE_FUNCTION && existing->attrs->global;
+}
+
 
 static int equalIdentifier(void* lhs, void* rhs) {
     IdentifierTypeInfo* left = (IdentifierTypeInfo*)lhs;
@@ -239,4 +247,16 @@ void freeSymbolTable(SymbolTable* table) {
 
 void symbolTablePrint(SymbolTable* table) {
     ht_print(table, printIdentifierTypeInfo);
+}
+
+void symbolTableForEach(SymbolTable* table, SymbolTableForEachFn callback, void* userData) {
+    if (!table || !callback) return;
+
+    for (size_t i = 0; i < table->bucket_count; i++) {
+        Entry* entry = table->buckets[i];
+        while (entry) {
+            callback((IdentifierTypeInfo*)entry->key, userData);
+            entry = entry->next;
+        }
+    }
 }

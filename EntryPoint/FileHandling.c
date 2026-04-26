@@ -114,9 +114,9 @@ char* compileFile(char* fileName) {
     symbolTablePrint(symTable);
     printAST(ast);
  
-    /*TACKY_AST* tacky_ast = astToTACKY_AST(ast);
+    TACKY_AST* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
-    ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
+    /*ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
     printASM_AST(asm_ast);
     generateASMFile(asm_ast, asmFileName, symTable);
     commandForObjectFile(asmFileName, objectFileName);

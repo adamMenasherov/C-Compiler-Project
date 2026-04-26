@@ -16,12 +16,12 @@ typedef struct {
     ASMProgram* prog;
 } ASM_AST;
 
-TACKY_AST* astToTACKY_AST(AST* ast);
 void printTACKY_AST(TACKY_AST* tacky_ast);
 void freeTACKY_AST(TACKY_AST* tacky_ast);
 
 
 AST* parse(TokenList* tokens);
+TACKY_AST* astToTACKY_AST(AST* ast, SymbolTable* symTable);
 ASM_AST* tackyAstToASM_AST(TACKY_AST* ast);
 void freeASM_AST(ASM_AST* asm_ast);
 void freeAST(AST* ast);

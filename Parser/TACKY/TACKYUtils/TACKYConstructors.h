@@ -18,4 +18,7 @@ TACKYConstant* CreateTackyConstantNode(int val);
 void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruction);
 TACKYValue* copyTackyValue(TACKYValue* original);
 TACKYProgram* createTACKYProgram();
-TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* parameters, TACKYInstructionList* instruction_list);
+TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* parameters, TACKYInstructionList* instruction_list, int global);
+TACKYTopLevel* createTACKYTopLevelFromFunction(TACKYFunction* tackyFunc, SymbolTable* symTable);
+TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar);
+TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, int val);

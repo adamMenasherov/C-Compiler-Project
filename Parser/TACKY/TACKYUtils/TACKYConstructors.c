@@ -166,8 +166,8 @@ TACKYProgram* createTACKYProgram() {
     TACKYProgram* program = malloc(sizeof(TACKYProgram));
     if (!program) return NULL;
 
-    program->functions = TACKYFunctionArray_create();
-    if (!program->functions) {
+    program->topLevels = TACKYTopLevelArray_create();
+    if (!program->topLevels) {
         free(program);
         return NULL;
     }
@@ -175,7 +175,7 @@ TACKYProgram* createTACKYProgram() {
     return program;
 }
 
-TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* parameters, TACKYInstructionList* instruction_list) {
+TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* parameters, TACKYInstructionList* instruction_list, int global) {
     TACKYFunction* function = malloc(sizeof(TACKYFunction));
     if (!function) return NULL;
 
@@ -193,5 +193,49 @@ TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* paramet
     }
 
     function->instruction_list = instruction_list;
+    function->global = global;
     return function;
+}
+
+TACKYTopLevel* createTACKYTopLevelFromFunction(TACKYFunction* tackyFunc, SymbolTable* symTable) {
+    if (!tackyFunc) return NULL;
+
+    TACKYTopLevel* topLevel = malloc(sizeof(TACKYTopLevel));
+    if (!topLevel) {
+        freeTackyFunction(tackyFunc);
+        return NULL;
+    }
+
+    topLevel->type = TACKY_FUNC;
+    topLevel->topLevel.function = tackyFunc;
+    return topLevel;
+}
+
+TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar) {
+    if (!staticVar) return NULL;
+
+    TACKYTopLevel* topLevel = malloc(sizeof(TACKYTopLevel));
+    if (!topLevel) {
+        freeTackyStaticVar(staticVar);
+        return NULL;
+    }
+
+    topLevel->type = TACKY_STATIC_VAR;
+    topLevel->topLevel.staticVar = staticVar;
+    return topLevel;
+}
+TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, int val) {
+    TACKYStaticVar* staticVar = malloc(sizeof(TACKYStaticVar));
+    if (!staticVar) return NULL;
+
+    staticVar->identifier = strdup(identifier);
+    if (!staticVar->identifier) {
+        free(staticVar);
+        return NULL;
+    }
+
+    staticVar->global = global;
+    staticVar->type = TACKY_STATIC_VAR;
+    staticVar->init = val;
+    return staticVar;
 }

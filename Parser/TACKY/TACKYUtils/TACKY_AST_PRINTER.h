@@ -31,3 +31,13 @@ void printTACKYFunction(const TACKYFunction* func);
  * Prints the entire TACKYProgram.
  */
 void printTACKYProgram(const TACKYProgram* program);
+
+/**
+ * Prints a TACKYTopLevel, which may be a static variable or a function.  
+ */
+void printTACKYTopLevel(const TACKYTopLevel* topLevel);
+
+/**
+ * Prints a TACKYStaticVar. 
+ */
+void printTACKYStaticVar(const TACKYStaticVar* staticVar);
