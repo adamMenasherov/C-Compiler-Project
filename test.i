@@ -1,4 +1,9 @@
+int x = 5;
+int x;
+int x;
+int x;
+int x;
 int main() {
-    static int a;
+    x = 5;
     return 0;
 }

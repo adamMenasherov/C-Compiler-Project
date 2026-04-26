@@ -38,3 +38,4 @@ void typeCheckFileScopeVariableDeclaration(CDeclaration* decl, SymbolTable* symb
 void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable);
 void typeCheckBlock(CBlock* block, SymbolTable* symbolTable);
 void typeCheckExpression(CFactor* expr, SymbolTable* symbolTable);
+void typeCheckStatement(CStatement* stmt, SymbolTable* symbolTable);

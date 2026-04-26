@@ -62,6 +62,7 @@ int mapPut(Map* map, void* key, void* value, int isInScope, int hasExternalLinka
         if (map->equalsFunc(entry->key, key)) {
             entry->value = value; 
             entry->isInScope = isInScope;
+            entry->hasExternalLinkage = hasExternalLinkage;
             return 1;
         }
         entry = entry->next;

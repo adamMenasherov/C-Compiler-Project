@@ -207,15 +207,16 @@ CIf* C_parseIf(TokenList* tokens) {
 }
 
 CForInit* C_parseForInit(TokenList* tokens) {
-    if (check(tokens, INT_KEYWORD)) {
-        expect(tokens, INT_KEYWORD);
+    if (checkSpecifier(tokens)) {
+        specifierType varType, storageClass;
+        C_parseTypeAndStorageClass(tokens, &varType, &storageClass);
+
         char* identifier = expectIdentifier(tokens);
         if (!identifier){
             fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
             exit(1);
         }
-        specifierType varType, storageClass;
-        C_parseTypeAndStorageClass(tokens, &varType, &storageClass);
+
         CDeclaration* decl = C_parseVarDeclaration(tokens, identifier, varType, storageClass);
         return C_CreateForInit(FOR_INIT_DECL, decl);
     }
