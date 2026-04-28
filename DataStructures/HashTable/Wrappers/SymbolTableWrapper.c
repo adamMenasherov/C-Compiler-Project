@@ -186,6 +186,7 @@ int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType
     probe.identifier = (char*)identifier;
     existing = (IdentifierTypeInfo*)ht_getKey(table, &probe);
     if (existing) {
+        existing->attrs = attrs;
         switch (existing->type) {
             case TYPE_INT:
                 free(existing->varInfo.uniqueName);

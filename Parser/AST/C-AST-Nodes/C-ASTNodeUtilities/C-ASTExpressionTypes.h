@@ -19,6 +19,7 @@ typedef enum {
 } factorType;
 
 typedef enum {
+    SPEC_LONG,
     SPEC_INT,
     SPEC_STATIC,
     SPEC_EXTERN,

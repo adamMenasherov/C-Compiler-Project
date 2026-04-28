@@ -82,9 +82,25 @@ void freeASMFunction(ASMFunction* func) {
     free(func);
 }
 
+void freeASMTopLevel(ASMTopLevel* topLevel) {
+    if (!topLevel) return;
+
+    if (topLevel->type == ASM_TOP_LEVEL_FUNCTION) {
+        freeASMFunction(topLevel->topLevel.function);
+    } else if (topLevel->type == ASM_TOP_LEVEL_STATIC_VAR) {
+        ASMStaticVar* staticVar = topLevel->topLevel.staticVar;
+        if (staticVar) {
+            free(staticVar->identifier);
+            free(staticVar);
+        }
+    }
+
+    free(topLevel);
+}
+
 
 void freeASMProgram(ASMProgram* program) {
     if (!program) return;
-    ASMFunctionArray_freeWithFunctions(program->function_defs);
+    ASMTopLevelArray_freeWithTopLevels(program->topLevels);
     free(program);
 }

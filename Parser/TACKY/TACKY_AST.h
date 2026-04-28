@@ -30,7 +30,8 @@ typedef enum {
 
 typedef enum {
     TACKY_VAR,
-    TACKY_CONSTANT
+    TACKY_CONSTANT,
+    TACKY_STATIC
 } TACKYValueType;
 
 typedef struct {

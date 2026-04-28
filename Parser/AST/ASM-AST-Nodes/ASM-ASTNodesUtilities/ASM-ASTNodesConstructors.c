@@ -68,7 +68,8 @@ ASMOperand* createStackOperand(int offset) {
     return operand;
 }
 
-ASMOperand* tackyValueToASMOperand(TACKYValue* val) {
+ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
+    IdentifierTypeInfo* info;
     ASMOperand* operand = malloc(sizeof(ASMOperand));
     if (!operand) return NULL;
 
@@ -79,7 +80,19 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val) {
             return operand;
         }
         case TACKY_VAR: {
+            if ((info = symbolTableLookup(symTable, val->identifier)) &&
+                info->type == TYPE_INT &&
+                info->attrs->attrType == IDENTIFIER_STATIC_ATTR) {
+                operand->type = ASM_OP_DATA;
+                operand->OperandValue.identifier = strdup(val->identifier);
+                return operand;
+            }
             operand->type = ASM_OP_PSEUDO;
+            operand->OperandValue.identifier = strdup(val->identifier);
+            return operand;
+        }
+        case TACKY_STATIC: {
+            operand->type = ASM_OP_DATA;
             operand->OperandValue.identifier = strdup(val->identifier);
             return operand;
         }
@@ -92,7 +105,7 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val) {
  * Instruction Creation Implementation
  * ============================================================ */
 
-ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest) {
+ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest, SymbolTable* symTable) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_UNARY;
@@ -116,7 +129,7 @@ ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest) {
             free(inst);
             return NULL; // Unsupported unary type
     }
-    inst->instValue.unary.op = tackyValueToASMOperand(dest);
+    inst->instValue.unary.op = tackyValueToASMOperand(dest, symTable);
     // Destination operand will be determined by the caller, as it may require a temporary register
     return inst;
 }
@@ -288,4 +301,27 @@ ASMInstruction* createASMDeallocateStackInstruction(int size) {
     inst->type = ASM_DEALLOCATESTACK; 
     inst->instValue.allocatestack.size = size; 
     return inst;
+}
+
+ASMTopLevel* createTopLevel(ASMTopLevelType type, void* value) {
+    ASMTopLevel* topLevel = malloc(sizeof(ASMTopLevel));
+    if (!topLevel) return NULL;
+    topLevel->type = type;
+    switch (type) {
+        case ASM_TOP_LEVEL_FUNCTION:
+            topLevel->topLevel.function = (ASMFunction*)value;
+            break;
+        case ASM_TOP_LEVEL_STATIC_VAR:
+            topLevel->topLevel.staticVar = (ASMStaticVar*)value;
+            break;
+        default:
+            free(topLevel);
+            return NULL; 
+    }
+    return topLevel;
+}
+
+
+ASMTopLevel* createASMTopLevelFromASMFunction(ASMFunction* func) {
+    return createTopLevel(ASM_TOP_LEVEL_FUNCTION, func);
 }

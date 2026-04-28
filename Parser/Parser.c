@@ -44,10 +44,10 @@ void printTACKY_AST(TACKY_AST* tacky_ast) {
 }
 
 
-ASM_AST* tackyAstToASM_AST(TACKY_AST* ast) {
+ASM_AST* tackyAstToASM_AST(TACKY_AST* ast, SymbolTable* symTable) {
     ASM_AST* asm_ast = malloc(sizeof(ASM_AST));
     if (!asm_ast) return NULL;
-    asm_ast->prog = parseASMprogram(ast->prog);
+    asm_ast->prog = parseASMprogram(ast->prog, symTable);
     if (!asm_ast->prog) {
         free(asm_ast);
         return NULL;

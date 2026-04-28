@@ -116,11 +116,11 @@ char* compileFile(char* fileName) {
  
     TACKY_AST* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
-    /*ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast);
+    ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
     generateASMFile(asm_ast, asmFileName, symTable);
     commandForObjectFile(asmFileName, objectFileName);
-    freeASM_AST(asm_ast);
+    /*freeASM_AST(asm_ast);
     freeTACKY_AST(tacky_ast);
     freeSymbolTable(symTable);
 

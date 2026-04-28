@@ -20,6 +20,7 @@ const char* asmCondCodeToString(ASMCondCode cond);
 
 void printProgramToASMFile(ASMProgram* prog, FILE *fp, SymbolTable* symbolTable);
 void printFunctionToASMFile(ASMFunction* func, FILE *fp, SymbolTable* symbolTable);
+void printStaticVarToASMFile(ASMStaticVar* staticVar, FILE *fp);
 void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, SymbolTable* symbolTable);
 void printOperandToASMFile(ASMOperand* op, FILE *fp, REGISTER_SIZE size);
 void printFunctionPrologueToASMFile(ASMFunction* func, FILE *fp);

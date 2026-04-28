@@ -16,7 +16,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table) {
                 if ((newOp = handlePseudoOp(inst->instValue.mov.operand2, table, &offset))) {
                     inst->instValue.mov.operand2 = newOp;
                 }
-                handleStackToStackForMov(inst);
+                handleMemoryToMemoryForMov(inst);
                 break;
             }
             case ASM_IDIV:
@@ -43,7 +43,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table) {
                     inst->instValue.binary.op2 = newOp;
                 }
                 handleShiftingOperation(inst);
-                handleStackToStackForBinary(inst);
+                handleMemoryToMemoryForBinary(inst);
                 handleImulOperation(inst);
                 break;
             }
@@ -55,7 +55,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table) {
                 if ((newOp = handlePseudoOp(inst->instValue.cmp.op2, table, &offset))) {
                     inst->instValue.cmp.op2 = newOp;
                 }
-                handleStackToStackForCmp(inst);
+                handleMemoryToMemoryForCmp(inst);
                 handleConstantAsDestCmpOperation(inst);
                 break;
             }
@@ -100,13 +100,17 @@ ASMOperand* handlePseudoOp(ASMOperand* operand, CharIntMap* table, int* offset) 
     return changePseudoToStackOp(storedOffset, operand);
 }
 
-int isBothStackOps(ASMOperand* op1, ASMOperand* op2) {
-    return (op1 && op1->type == ASM_OP_STACK) && (op2 && op2->type == ASM_OP_STACK);
+static int isMemoryOp(ASMOperand* op) {
+    return op && (op->type == ASM_OP_STACK || op->type == ASM_OP_DATA);
+}
+
+static int isBothMemoryOps(ASMOperand* op1, ASMOperand* op2) {
+    return isMemoryOp(op1) && isMemoryOp(op2);
 }
 
 
-void handleStackToStackForMov(ASMInstruction* inst) {
-    if (!isBothStackOps(inst->instValue.mov.operand1, inst->instValue.mov.operand2)) return;
+void handleMemoryToMemoryForMov(ASMInstruction* inst) {
+    if (!isBothMemoryOps(inst->instValue.mov.operand1, inst->instValue.mov.operand2)) return;
     ASMOperand* dst = inst->instValue.mov.operand2;
     inst->instValue.mov.operand2 = createRegisterOperand(R10);
 
@@ -159,8 +163,8 @@ void handleShiftingOperation(ASMInstruction* inst) {
     free(pushRcx);
 }
 
-void handleStackToStackForBinary(ASMInstruction* inst) {
-    if (!isBothStackOps(inst->instValue.binary.op1, inst->instValue.binary.op2)) return;
+void handleMemoryToMemoryForBinary(ASMInstruction* inst) {
+    if (!isBothMemoryOps(inst->instValue.binary.op1, inst->instValue.binary.op2)) return;
     ASMOperand* op1 = inst->instValue.binary.op1;
     inst->instValue.binary.op1 = createRegisterOperand(R10);
 
@@ -176,8 +180,8 @@ void handleStackToStackForBinary(ASMInstruction* inst) {
     }
 }
 
-void handleStackToStackForCmp(ASMInstruction* inst) {
-    if (!isBothStackOps(inst->instValue.cmp.op1, inst->instValue.cmp.op2)) return;
+void handleMemoryToMemoryForCmp(ASMInstruction* inst) {
+    if (!isBothMemoryOps(inst->instValue.cmp.op1, inst->instValue.cmp.op2)) return;
     ASMOperand* op1 = inst->instValue.cmp.op1;
     inst->instValue.cmp.op1 = createRegisterOperand(R10);
 

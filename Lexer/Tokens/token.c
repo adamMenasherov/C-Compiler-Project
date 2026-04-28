@@ -8,6 +8,8 @@
 const char *tokenTypeStr[] = {
     [IDENTIFIER] = "IDENTIFIER",
     [CONSTANT] = "CONSTANT",
+    [LONG_CONSTANT] = "LONG_CONSTANT",
+    [LONG_KEYWORD] = "LONG_KEYWORD",
     [INT_KEYWORD] = "INT_KEYWORD",
     [VOID_KEYWORD] = "VOID_KEYWORD",
     [STATIC_KEYWORD] = "STATIC_KEYWORD",
@@ -68,6 +70,8 @@ const char *tokenTypeStr[] = {
 const char *tokenTypeToSymbol[] = {
     [IDENTIFIER] = "",
     [CONSTANT] = "",
+    [LONG_CONSTANT] = "",
+    [LONG_KEYWORD] = "long",
     [INT_KEYWORD] = "int",
     [VOID_KEYWORD] = "void",
     [STATIC_KEYWORD] = "static",
@@ -265,6 +269,7 @@ TokenType keywordOrIdentifier(char* tokenSource, char ** tokenStr) {
     
     if (strcmp(start, "int") == 0) type = INT_KEYWORD;
     else if (strcmp(start, "void") == 0) type = VOID_KEYWORD;
+    else if (strcmp(start, "long") == 0) type = LONG_KEYWORD; 
     else if (strcmp(start, "static") == 0) type = STATIC_KEYWORD;
     else if (strcmp(start, "extern") == 0) type = EXTERN_KEYWORD;
     else if (strcmp(start, "return") == 0) type = RETURN_KEYWORD;
@@ -284,15 +289,20 @@ TokenType keywordOrIdentifier(char* tokenSource, char ** tokenStr) {
 }
 
 TokenType isConstant(char* tokenSource, char ** tokenStr) {
+    TokenType type = CONSTANT; 
     char* start = tokenSource;
     while (isdigit(*tokenSource)) tokenSource++;
+    if (*tokenSource == 'L' || *tokenSource == 'l') {
+        type = LONG_CONSTANT;
+        tokenSource++;
+    }
     
     char c = *tokenSource;
     *tokenSource = '\0';
     *tokenStr = strdup(start);
     *tokenSource = c;
 
-    return CONSTANT;
+    return type;
 }
 
 void freeToken(Token* tok) {

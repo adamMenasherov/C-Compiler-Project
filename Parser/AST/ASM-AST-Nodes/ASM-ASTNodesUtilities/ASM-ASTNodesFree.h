@@ -26,6 +26,12 @@ void freeASMInstructionList(ASMInstructionList* list);
 void freeASMFunction(ASMFunction* func);
 
 /**
+ * Frees the memory allocated for an ASM top-level declaration.
+ * @param topLevel The ASM top-level declaration to free
+ */
+void freeASMTopLevel(ASMTopLevel* topLevel);
+
+/**
  * Frees the memory allocated for an entire ASM program and all its functions.
  * @param program The ASM program to free
  */

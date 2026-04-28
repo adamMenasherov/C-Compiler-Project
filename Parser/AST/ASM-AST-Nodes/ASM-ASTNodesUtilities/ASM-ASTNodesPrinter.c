@@ -80,6 +80,14 @@ void printASMOperand(const ASMOperand* operand) {
         case ASM_OP_STACK:
             printf("Stack(%d)", operand->OperandValue.immediate);
             break;
+        
+        case ASM_OP_DATA:
+            if (operand->OperandValue.identifier) {
+                printf("Data(\"%s\")", operand->OperandValue.identifier);
+            } else {
+                printf("Data(<null>)");
+            }
+            break;
         default: break;
     }
 }
@@ -202,9 +210,34 @@ void printASMFunction(const ASMFunction* func) {
         return;
     }
 
-    printf("Function(%s,\n", func->function_name ? func->function_name : "<unnamed>");
+    printf("Function(%s,\n, global=%d", func->function_name ? func->function_name : "<unnamed>", func->global);
     printASMInstructionList(func->inst);
     printf(")\n");
+}
+
+static void printASMStaticVar(const ASMStaticVar* staticVar) {
+    if (!staticVar) {
+        printf("StaticVar(<null>)\n");
+        return;
+    }
+
+    printf("StaticVar(%s, global=%d, init=%d)\n",
+           staticVar->identifier ? staticVar->identifier : "<unnamed>",
+           staticVar->global,
+           staticVar->init);
+}
+
+static void printASMTopLevel(const ASMTopLevel* topLevel) {
+    if (!topLevel) {
+        printf("<null top-level>\n");
+        return;
+    }
+
+    if (topLevel->type == ASM_TOP_LEVEL_FUNCTION) {
+        printASMFunction(topLevel->topLevel.function);
+    } else if (topLevel->type == ASM_TOP_LEVEL_STATIC_VAR) {
+        printASMStaticVar(topLevel->topLevel.staticVar);
+    }
 }
 
 void printASMProgram(const ASMProgram* program) {
@@ -214,11 +247,11 @@ void printASMProgram(const ASMProgram* program) {
     }
 
     printf("Program(\n");
-    for (int i = 0; i < ASMFunctionArray_size(program->function_defs); i++) {
-        ASMFunction* function = ASMFunctionArray_get(program->function_defs, i);
-        if (!function) continue;
+    for (int i = 0; i < ASMTopLevelArray_size(program->topLevels); i++) {
+        ASMTopLevel* topLevel = ASMTopLevelArray_get(program->topLevels, i);
+        if (!topLevel) continue;
         printf("    ");
-        printASMFunction(function);
+        printASMTopLevel(topLevel);
     }
     printf(")\n");
 }

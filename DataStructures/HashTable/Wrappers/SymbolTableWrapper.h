@@ -70,6 +70,4 @@ int symbolTableRemove(SymbolTable* table, const char* identifier);
 void freeSymbolTable(SymbolTable* table);
 void symbolTablePrint(SymbolTable* table);
 int isGlobalFunction(CDeclaration* decl, SymbolTable* symTable);
-
-/* Template iteration utility: applies callback to every entry in every bucket chain. */
 void symbolTableForEach(SymbolTable* table, SymbolTableForEachFn callback, void* userData);

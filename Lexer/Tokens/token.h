@@ -6,7 +6,9 @@ extern const char *tokenTypeStr[];
 typedef enum {
     IDENTIFIER, 
     CONSTANT,
+    LONG_CONSTANT,
     INT_KEYWORD,
+    LONG_KEYWORD,
     VOID_KEYWORD,
     STATIC_KEYWORD,
     EXTERN_KEYWORD,

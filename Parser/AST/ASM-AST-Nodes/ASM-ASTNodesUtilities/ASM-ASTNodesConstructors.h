@@ -60,7 +60,7 @@ ASMOperand* createStackOperand(int offset);
  * @param val The TACKY value to convert
  * @return ASMOperand* pointer to the created ASMOperand
  */
-ASMOperand* tackyValueToASMOperand(TACKYValue* val);
+ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable);
 
 
 /* ============================================================
@@ -74,7 +74,7 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val);
  * @param dest The destination operand where the result will be stored
  * @return A pointer to the created ASMInstruction
  */
-ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest);
+ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest, SymbolTable* symTable);
 
 /**
  * @brief Creates an ASMInstruction representing a binary operation (e.g. ADD, SUB, MUL).
@@ -202,3 +202,20 @@ ASMInstruction* createASMCallInstruction(char* functionName);
  * @return ASMInstruction* pointer to the created RETURN instruction
  */
 ASMInstruction* createASMReturnInstruction();
+
+/**
+ * @brief Create a Top Level object
+ * 
+ * @param type The type of the top-level declaration (function or static variable)
+ * @param value A pointer to the value of the top-level declaration (either ASMFunction* or ASMStaticVar*)
+ * @return ASMTopLevel* pointer to the created ASMTopLevel
+ */
+ASMTopLevel* createTopLevel(ASMTopLevelType type, void* value);
+
+/**
+ * @brief Create an ASMTopLevel object from a given ASMFunction, encapsulating it as a top-level declaration.
+ * 
+ * @param func The ASMFunction to be wrapped in an ASMTopLevel
+ * @return ASMTopLevel* pointer to the created ASMTopLevel representing the function
+ */
+ASMTopLevel* createASMTopLevelFromASMFunction(ASMFunction* func);

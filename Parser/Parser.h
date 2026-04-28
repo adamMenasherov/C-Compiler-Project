@@ -22,7 +22,7 @@ void freeTACKY_AST(TACKY_AST* tacky_ast);
 
 AST* parse(TokenList* tokens);
 TACKY_AST* astToTACKY_AST(AST* ast, SymbolTable* symTable);
-ASM_AST* tackyAstToASM_AST(TACKY_AST* ast);
+ASM_AST* tackyAstToASM_AST(TACKY_AST* ast, SymbolTable* symTable);
 void freeASM_AST(ASM_AST* asm_ast);
 void freeAST(AST* ast);
 void printAST(AST* ast);

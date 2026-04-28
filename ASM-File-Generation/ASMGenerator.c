@@ -24,10 +24,37 @@ void printAsmFileFromAst(ASM_AST *ast, FILE *fp, SymbolTable* symbolTable) {
 }   
 
 void printProgramToASMFile(ASMProgram* prog, FILE *fp, SymbolTable* symbolTable) {
-    for (int i = 0; i < ASMFunctionArray_size(prog->function_defs); i++) {
-        ASMFunction* func = ASMFunctionArray_get(prog->function_defs, i);
-        printFunctionToASMFile(func, fp, symbolTable);
+    for (int i = 0; i < ASMTopLevelArray_size(prog->topLevels); i++) {
+        ASMTopLevel* topLevel = ASMTopLevelArray_get(prog->topLevels, i);
+        if (!topLevel) continue;
+
+        if (topLevel->type == ASM_TOP_LEVEL_FUNCTION) {
+            printFunctionToASMFile(topLevel->topLevel.function, fp, symbolTable);
+        } else if (topLevel->type == ASM_TOP_LEVEL_STATIC_VAR) {
+            printStaticVarToASMFile(topLevel->topLevel.staticVar, fp);
+        }
     }
+}
+
+void printStaticVarToASMFile(ASMStaticVar* staticVar, FILE *fp) {
+    if (!staticVar || !staticVar->identifier) return;
+
+    if (staticVar->init == 0) {
+        fputs("   .bss\n   .align 4\n", fp);
+        if (staticVar->global) {
+            fprintf(fp, "   .globl %s\n", staticVar->identifier);
+        }
+        fprintf(fp, "%s:\n", staticVar->identifier);
+        fputs("\t.zero 4\n", fp);
+        return;
+    }
+
+    fputs("   .data\n", fp);
+    if (staticVar->global) {
+        fprintf(fp, "   .globl %s\n", staticVar->identifier);
+    }
+    fprintf(fp, "%s:\n", staticVar->identifier);
+    fprintf(fp, "\t.long %d\n", staticVar->init);
 }
 
 
@@ -41,7 +68,10 @@ void printFunctionToASMFile(ASMFunction* func, FILE *fp, SymbolTable* symbolTabl
 }
 
 void printFunctionPrologueToASMFile(ASMFunction* func, FILE *fp) {
-    fprintf(fp, "   .globl %s\n%s:\n", func->function_name, func->function_name);
+    if (func->global) {
+        fprintf(fp, "   .globl %s\n", func->function_name);
+    }
+    fprintf(fp, "   .text\n%s:\n", func->function_name);
     fprintf(fp, "\tpushq %%rbp\n\tmovq %%rsp, %%rbp\n");
 }
 
@@ -170,6 +200,10 @@ void printOperandToASMFile(ASMOperand* op, FILE *fp, REGISTER_SIZE size)
             
         case ASM_OP_STACK: {
             fprintf(fp, "%d(%%rbp)", op->OperandValue.immediate);
+            break;
+        }
+        case ASM_OP_DATA: {
+            fprintf(fp, "%s(%%rip)", op->OperandValue.identifier);
             break;
         }
         default: break;

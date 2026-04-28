@@ -7,6 +7,7 @@
 
 TACKYFunction* parseTACKYFunction(CDeclaration* func, SymbolTable* symTable) {
     if (func->type != DECL_FUNC) return NULL;
+    if (!func->decl.functionDecl.body) return NULL; // declaration only, no body
     int global = isGlobalFunction(func, symTable);
     TACKYInstructionList* instruction_list = createTACKYInstructionList();
     parseBlock(func->decl.functionDecl.body, instruction_list); 
@@ -45,6 +46,7 @@ void parseBlockItemInstructions(CBlockItem* blockItem, TACKYInstructionList* ins
     switch(blockItem->type) {
         case BLOCK_ITEM_DECL:
             if (blockItem->item.decl->type == DECL_FUNC) return;
+            if (blockItem->item.decl->decl.variableDecl.storageClass == SPEC_STATIC) return;
             if (blockItem->item.decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
                 char* varName = blockItem->item.decl->decl.variableDecl.identifier;
                 int isPostfixUnary = 0;
@@ -231,6 +233,7 @@ void parseIfStatementInstructions(CIf* if_stmt, TACKYInstructionList* instructio
 }
 
 void parseBlock(CBlock* block, TACKYInstructionList* instructionList) {
+    if (!block || !block->items) return;
     for (int i = 0; i < BlockItemArray_size(block->items); i++) {
         CBlockItem* elem = BlockItemArray_get(block->items, i);
         parseBlockItemInstructions(elem, instructionList);

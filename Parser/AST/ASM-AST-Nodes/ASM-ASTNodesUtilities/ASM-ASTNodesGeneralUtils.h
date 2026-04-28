@@ -2,7 +2,7 @@
 #include "../../C-AST-Nodes/C-ASTNodes.h"
 #include "../../../TACKY/TACKY_AST.h"
 #include "../../../../DataStructures/Map/Wrappers/CharIntMap.h"
-#include "../../../../DataStructures/DynamicArray/Wrappers/ASMFunctionArrayWrapper.h"
+#include "../../../../DataStructures/DynamicArray/Wrappers/ASMTopLevelArrayWrapper.h"
 
 /* ============================================================
  * Enum Definitions
@@ -58,8 +58,14 @@ typedef enum {
     ASM_OP_REGISTER,
     ASM_OP_IMMEDIATE,
     ASM_OP_PSEUDO,
-    ASM_OP_STACK
+    ASM_OP_STACK,
+    ASM_OP_DATA
 } OperandType;
+
+typedef enum {
+    ASM_TOP_LEVEL_FUNCTION,
+    ASM_TOP_LEVEL_STATIC_VAR
+} ASMTopLevelType;
 
 typedef enum {
     AX,
@@ -74,10 +80,6 @@ typedef enum {
 } Register;
 
 extern const int argResigters[];
-
-/* ============================================================
- * Type Definitions / Structs
- * ============================================================ */
 
 typedef struct {
     OperandType type;
@@ -154,17 +156,28 @@ typedef struct ASMFunction {
     char* function_name;
     ASMInstructionList* inst;
     CharIntMap* pseudoTable; // Maps pseudo-register names to stack offsets
+    int global;
 } ASMFunction;
+
+typedef struct {
+    char* identifier;
+    int global; 
+    int init;   
+} ASMStaticVar;
+
+typedef struct ASMTopLevel {
+    ASMTopLevelType type;
+    union {
+        ASMStaticVar* staticVar;
+        ASMFunction* function;
+    } topLevel;
+} ASMTopLevel;
 
 
 typedef struct {
-    ASMFunctionArray* function_defs;
+    ASMTopLevelArray* topLevels;
 } ASMProgram;
 
-
-/* ============================================================
- * Utility Function Declarations
- * ============================================================ */
 
 /**
  * @brief Checks if the given binary operation type is a relational operator (e.g. <, <=, >, >=, ==, !=).
