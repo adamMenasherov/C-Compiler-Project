@@ -185,7 +185,6 @@ typedef struct {
     };
 } CForInit;
 
-
 typedef struct {
     CFactor* condition;
     CStatement* body;
