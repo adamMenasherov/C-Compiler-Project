@@ -5,7 +5,7 @@
 #include <string.h>
 #include "../../../ASM-File-Generation/ASM_AST_fix.h"
 #include "../../../Parser/TACKY/TACKYUtils/TACKYConstructors.h"
-#include "../../C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
+#include "../C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 
 
 ASMProgram* parseASMprogram(TACKYProgram* tacky_prog, SymbolTable* symTable) {
