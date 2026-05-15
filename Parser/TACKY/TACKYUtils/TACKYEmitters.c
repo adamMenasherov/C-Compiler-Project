@@ -1,6 +1,7 @@
 #include "TACKYEmitters.h"
 #include "TACKYConstructors.h"
 #include "../../generateUtils.h"
+#include "../../AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 #include <stdlib.h>
 #include <stdio.h>
 

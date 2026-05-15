@@ -52,7 +52,18 @@ initialValue* createInitialValue(initialValueType type, int intValue) {
     return value;
 }
 
-static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, IdentifierType type, int paramCount, int isDefined, identifierAttrs* attrs) {
+initialValue* createIntInitialValue(initialValueType type, int intValue) {
+    return createInitialValue(type, intValue);
+}
+
+static int getFunctionParamCount(const CFuncType* funcType) {
+    int count = 0;
+    if (!funcType) return 0;
+    while (count < MAX_PARAMS && funcType->func.params[count] != NULL) count++;
+    return count;
+}
+
+static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, IdentifierType type, CFuncType* funcType, int isDefined, identifierAttrs* attrs) {
     IdentifierTypeInfo* info = calloc(1, sizeof(IdentifierTypeInfo));
     if (!info) return NULL;
 
@@ -66,11 +77,12 @@ static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, Iden
     info->type = type;
     switch (type) {
         case TYPE_INT:
+        case TYPE_LONG:
             info->varInfo.uniqueName = NULL;
             break;
         case TYPE_FUNCTION:
             info->funcInfo.uniqueName = NULL;
-            info->funcInfo.paramCount = paramCount;
+            info->funcInfo.funcType = funcType;
             info->funcInfo.isDefined = isDefined;
             break;
     }
@@ -117,6 +129,7 @@ static IdentifierTypeInfo* copyIdentifierTypeInfo(const IdentifierTypeInfo* info
     copy->type = info->type;
     switch (info->type) {
         case TYPE_INT:
+        case TYPE_LONG:
             copy->varInfo.uniqueName = info->varInfo.uniqueName ? strdup(info->varInfo.uniqueName) : NULL;
             if (info->varInfo.uniqueName && !copy->varInfo.uniqueName) {
                 free(copy->identifier);
@@ -131,7 +144,7 @@ static IdentifierTypeInfo* copyIdentifierTypeInfo(const IdentifierTypeInfo* info
                 free(copy);
                 return NULL;
             }
-            copy->funcInfo.paramCount = info->funcInfo.paramCount;
+            copy->funcInfo.funcType = info->funcInfo.funcType;
             copy->funcInfo.isDefined = info->funcInfo.isDefined;
             break;
     }
@@ -144,6 +157,7 @@ void freeIdentifierTypeInfo(void* data) {
     free(info->identifier);
     switch (info->type) {
         case TYPE_INT:
+        case TYPE_LONG:
             free(info->varInfo.uniqueName);
             break;
         case TYPE_FUNCTION:
@@ -158,6 +172,7 @@ void printIdentifierTypeInfo(void* data) {
     if (!info) return;
     switch (info->type) {
         case TYPE_INT:
+        case TYPE_LONG:
             printf("{ identifier: \"%s\", type: INT, uniqueName: \"%s\" }",
                 info->identifier,
                 info->varInfo.uniqueName ? info->varInfo.uniqueName : "");
@@ -166,7 +181,7 @@ void printIdentifierTypeInfo(void* data) {
             printf("{ identifier: \"%s\", type: FUNCTION, uniqueName: \"%s\", paramCount: %d, isDefined: %s  }",
                 info->identifier,
                 info->funcInfo.uniqueName ? info->funcInfo.uniqueName : "",
-                info->funcInfo.paramCount,
+                getFunctionParamCount(info->funcInfo.funcType),
                 info->funcInfo.isDefined ? "true" : "false");
             break;
     }
@@ -176,7 +191,7 @@ SymbolTable* createSymbolTable() {
     return createHashTable(hashIdentifier, equalIdentifier);
 }
 
-int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined, identifierAttrs* attrs) {
+int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, CFuncType* funcType, int isDefined, identifierAttrs* attrs) {
     IdentifierTypeInfo probe; // For checking whether the key already exists
     IdentifierTypeInfo* existing; // To hold the existing entry if found
     IdentifierTypeInfo* stored; // The new entry to be stored if the key doesn't already exist
@@ -189,6 +204,7 @@ int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType
         existing->attrs = attrs;
         switch (existing->type) {
             case TYPE_INT:
+            case TYPE_LONG:
                 free(existing->varInfo.uniqueName);
                 break;
             case TYPE_FUNCTION:
@@ -199,17 +215,18 @@ int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType
         existing->type = type;
         switch (type) {
             case TYPE_INT:
+            case TYPE_LONG:
                 existing->varInfo.uniqueName = NULL;
                 return 1;
             case TYPE_FUNCTION:
                 existing->funcInfo.uniqueName = NULL;
-                existing->funcInfo.paramCount = paramCount;
+                existing->funcInfo.funcType = funcType;
                 existing->funcInfo.isDefined = isDefined;
                 return 1;
         }
     }
 
-    stored = createIdentifierTypeInfo(identifier, type, paramCount, isDefined, attrs);
+    stored = createIdentifierTypeInfo(identifier, type, funcType, isDefined, attrs);
     if (!stored) return 0;
 
     if (!ht_insert(table, stored)) {

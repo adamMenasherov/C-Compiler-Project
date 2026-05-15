@@ -1,5 +1,5 @@
 #pragma once
-#include "../../semantic.h"
+#include "Semantic/semantic.h"
 
 void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMap, SymbolTable* symbolTable, level declLevel);
 void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap, SymbolTable* symbolTable);

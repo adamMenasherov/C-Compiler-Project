@@ -1,4 +1,6 @@
 #pragma once
+#define MAX_PARAMS 128
+#define MAX_CASES 1024
 
 typedef struct CBlockItem CBlockItem;
 typedef struct CFactor CFactor;
@@ -9,13 +11,19 @@ typedef struct CFactor CFactor;
 typedef BlockItemArray CBlockItemList;
 
 typedef enum {
+    CONST_INT,
+    CONST_LONG
+} constantType;
+
+typedef enum {
     FACTOR_CONSTANT,
     FACTOR_UNARY,
     FACTOR_BINARY,
     FACTOR_VAR,
     FACTOR_ASSIGNMENT,
     FACTOR_CONDITIONAL,
-    FACTOR_FUNCTION_CALL
+    FACTOR_FUNCTION_CALL,
+    FACTOR_CAST
 } factorType;
 
 typedef enum {
@@ -25,6 +33,13 @@ typedef enum {
     SPEC_EXTERN,
     SPEC_NULL
 } specifierType;
+
+typedef struct {
+    unsigned int isLong : 1;
+    unsigned int isInt : 1;
+    unsigned int isStatic : 1;
+    unsigned int isExtern : 1;
+} TypeFlags;
 
 typedef enum {
     UNARY_COMPLEMENT,
@@ -72,6 +87,7 @@ typedef enum {
     STMT_IF,
     STMT_COMPOUND,
     STMT_BREAK,
+    STMT_SWITCH,
     STMT_CONTINUE,
     STMT_WHILE,
     STMT_FOR,
@@ -105,10 +121,6 @@ typedef enum {
     FOR_INIT_WITHOUT
 } forInitType;
 
-typedef struct {
-    int val; 
-} CConstant;
-
 typedef struct CBinary CBinary;
 typedef struct CUnary CUnary;
 typedef struct CFactor CFactor;
@@ -116,6 +128,11 @@ typedef struct CStatement CStatement;
 typedef struct CBlock CBlock;
 typedef struct CDeclaration CDeclaration;
 typedef struct CCompound CCompound;
+
+typedef struct {
+    constantType type;
+    int val; 
+} CConstant;
 
 typedef struct {
     char * identifier;
@@ -147,8 +164,22 @@ typedef struct {
     ExpressionFactorArray* arguments;
 } CFunctionCall;
 
+typedef struct CFuncType {
+    specifierType type;
+    struct {
+        struct CFuncType* params[MAX_PARAMS];
+        struct CFuncType* ret;
+    } func;
+} CFuncType;
+
+typedef struct {
+    specifierType targetType;
+    CFactor* exp;
+} CCast;
+
 typedef struct CFactor {
     factorType type;
+    specifierType valueType; // For type checking in semantic analysis
     union {
         CConstant * cnst;
         CUnary * unary;
@@ -157,6 +188,7 @@ typedef struct CFactor {
         CAssignment * assignment;
         CConditional * conditional;
         CFunctionCall* funcCall;
+        CCast* cast;
     } exp;
 } CFactor; 
 
@@ -186,6 +218,20 @@ typedef struct {
 } CForInit;
 
 typedef struct {
+    CConstant* matchVal;
+    CStatement* body;
+    int hasBreak;
+} CCase;
+
+
+typedef struct {
+    CFactor* switchExp;
+    CCase* cases[MAX_CASES];
+    int caseCount;
+    CStatement* defaultCase;
+} CSwitch;
+
+typedef struct {
     CFactor* condition;
     CStatement* body;
     char* identifier;
@@ -210,6 +256,7 @@ typedef struct CStatement {
         CReturn* ret;
         CFactor* exp;
         CIf* if_stmt;
+        CSwitch* switch_stmt;
         CCompound* compound_stmt;
 
         CLoop* while_stmt;
@@ -226,14 +273,14 @@ typedef struct CDeclaration {
     union {
         struct {
             varDeclType declType;
-            specifierType varType;
+            CFuncType* varType;
             specifierType storageClass;
             char * identifier;
             CFactor* exp;
         } variableDecl;
         struct {
             funcDeclType declType;
-            specifierType funcType;
+            CFuncType* funcType;
             specifierType storageClass;
             char * identifier;
             IdentifierArray* parameters;
@@ -254,5 +301,3 @@ typedef struct CBlockItem {
 typedef struct CBlock {
     CBlockItemList* items;
 } CBlock;
-
-

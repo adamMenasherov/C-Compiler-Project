@@ -1,6 +1,8 @@
 #pragma once
 #include "../DynamicArray.h"
 
+typedef struct CDeclaration CDeclaration;
+
 /**
  * @file CDeclarationWrapper.h
  * @brief Type-specific wrapper for DynamicArray to store CDeclaration pointers

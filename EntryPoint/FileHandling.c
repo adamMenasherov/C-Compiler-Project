@@ -6,7 +6,7 @@
 #include "EntryPoint/FileHandling.h"
 #include "Lexer/lex.h"
 #include "Parser/Parser.h"
-#include "SemanticAnalysis/semantic.h"
+#include "Semantic/semantic.h"
 #include "Parser/TACKY/TACKY_AST.h"
 #include "Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
 #include "Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"

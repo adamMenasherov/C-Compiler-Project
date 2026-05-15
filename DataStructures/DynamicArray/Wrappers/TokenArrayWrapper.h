@@ -136,7 +136,10 @@ static inline void TokenArray_freeWithTokens(TokenArray* arr) {
     if (arr) {
         for (int i = 0; i < DArray_size(arr); i++) {
             Token* tok = TokenArray_get(arr, i);
-            if (tok) freeToken(tok);
+            if (tok) {
+                free(tok->value);
+                free(tok);
+            }
         }
         TokenArray_free(arr);
     }

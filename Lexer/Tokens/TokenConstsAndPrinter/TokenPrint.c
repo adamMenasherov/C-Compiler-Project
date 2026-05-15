@@ -9,9 +9,3 @@ void printTokenList(TokenList* tokenList) {
         printf("Token: %s   |    type: %s\n", tok->value, tokenTypeToToken(tok->type));
     }
 }
-
-char* tokenTypeToToken(TokenType type) {
-    if (type < 0 || type > ERROR)
-        return "";
-    return (char*)(tokenTypeStr[type] ? tokenTypeStr[type] : "");
-}

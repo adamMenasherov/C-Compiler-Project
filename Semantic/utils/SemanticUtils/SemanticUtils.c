@@ -1,5 +1,5 @@
 #include "SemanticUtils.h"
-#include "generateUtils.h"
+#include "Parser/generateUtils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,4 +53,8 @@ void setTypeConst(CFactor* expr, constantType type) {
 specifierType getCommonType(specifierType type1, specifierType type2) {
     if (type1 == type2) return type1;
     else return SPEC_LONG;
+}
+
+int isBasicType(specifierType type) {
+    return type == SPEC_INT || type == SPEC_LONG;
 }

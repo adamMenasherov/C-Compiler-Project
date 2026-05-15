@@ -5,6 +5,7 @@
 
 typedef enum {
     TYPE_INT,
+    TYPE_LONG,
     TYPE_FUNCTION
 } IdentifierType;
 
@@ -51,7 +52,7 @@ typedef struct {
         } varInfo;
         struct {
             char* uniqueName; // The unique name assigned to the function
-            int paramCount;   // Number of parameters for the function
+            CFuncType* funcType; // Full function type metadata
             int isDefined; // Whether the function has a body (is defined) or just declared
         } funcInfo;
     };
@@ -61,11 +62,12 @@ typedef HashTable SymbolTable;
 typedef void (*SymbolTableForEachFn)(IdentifierTypeInfo* entry, void* userData);
 
 SymbolTable* createSymbolTable();
-int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, int paramCount, int isDefined, identifierAttrs* attrs);
+int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, CFuncType* funcType, int isDefined, identifierAttrs* attrs);
 IdentifierTypeInfo* symbolTableLookup(SymbolTable* table, const char* identifier);
 identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global, initialValue* initValue, int defined);
 int symbolTableContains(SymbolTable* table, const char* identifier);
 initialValue* createInitialValue(initialValueType type, int intValue);
+initialValue* createIntInitialValue(initialValueType type, int intValue);
 int symbolTableRemove(SymbolTable* table, const char* identifier);
 void freeSymbolTable(SymbolTable* table);
 void symbolTablePrint(SymbolTable* table);

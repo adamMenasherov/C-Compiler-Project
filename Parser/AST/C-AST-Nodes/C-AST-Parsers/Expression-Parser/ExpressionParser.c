@@ -130,6 +130,24 @@ CVar* C_parseVar(TokenList* tokens) {
     return C_CreateVar(identifier);
 }
 
+ExpressionFactorArray* parseArgumentList(TokenList* tokens) {
+    ExpressionFactorArray* arguments = ExpressionFactorArray_create();
+    if (!arguments) return NULL;
+
+    if (check(tokens, CLOSE_PAREN)) return arguments;
+
+    while (1) {
+        CFactor* arg = C_parseExpression(tokens, 0);
+        if (!arg) return arguments;
+        ExpressionFactorArray_append(arguments, arg);
+
+        if (!check(tokens, COMMA)) break;
+        expect(tokens, COMMA);
+    }
+
+    return arguments;
+}
+
 CCast* C_parseCast(TokenList* tokens) {
     expect(tokens, OPEN_PAREN);
     specifierType type;

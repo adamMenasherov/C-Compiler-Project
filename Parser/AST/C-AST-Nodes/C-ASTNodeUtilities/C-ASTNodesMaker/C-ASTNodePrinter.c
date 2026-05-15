@@ -9,6 +9,14 @@ static void indent() {
     for (int i = 0; i < depth; i++) printf("    ");
 }
 
+static const char* getConstantTypeName(constantType type) {
+    switch (type) {
+        case CONST_INT: return "int";
+        case CONST_LONG: return "long";
+        default: return "unknown";
+    }
+}
+
 void C_printProgram(CProgram* prog) {
     printf("Program(\n");
     depth++;
@@ -32,14 +40,14 @@ void C_printFunction(CDeclaration* func) {
     }
 
     printf("Function(\"%s\",", func->decl.functionDecl.identifier);
-    printf("Type: %s, StorageClass: %s,\n", getSpecifierTypeName(func->decl.functionDecl.funcType), 
+    printf("Type: %s, StorageClass: %s,\n", getSpecifierTypeName(func->decl.functionDecl.funcType->type), 
                     getSpecifierTypeName(func->decl.functionDecl.storageClass));
     depth++;
 
     indent(); printf("Parameters([");
     IdentifierArray* params = func->decl.functionDecl.parameters;
     for (int i = 0; i < params->size; i++) {
-        printf("\"%s\"", params->data[i]);
+        printf("\"%s\"", (char*)params->data[i]);
         if (i < params->size - 1) printf(", ");
     }
     printf("]),\n");
@@ -81,7 +89,18 @@ void C_printFactor(CFactor* exp) {
         case FACTOR_CONDITIONAL: C_printConditional(exp->exp.conditional);   break;
         case FACTOR_VAR:         C_printVar(exp->exp.var);                   break;
         case FACTOR_FUNCTION_CALL: C_printFunctionCall(exp->exp.funcCall);   break;
+        case FACTOR_CAST:        C_printCast(exp->exp.cast);                 break;
     }
+}
+
+void C_printCast(CCast* cast) {
+    if (!cast) return;
+
+    printf("Cast(%s, ", getSpecifierTypeName(cast->targetType));
+    depth++;
+    C_printFactor(cast->exp);
+    depth--;
+    printf(")");
 }
 
 void C_printFunctionCall(CFunctionCall* funcCall) {
@@ -113,6 +132,7 @@ void C_printStatement(CStatement* stmt) {
         case STMT_EXPRESSION: C_printFactor(stmt->stmt.exp); break;
         case STMT_NULL:       C_printNull(); break;
         case STMT_IF:         C_printIf(stmt->stmt.if_stmt); break;
+        case STMT_SWITCH:     C_printSwitch(stmt->stmt.switch_stmt); break;
         case STMT_COMPOUND:   C_printBlock(stmt->stmt.compound_stmt->block); break;
         case STMT_RETURN:     C_printReturn(stmt->stmt.ret); break;
         case STMT_BREAK:
@@ -125,6 +145,42 @@ void C_printStatement(CStatement* stmt) {
         case STMT_WHILE:    C_printLoop(stmt->type, stmt->stmt.while_stmt);    break;
         case STMT_FOR:      C_printForLoop(stmt->stmt.for_stmt);               break;
     }
+}
+
+void C_printCase(CCase* case_stmt) {
+    if (!case_stmt) return;
+
+    printf("Case(");
+    C_printConstant(case_stmt->matchVal);
+    printf(", hasBreak=%s, ", case_stmt->hasBreak ? "true" : "false");
+    C_printStatement(case_stmt->body);
+    printf(")");
+}
+
+void C_printSwitch(CSwitch* switch_stmt) {
+    if (!switch_stmt) return;
+
+    printf("Switch(\n");
+    depth++;
+    indent(); C_printFactor(switch_stmt->switchExp); printf(",\n");
+    indent(); printf("Cases([\n");
+    depth++;
+    for (int i = 0; i < switch_stmt->caseCount; i++) {
+        indent(); C_printCase(switch_stmt->cases[i]);
+        if (i < switch_stmt->caseCount - 1) printf(",");
+        printf("\n");
+    }
+    depth--;
+    indent(); printf("])\n");
+    if (switch_stmt->defaultCase) {
+        indent(); printf(", Default(\n");
+        depth++;
+        indent(); C_printStatement(switch_stmt->defaultCase); printf("\n");
+        depth--;
+        indent(); printf(")\n");
+    }
+    depth--;
+    indent(); printf(")");
 }
 
 void C_printCompound(CCompound* compound) {
@@ -182,7 +238,7 @@ void C_printVarDeclaration(CDeclaration* decl) {
     }
 
     printf("Declaration(\"%s\"", decl->decl.variableDecl.identifier);
-    printf(", Type: %s, StorageClass: %s", getSpecifierTypeName(decl->decl.variableDecl.varType), 
+    printf(", Type: %s, StorageClass: %s", getSpecifierTypeName(decl->decl.variableDecl.varType->type), 
                 getSpecifierTypeName(decl->decl.variableDecl.storageClass));
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
         printf(", ");
@@ -204,7 +260,8 @@ void C_printUnary(CUnary* unary) {
 }
 
 void C_printConstant(CConstant* constant) {
-    printf("Constant(%d)", constant->val);
+    if (!constant) return;
+    printf("Constant(%s:%d)", getConstantTypeName(constant->type), constant->val);
 }
 
 void C_printBlockItem(CBlockItem* blockItem) {

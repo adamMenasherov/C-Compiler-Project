@@ -1,5 +1,5 @@
 #pragma once
-#include "../../semantic.h"
+#include "Semantic/semantic.h"
 
 void resolveBlockWithLabeling(CBlock* block);
 void resolveBlockStatementsWithLabeling(CBlockItem* block);

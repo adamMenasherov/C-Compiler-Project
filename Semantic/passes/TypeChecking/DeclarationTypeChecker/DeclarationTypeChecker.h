@@ -1,5 +1,5 @@
 #pragma once
-#include "../../semantic.h"
+#include "Semantic/semantic.h"
 
 #include "LocalVarTypeChecker/LocalVarTypeChecker.h"
 #include "FileScopeVarTypeChecker/FileScopeVarTypeChecker.h"

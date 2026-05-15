@@ -1,6 +1,6 @@
 #include "FunctionResolver.h"
-#include "BlockResolver.h"
-#include "../LoopLabeling/LoopLabeler.h"
+#include "../BlockResolver/BlockResolver.h"
+#include "../../LoopLabeling/LoopLabeler/LoopLabeler.h"
 #include "../../../utils/ScopeUtils/ScopeUtils.h"
 #include "../../../utils/SemanticUtils/SemanticUtils.h"
 #include <stdio.h>

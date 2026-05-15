@@ -1,5 +1,6 @@
 #include "TACKY_AST.h"
 #include "TACKY-Parsers/ParserInclude.h"
+#include "TACKYUtils/TACKYConstructors.h"
 
 TACKYFunction* parseTACKYFunction(CDeclaration* func, SymbolTable* symTable) {
     if (func->type != DECL_FUNC) return NULL;

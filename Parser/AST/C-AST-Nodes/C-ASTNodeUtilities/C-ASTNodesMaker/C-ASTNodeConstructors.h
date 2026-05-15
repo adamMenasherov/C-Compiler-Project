@@ -2,13 +2,15 @@
 #include "../C-ASTExpressionTypes.h"
 #include "../../C-ASTNodes.h"
 
-CConstant* C_CreateConstant(int val);
+CConstant* C_CreateConstant(int val, constantType type);
 CVar* C_CreateVar(char* identifier);
 CReturn* C_CreateReturn(CFactor* exp);
 CLoopStmt* C_CreateLoopStmt();
 CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, 
-    specifierType funcType, specifierType storageClass);
+    CFuncType* funcType, specifierType storageClass);
 
+CSwitch* C_CreateSwitch(CFactor* exp);
+CCase* C_CreateCase(CConstant* caseConst, CStatement* caseStmt, int hasBreak);
 CProgram* C_CreateProgram(CDeclarationArray* function_def);
 CUnary* C_CreateUnary(unaryType type, CFactor* exp);
 CFactor* C_CreateFactor(factorType type, void * expVal);
@@ -19,6 +21,7 @@ CFactor* C_CreateFactorFromVar(CVar* var);
 CFactor* C_CreateFactorFromAssignment(CAssignment* assign);
 CFactor* C_CreateFactorFromFunctionCall(CFunctionCall* funcCall);
 CFactor* C_CreateCopyOfFactor(CFactor* original);
+CFactor* C_CreateFactorFromCast(CCast* cast);
 CFactor* C_CreateFactorFromConditional(CConditional* conditional);
 CBlock* C_CreateBlockFromBlockItems(CBlockItemList* items);
 CBlock* C_CreateBlockEmpty();
@@ -30,7 +33,9 @@ CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right);
 CStatement* C_CreateStatement(statementType type, void * stmtVal);
 CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign, 
     specifierType varType, specifierType storageClass);
-    
+CFuncType* C_CreateType(specifierType type);
+CFuncType* C_CreateEmptyType();
+CCast* C_CreateCast(specifierType castType, CFactor* exp);
 CBlockItem* C_CreateBlockItem(blockItemType type, void * stmtVal);
 CAssignment* C_CreateAssignment(CFactor* fact1, CFactor* fact2);
 CFunctionCall* C_CreateFunctionCall(char* identifier, ExpressionFactorArray* arguments);

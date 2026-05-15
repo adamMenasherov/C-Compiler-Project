@@ -1,6 +1,7 @@
 #pragma once
-#include "../../DataStructures/DynamicArray/Wrappers/CDeclarationArrayWrapper.h"
-#include "C-AST-Parsers/C-ParserInclude.h"
+#include "DataStructures/DynamicArray/Wrappers/CDeclarationWrapper.h"
+#include "Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTExpressionTypes.h"
+#include "Lexer/Tokens/tokenList.h"
 
 typedef struct {
     CDeclarationArray* function_def;

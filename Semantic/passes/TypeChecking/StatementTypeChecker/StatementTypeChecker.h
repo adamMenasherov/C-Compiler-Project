@@ -1,4 +1,4 @@
 #pragma once
-#include "../../semantic.h"
+#include "Semantic/semantic.h"
 
 void typeCheckStatement(CStatement* stmt, SymbolTable* symbolTable);

@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTExpressionTypes.h"
 
 extern const char *tokenTypeStr[];
 extern const char *tokenTypeToSymbol[];
@@ -126,7 +127,10 @@ TokenType keywordTokenTypeToTokenType(KeywordTokenType type);
 TokenType singleCharTokenTypeToTokenType(SingleCharTokenType type);
 TokenType twoCharTokenTypeToTokenType(TwoCharTokenType type);
 
-int isBinaryOp(TokenType type);
-int isUnaryOp(TokenType type);
+int isTokenTypeBinaryOp(TokenType type);
+int isTokenTypeUnaryOp(TokenType type);
 TokenType binaryOpToOpWithEqual(TokenType type);
 TokenType subAddtoDoubleSubAdd(TokenType type);
+char* tokenTypeToToken(TokenType type);
+unaryType tokenTypeToUnaryType(TokenType type);
+unaryType prefixToPostfix(unaryType type);

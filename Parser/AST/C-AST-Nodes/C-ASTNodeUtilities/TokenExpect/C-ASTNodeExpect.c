@@ -19,6 +19,13 @@ int lookAheadOne(TokenList* tokens, TokenType type) {
     return tok ? tok->type == type : 0;
 }
 
+int lookAheadOneType(TokenList* tokens) {
+    if (TokenArray_getCursor(tokens->array) + 1 >= TokenArray_size(tokens->array)) return 0;
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array) + 1);
+    if (!tok) return 0;
+    return tok->type == INT_KEYWORD || tok->type == LONG_KEYWORD;
+}
+
 int checkCompoundAssignment(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
     Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));

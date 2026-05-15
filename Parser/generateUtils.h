@@ -11,4 +11,6 @@ char* generateContinueLabelFromLoopLabel(char* loopLabel);
 char* generateEndLabel();
 char* generateE2Label();
 char* generateElseLabel();
+char* generateDefaultLabel();
+char* generateCaseLabel(int caseValue);
 char* generateResultVarName();

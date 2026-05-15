@@ -1,4 +1,6 @@
 #include "TokenConsts.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 static const TokenType keywordTokenTypeMap[] = {
     [KEYWORD_TOKEN_INT] = INT_KEYWORD,
@@ -195,7 +197,7 @@ const char *tokenTypeToSymbol[] = {
 };
 
 
-int isBinaryOp(TokenType type) {
+int isTokenTypeBinaryOp(TokenType type) {
     switch(type) {
         case PLUS:
         case HYPHEN:
@@ -227,7 +229,7 @@ int isBinaryOp(TokenType type) {
     }
 }
 
-int isUnaryOp(TokenType type) {
+int isTokenTypeUnaryOp(TokenType type) {
     switch(type) {
         case PLUS:
         case HYPHEN:
@@ -263,5 +265,38 @@ TokenType subAddtoDoubleSubAdd(TokenType type) {
         case PLUS: return TWO_PLUS;
         case HYPHEN: return TWO_HYPHENS;
         default: return ERROR;
+    }
+}
+
+char* tokenTypeToToken(TokenType type) {
+    if (type < 0 || type > ERROR) return "";
+    return (char*)(tokenTypeStr[type] ? tokenTypeStr[type] : "");
+}
+
+unaryType tokenTypeToUnaryType(TokenType type) {
+    switch(type) {
+        case HYPHEN:
+            return UNARY_NEGATE;
+        case TILDE:
+            return UNARY_COMPLEMENT;
+        case EXCLAMATION:
+            return UNARY_NOT;
+        case TWO_PLUS:
+            return UNARY_INCREMENT_PREFIX;
+        case TWO_HYPHENS:
+            return UNARY_DECREMENT_PREFIX;
+        default:
+            fprintf(stderr, "Error: Invalid unary operator token type %s\n", tokenTypeToToken(type));
+            exit(1);
+    }
+}
+
+unaryType prefixToPostfix(unaryType type) {
+    switch(type) {
+        case UNARY_INCREMENT_PREFIX: return UNARY_INCREMENT_POSTFIX;
+        case UNARY_DECREMENT_PREFIX: return UNARY_DECREMENT_POSTFIX;
+        default:
+            fprintf(stderr, "Error: Invalid prefix unary operator type %d\n", type);
+            exit(1);
     }
 }

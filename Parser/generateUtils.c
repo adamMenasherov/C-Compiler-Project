@@ -80,3 +80,18 @@ char* generateElseLabel() {
     sprintf(label, "else_label_%d", elseCount++);
     return label;
 }
+
+char* generateDefaultLabel() {
+    static int defaultCount = 0;
+    char* label = malloc(strlen("default_label_") + 10);
+    if (!label) return NULL;
+    sprintf(label, "default_label_%d", defaultCount++);
+    return label;
+}
+
+char* generateCaseLabel(int caseValue) {
+    char* label = malloc(strlen("case_") + 24);
+    if (!label) return NULL;
+    sprintf(label, "case_%d_%d", caseValue, currGlobalInt++);
+    return label;
+}

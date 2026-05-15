@@ -4,11 +4,12 @@
 #include <stdio.h>
 
 
-CConstant* C_CreateConstant(int val) {
+CConstant* C_CreateConstant(int val, constantType type) {
     CConstant* constant = malloc(sizeof(CConstant));
     if  (!constant) return NULL;
 
     constant->val = val;
+    constant->type = type;
     return constant;
 }
 
@@ -21,8 +22,26 @@ CReturn* C_CreateReturn(CFactor* exp) {
     return returnNode;
 }
 
+CSwitch* C_CreateSwitch(CFactor* exp) {
+    CSwitch* switchBlock = malloc(sizeof(CSwitch));
+    if (!switchBlock) return NULL;
+    switchBlock->caseCount = 0;
+    switchBlock->switchExp = exp;
+    switchBlock->defaultCase = NULL;
+    return switchBlock;
+}
 
-CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, specifierType funcType, specifierType storageClass) {
+CCase* C_CreateCase(CConstant* caseConst, CStatement* caseStmt, int hasBreak) {
+    CCase* switchCase = malloc(sizeof(CCase));
+    if (!switchCase) return NULL;
+    switchCase->matchVal = caseConst;
+    switchCase->body = caseStmt;
+    switchCase->hasBreak = hasBreak;
+    return switchCase;
+}
+
+
+CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, CFuncType* funcType, specifierType storageClass) {
     CDeclaration* func = calloc(1, sizeof(CDeclaration));
     if (!func) return NULL;
     func->type = DECL_FUNC;
@@ -42,6 +61,15 @@ CProgram* C_CreateProgram(CDeclarationArray* function_def) {
     prog->function_def = function_def;
 
     return prog; 
+}
+
+CCast* C_CreateCast(specifierType castType, CFactor* exp) {
+    CCast* cast = malloc(sizeof(CCast));
+    if (!cast) return NULL;
+    cast->targetType = castType;
+    cast->exp = exp;
+
+    return cast;
 }
 
 
@@ -66,7 +94,7 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
             
         case FACTOR_CONSTANT: {
             new_exp->type = FACTOR_CONSTANT;
-            new_exp->exp.cnst = C_CreateConstant(((CConstant*)expVal)->val);
+            new_exp->exp.cnst = C_CreateConstant(((CConstant*)expVal)->val, ((CConstant*)expVal)->type);
             break;
         }
         case FACTOR_BINARY: {
@@ -96,6 +124,11 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
         case FACTOR_FUNCTION_CALL: {
             new_exp->type = FACTOR_FUNCTION_CALL;
             new_exp->exp.funcCall = C_CreateFunctionCall(((CFunctionCall*)expVal)->identifier, ((CFunctionCall*)expVal)->arguments);
+            break;
+        }
+        case FACTOR_CAST: {
+            new_exp->type = FACTOR_CAST;
+            new_exp->exp.cast = C_CreateCast(((CCast*)expVal)->targetType, C_CreateCopyOfFactor(((CCast*)expVal)->exp));
             break;
         }
         default: {
@@ -146,6 +179,10 @@ CFactor* C_CreateFactorFromUnary(CUnary * exp) {
     return C_CreateFactor(FACTOR_UNARY, exp);
 }
 
+CFactor* C_CreateFactorFromCast(CCast* cast) {
+    return C_CreateFactor(FACTOR_CAST, cast);
+}
+
 CFactor* C_CreateFactorFromVar(CVar* var) {
     return C_CreateFactor(FACTOR_VAR, var);
 }
@@ -193,6 +230,10 @@ CStatement* C_CreateStatement(statementType type, void * stmtVal) {
         }
         case STMT_IF: {
             stmt->stmt.if_stmt = (CIf*)stmtVal;
+            break;
+        }
+        case STMT_SWITCH: {
+            stmt->stmt.switch_stmt = (CSwitch*)stmtVal;
             break;
         }
         case STMT_COMPOUND: {
@@ -287,6 +328,13 @@ CVar* C_CreateVar(char* identifier) {
     return var;
 }
 
+CFuncType* C_CreateType(specifierType type) {
+    CFuncType* ctype = calloc(1, sizeof(CFuncType));
+    if (!ctype) return NULL;
+    ctype->type = type;
+    return ctype;
+}
+
 CFactor* C_CreateCopyOfFactor(CFactor* original) {
     if (!original) return NULL;
     switch (original->type) {
@@ -325,7 +373,7 @@ CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor*
     decl->type = DECL_VAR;
     decl->decl.variableDecl.declType = type;
     decl->decl.variableDecl.exp = assign;
-    decl->decl.variableDecl.varType = varType;
+    decl->decl.variableDecl.varType = C_CreateType(varType);
     decl->decl.variableDecl.storageClass = storageClass;
     decl->decl.variableDecl.identifier = iden;
     return decl;
@@ -380,6 +428,12 @@ CCompound* C_CreateCompound(CBlock* block) {
     return compound;
 }
 
+CFuncType* C_CreateEmptyType() {
+    CFuncType* ctype = calloc(1, sizeof(CFuncType));
+    if (!ctype) return NULL;
+    ctype->type = SPEC_NULL;
+    return ctype;
+}
 
 char* generateLoopStmtIdentifier() {
     static int loopStmtCounter = 0;
