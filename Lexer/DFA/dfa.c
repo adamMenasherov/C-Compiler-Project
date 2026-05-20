@@ -2,9 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ================================================================
- *  NFASet — sorted set of NFA state IDs; the identity of a DFA state
- * ================================================================ */
 typedef struct { int ids[MAX_STATES]; int n; } NFASet;
 
 static int setHas(const NFASet *s, int id) {
@@ -27,16 +24,12 @@ static int setEq(const NFASet *a, const NFASet *b) {
 
 
 static void eClosure(NFA *nfa, NFASet *s) {
-    int changed = 1;
-    while (changed) {
-        changed = 0;
-        int snap = s->n;
-        for (int i = 0; i < snap; i++) {
-            NFAState *st = &nfa->states[s->ids[i]];
-            for (int j = 0; j < st->n_epsilon; j++) {
-                int d = st->epsilon[j].to;
-                if (!setHas(s, d)) { setAdd(s, d); changed = 1; }
-            }
+    int front = 0;  
+    while (front < s->n) {
+        NFAState *st = &nfa->states[s->ids[front++]];
+        for (int j = 0; j < st->n_epsilon; j++) {
+            int d = st->epsilon[j].to;
+            if (!setHas(s, d)) setAdd(s, d);
         }
     }
 }
@@ -70,7 +63,9 @@ static int findOrCreate(DFA *dfa, NFASet *table, int *nDFA, NFASet *s, NFA *nfa)
     if (*nDFA >= MAX_STATES) return -1;
     int idx = (*nDFA)++;
     table[idx] = *s;
-    DFAState d = {0}; d.id = idx; d.accepting = dominantToken(nfa, s);
+    DFAState d = {0}; 
+    d.id = idx; 
+    d.accepting = dominantToken(nfa, s);
     dfa->states[dfa->n_states++] = d;
     return idx;
 }
@@ -85,7 +80,6 @@ DFA *createDFAFromNFA(NFA *nfa) {
     if (!table) { free(dfa); return NULL; }
     int nDFA  = 0;
 
-    /* start state: ε-closure of NFA state 0 */
     NFASet init = {0};
     setAdd(&init, 0);
     eClosure(nfa, &init);
@@ -117,6 +111,7 @@ static int nextStateOnChar(const DFAState *st, unsigned char c) {
     }
     return -1;
 }
+
 
 TokenType DFARun(DFA *dfa, char **keyword) {
     if (!dfa || !keyword || !*keyword) return NOT_ACCEPTING;

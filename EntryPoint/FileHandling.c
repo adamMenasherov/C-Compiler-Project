@@ -7,9 +7,9 @@
 #include "Lexer/lex.h"
 #include "Parser/Parser.h"
 #include "Semantic/semantic.h"
-#include "Parser/TACKY/TACKY_AST.h"
-#include "Parser/TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
-#include "Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
+#include "Parser/TACKY/TACKYProgram.h"
+#include "Parser/TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
+#include "Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
 #include "ASM-File-Generation/ASMGenerator.h"
 
 

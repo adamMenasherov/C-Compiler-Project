@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../TACKY_AST.h"
+#include "../TACKYProgram.h"
 
 TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYValue* dest);
 TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest);

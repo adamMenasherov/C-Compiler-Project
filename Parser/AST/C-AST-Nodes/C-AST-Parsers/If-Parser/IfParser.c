@@ -16,6 +16,11 @@ static void handleDefaultCase(CSwitch* switchBlock, TokenList* tokens) {
     expect(tokens, DEFAULT_KEYWORD);
     expect(tokens, COLON);
     switchBlock->defaultCase = C_parseStatement(tokens);
+
+    if (check(tokens, BREAK_KEYWORD)) {
+        expect(tokens, BREAK_KEYWORD);
+        expect(tokens, SEMICOLON);
+    }
 }
 
 

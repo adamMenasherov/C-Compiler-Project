@@ -1,11 +1,11 @@
-#include "ASM-ASTNodes.h"
-#include "ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.h"
-#include "ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
+#include "ASMInstructions.h"
+#include "ASMInstructionsUtilities/ASMInstructionsConstructors.h"
+#include "ASMInstructionsUtilities/ASMInstructionsFree.h"
 #include <stdlib.h>
 #include <string.h>
-#include "../../../ASM-File-Generation/ASM_AST_fix.h"
-#include "../../../Parser/TACKY/TACKYUtils/TACKYConstructors.h"
-#include "../C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
+#include "../../ASM-File-Generation/ASMInstructionFix.h"
+#include "../TACKY/TACKYUtils/TACKYConstructors.h"
+#include "../AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 
 
 ASMProgram* parseASMprogram(TACKYProgram* tacky_prog, SymbolTable* symTable) {

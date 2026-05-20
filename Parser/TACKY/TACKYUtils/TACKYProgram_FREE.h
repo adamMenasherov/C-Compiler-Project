@@ -1,5 +1,5 @@
 #pragma once
-#include "../TACKY_AST.h"
+#include "../TACKYProgram.h"
 
 /**
  * Frees a TACKYProgram and all of its owned resources recursively.

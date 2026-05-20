@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "TACKY_AST_FREE.h"
+#include "TACKYProgram_FREE.h"
 
 TACKYInstruction* createLabelInstruction(char* label) {
     TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));

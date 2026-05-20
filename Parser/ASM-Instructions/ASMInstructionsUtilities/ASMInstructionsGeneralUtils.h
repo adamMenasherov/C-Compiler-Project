@@ -1,8 +1,8 @@
 #pragma once
-#include "../../C-AST-Nodes/C-ASTNodes.h"
-#include "../../../TACKY/TACKY_AST.h"
-#include "../../../../DataStructures/Map/Wrappers/CharIntMap.h"
-#include "../../../../DataStructures/DynamicArray/Wrappers/ASMTopLevelArrayWrapper.h"
+#include "../../AST/C-AST-Nodes/C-ASTNodes.h"
+#include "../../TACKY/TACKYProgram.h"
+#include "../../../DataStructures/Map/Wrappers/CharIntMap.h"
+#include "../../../DataStructures/DynamicArray/Wrappers/ASMTopLevelArrayWrapper.h"
 
 /* ============================================================
  * Enum Definitions

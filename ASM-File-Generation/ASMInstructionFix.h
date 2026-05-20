@@ -1,7 +1,7 @@
 #pragma once
 #include "../DataStructures/Map/Wrappers/CharIntMap.h"
-#include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodes.h"
-#include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
+#include "../Parser/ASM-Instructions/ASMInstructions.h"
+#include "../Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsFree.h"
 
 
 void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table);

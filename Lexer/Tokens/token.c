@@ -5,8 +5,7 @@
 
 Token* createToken(char** tokenSource, DFA* dfa) {
     if (!tokenSource || !*tokenSource || !dfa) return NULL;
-
-    while (isspace((unsigned char)**tokenSource)) (*tokenSource)++;
+    while (isspace(**tokenSource)) (*tokenSource)++;
     if (**tokenSource == '\0') return NULL; // No more tokens
 
     Token* newTok = malloc(sizeof(Token));

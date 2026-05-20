@@ -4,11 +4,8 @@
 #include <stdlib.h>
 
 static void validateFileScopeType(CDeclaration* decl) {
-    if (!decl->decl.variableDecl.varType ||
-        !isBasicType(decl->decl.variableDecl.varType->type) ||
-        !decl->decl.variableDecl.exp ||
-        decl->decl.variableDecl.exp->type != FACTOR_CONSTANT) {
-        fprintf(stderr, "Semantic Error: Only int variables can be initialized at file scope. Variable '%s' has invalid type\n",
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && !isBasicType(decl->decl.variableDecl.exp->valueType)) {
+        fprintf(stderr, "Semantic Error: Only constant variables can be initialized at file scope. Variable '%s' has invalid type\n",
             decl->decl.variableDecl.identifier);
         exit(1);
     }

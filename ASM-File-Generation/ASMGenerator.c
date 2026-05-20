@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include "ASMGenerator.h"
 #include <stdlib.h>
-#include "ASM_AST_fix.h"
-#include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
+#include "ASMInstructionFix.h"
+#include "../Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
 #include "../DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
 
 

@@ -1,5 +1,5 @@
-#include "ASM_AST_fix.h"
-#include "../Parser/AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
+#include "ASMInstructionFix.h"
+#include "../Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsFree.h"
 #include <stdlib.h>
 
 void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table) {

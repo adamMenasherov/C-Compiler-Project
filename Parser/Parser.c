@@ -3,10 +3,10 @@
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
 #include <stdio.h>
-#include "AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesFree.h"
-#include "TACKY/TACKYUtils/TACKY_AST_FREE.h"
-#include "TACKY/TACKYUtils/TACKY_AST_PRINTER.h"
-#include "AST/ASM-AST-Nodes/ASM-ASTNodesUtilities/ASM-ASTNodesPrinter.h"
+#include "ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsFree.h"
+#include "TACKY/TACKYUtils/TACKYProgram_FREE.h"
+#include "TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
+#include "ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
 
 
 AST* parse(TokenList* tokens) {

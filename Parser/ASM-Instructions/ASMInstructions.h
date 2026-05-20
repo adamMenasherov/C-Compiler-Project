@@ -1,6 +1,6 @@
 #pragma once
-#include "ASM-ASTNodesUtilities/ASM-ASTNodesGeneralUtils.h"
-#include "ASM-ASTNodesUtilities/ASM-ASTNodesConstructors.h"
+#include "ASMInstructionsUtilities/ASMInstructionsGeneralUtils.h"
+#include "ASMInstructionsUtilities/ASMInstructionsConstructors.h"
 
 
 /**

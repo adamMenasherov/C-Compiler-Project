@@ -1,5 +1,5 @@
 #pragma once
-#include "../../TACKY_AST.h"
+#include "../../TACKYProgram.h"
 
 
 void parseIfStatementInstructions(CIf* if_stmt, TACKYInstructionList* instructionList);

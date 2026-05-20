@@ -1,5 +1,5 @@
-#include "ASM-ASTNodesFree.h"
-#include "../../../../DataStructures/Map/Wrappers/CharIntMap.h"
+#include "ASMInstructionsFree.h"
+#include "../../../DataStructures/Map/Wrappers/CharIntMap.h"
 #include <stdlib.h>
 
 void freeASMOperand(ASMOperand* operand) {

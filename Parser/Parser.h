@@ -1,8 +1,8 @@
 #pragma once
 #include "../Lexer/Tokens/tokenList.h"
 #include "AST/C-AST-Nodes/C-ASTNodes.h"
-#include "TACKY/TACKY_AST.h"
-#include "AST/ASM-AST-Nodes/ASM-ASTNodes.h"
+#include "TACKY/TACKYProgram.h"
+#include "ASM-Instructions/ASMInstructions.h"
 
 typedef struct {
     CProgram* prog; 

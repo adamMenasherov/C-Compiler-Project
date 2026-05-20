@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../TACKY_AST.h"
+#include "../TACKYProgram.h"
 
 TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary);
 TACKYValue* emit_TACKYUnary(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary);

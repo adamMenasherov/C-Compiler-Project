@@ -1,4 +1,4 @@
-#include "TACKY_AST_FREE.h"
+#include "TACKYProgram_FREE.h"
 #include <stdlib.h>
 
 static void freeTackyFunctionCall(TACKYInstruction* instruction) {
