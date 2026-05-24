@@ -6,57 +6,59 @@
 #include "../../TACKYUtils/TACKYConstructors.h"
 #include "../../../generateUtils.h"
 
-static void handleStmtExpression(CStatement* stmt, TACKYInstructionList* list) {
+static void handleStmtExpression(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
     int isPostfix = 0;
-    emit_TACKY(stmt->stmt.exp, list, &isPostfix);
-    if (isPostfix) addInstructionToList(list, emitUnaryPostfixInstruction(stmt->stmt.exp));
+    emit_TACKY(stmt->stmt.exp, list, &isPostfix, symTable);
+    if (isPostfix) addInstructionToList(list, emitUnaryPostfixInstruction(stmt->stmt.exp, symTable));
 }
 
-static void handleStmtReturn(CStatement* stmt, TACKYInstructionList* list) {
-    parseTACKYReturn(stmt->stmt.ret, list);
+static void handleStmtReturn(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    parseTACKYReturn(stmt->stmt.ret, list, symTable);
 }
 
-static void handleStmtBreak(CStatement* stmt, TACKYInstructionList* list) {
+static void handleStmtBreak(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    (void)symTable;
     addInstructionToList(list,
         createJumpInstruction(TACKY_JUMP,
             generateBreakLabelFromLoopLabel(stmt->stmt.break_stmt->identifier), NULL));
 }
 
-static void handleStmtContinue(CStatement* stmt, TACKYInstructionList* list) {
+static void handleStmtContinue(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    (void)symTable;
     addInstructionToList(list,
         createJumpInstruction(TACKY_JUMP,
             generateContinueLabelFromLoopLabel(stmt->stmt.continue_stmt->identifier), NULL));
 }
 
-static void handleStmtIf(CStatement* stmt, TACKYInstructionList* list) {
-    parseIfStatementInstructions(stmt->stmt.if_stmt, list);
+static void handleStmtIf(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    parseIfStatementInstructions(stmt->stmt.if_stmt, list, symTable);
 }
 
-static void handleStmtCompound(CStatement* stmt, TACKYInstructionList* list) {
-    parseBlock(stmt->stmt.compound_stmt->block, list);
+static void handleStmtCompound(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    parseBlock(stmt->stmt.compound_stmt->block, list, symTable);
 }
 
-static void handleStmtWhile(CStatement* stmt, TACKYInstructionList* list) {
-    parseWhileLoopInstructions(stmt->stmt.while_stmt, list);
+static void handleStmtWhile(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    parseWhileLoopInstructions(stmt->stmt.while_stmt, list, symTable);
 }
 
-static void handleStmtDoWhile(CStatement* stmt, TACKYInstructionList* list) {
-    parseDoWhileLoopInstructions(stmt->stmt.do_while_stmt, list);
+static void handleStmtDoWhile(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    parseDoWhileLoopInstructions(stmt->stmt.do_while_stmt, list, symTable);
 }
 
-static void handleStmtFor(CStatement* stmt, TACKYInstructionList* list) {
-    parseForLoopInstructions(stmt->stmt.for_stmt, list);
+static void handleStmtFor(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
+    parseForLoopInstructions(stmt->stmt.for_stmt, list, symTable);
 }
 
-static void handleSwitchStatement(CStatement* stmt, TACKYInstructionList* list) {
+static void handleSwitchStatement(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
     CSwitch* switch_stmt = stmt->stmt.switch_stmt;
     int isPostfixUnary = 0;
-    TACKYValue* switchExp = emit_TACKY(switch_stmt->switchExp, list, &isPostfixUnary);
-    if (isPostfixUnary) addInstructionToList(list, emitUnaryPostfixInstruction(switch_stmt->switchExp));
-    parseSwitchStatementInstructions(switch_stmt, list, switchExp);
+    TACKYValue* switchExp = emit_TACKY(switch_stmt->switchExp, list, &isPostfixUnary, symTable);
+    if (isPostfixUnary) addInstructionToList(list, emitUnaryPostfixInstruction(switch_stmt->switchExp, symTable));
+    parseSwitchStatementInstructions(switch_stmt, list, switchExp, symTable);
 }
 
-typedef void (*StmtHandler)(CStatement*, TACKYInstructionList*);
+typedef void (*StmtHandler)(CStatement*, TACKYInstructionList*, SymbolTable*);
 static const StmtHandler stmtHandlers[] = {
     [STMT_EXPRESSION] = handleStmtExpression,
     [STMT_RETURN]     = handleStmtReturn,
@@ -70,15 +72,15 @@ static const StmtHandler stmtHandlers[] = {
     [STMT_FOR]        = handleStmtFor,
 };
 
-void parseStatementInstructions(CStatement* stmt, TACKYInstructionList* list) {
+void parseStatementInstructions(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
     if (!stmt) return;
     if (stmt->type == STMT_NULL) return;
-    stmtHandlers[stmt->type](stmt, list);
+    stmtHandlers[stmt->type](stmt, list, symTable);
 }
 
 
-void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList) {
-    TACKYValue* ret_val = emit_TACKY(returnNode->exp, instructionList, NULL);
+void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList, SymbolTable* symTable) {
+    TACKYValue* ret_val = emit_TACKY(returnNode->exp, instructionList, NULL, symTable);
     TACKYInstruction* ret_inst = createReturnInstruction(ret_val);
     addInstructionToList(instructionList, ret_inst);
 }

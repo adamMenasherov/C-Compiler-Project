@@ -7,7 +7,7 @@
 #include "../DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
 
 
-void generateASMFile(ASM_AST* ast, char* asm_file_name, SymbolTable* symbolTable) {
+void generateASMFile(ASM* ast, char* asm_file_name, SymbolTable* symbolTable) {
     FILE* fp = fopen(asm_file_name, "w");
     if (!fp) {
         fprintf(stderr, "Couldn't create ASM file");
@@ -18,7 +18,7 @@ void generateASMFile(ASM_AST* ast, char* asm_file_name, SymbolTable* symbolTable
     fclose(fp);
 }
 
-void printAsmFileFromAst(ASM_AST *ast, FILE *fp, SymbolTable* symbolTable) {
+void printAsmFileFromAst(ASM *ast, FILE *fp, SymbolTable* symbolTable) {
     printProgramToASMFile(ast->prog, fp, symbolTable);
     fputs("   .section .note.GNU-stack,\"\",@progbits\n", fp);
 }   

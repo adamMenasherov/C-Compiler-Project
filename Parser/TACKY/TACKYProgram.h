@@ -1,4 +1,5 @@
 #pragma once
+#include "../Common/SharedNodeEnums.h"
 #include "../AST/C-AST-Nodes/C-ASTNodes.h"
 #include "../../DataStructures/DynamicArray/Wrappers/InstructionArrayWrapper.h"
 #include "../../DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
@@ -15,7 +16,9 @@ typedef enum {
     TACKY_JUMP_IF_NOT_ZERO,
     TACKY_RETURN,
     TACKY_FUNCTION_CALL,
-    TACKY_LABEL
+    TACKY_LABEL,
+    TACKY_SIGN_EXTEND,
+    TACKY_TRUNCATE
 } TACKYInstructionType;
 
 typedef enum {
@@ -36,6 +39,7 @@ typedef enum {
 
 typedef struct {
     int value;
+    constantType type;
 } TACKYConstant;
 
 typedef struct TACKYValue {
@@ -80,6 +84,14 @@ typedef struct TACKYInstruction {
             TACKYValueArray* args;
             TACKYValue* resultVar;
         } funCall;
+        struct {
+            TACKYValue* src;
+            TACKYValue* dest;
+        } signExtend;
+        struct {
+            TACKYValue* src;
+            TACKYValue* dest;
+        } truncate;
     } instValue;
 } TACKYInstruction;
 
@@ -101,7 +113,7 @@ typedef struct {
     char* identifier;
     int global;
     TACKYStaticVarType type;
-    int init;
+    staticInitialVal initVal;
 } TACKYStaticVar;
 
 typedef struct TACKYTopLevel {
@@ -130,3 +142,5 @@ TACKYFunction* parseTACKYFunction(CDeclaration* func, SymbolTable* symTable);
  * @return A pointer to the generated TACKYProgram
  */
 TACKYProgram* parseTACKYProgram(CProgram* program, SymbolTable* symTable);
+
+TACKYValue* makeTACKYVariable(specifierType type, SymbolTable* symTable);

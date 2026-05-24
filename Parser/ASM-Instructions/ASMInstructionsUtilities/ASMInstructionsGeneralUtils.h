@@ -1,4 +1,5 @@
 #pragma once
+#include "../../Common/SharedNodeEnums.h"
 #include "../../AST/C-AST-Nodes/C-ASTNodes.h"
 #include "../../TACKY/TACKYProgram.h"
 #include "../../../DataStructures/Map/Wrappers/CharIntMap.h"
@@ -63,6 +64,11 @@ typedef enum {
 } OperandType;
 
 typedef enum {
+    ASM_LONGWORD,
+    ASM_QUADWORD
+} ASMType;
+
+typedef enum {
     ASM_TOP_LEVEL_FUNCTION,
     ASM_TOP_LEVEL_STATIC_VAR
 } ASMTopLevelType;
@@ -95,10 +101,16 @@ typedef struct ASMInstruction {
     ASMInstructionType type;
     union {
         struct {
+            ASMType asmType;
             ASMOperand* operand1;
             ASMOperand* operand2;
         } mov;
         struct {
+            ASMOperand* operand1;
+            ASMOperand* operand2;
+        } movsx;
+        struct {
+            ASMType asmType;
             ASMUnaryOperator type;
             ASMOperand* op;
         } unary;
@@ -109,6 +121,7 @@ typedef struct ASMInstruction {
             int size;
         } deallocatestack;
         struct {
+            ASMType asmType;
             ASMBinaryOperator type;
             ASMOperand* op1;
             ASMOperand* op2;
@@ -162,7 +175,8 @@ typedef struct ASMFunction {
 typedef struct {
     char* identifier;
     int global; 
-    int init;   
+    int alignment;
+    staticInitialVal initVal;   
 } ASMStaticVar;
 
 typedef struct ASMTopLevel {

@@ -71,6 +71,24 @@ TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYV
     return inst;
 }
 
+TACKYInstruction* createSignExtendInstruction(TACKYValue* src, TACKYValue* dest) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_SIGN_EXTEND;
+    inst->instValue.signExtend.src = src;
+    inst->instValue.signExtend.dest = dest;
+    return inst;
+}
+TACKYInstruction* createTruncateInstruction(TACKYValue* src, TACKYValue* dest) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_TRUNCATE;
+    inst->instValue.truncate.src = src;
+    inst->instValue.truncate.dest = dest;
+    return inst;
+}
+
+
 TACKYInstructionList* createTACKYInstructionList() {
     return InstructionArray_create();
 }
@@ -81,11 +99,12 @@ void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruct
     }
 }
 
-TACKYConstant* CreateTackyConstantNode(int val) {
+TACKYConstant* CreateTackyConstantNode(int val, constantType type) {
     TACKYConstant* constantNode = malloc(sizeof(TACKYConstant));
     if (!constantNode) return NULL;
 
     constantNode->value = val;
+    constantNode->type = type;
     return constantNode;
 }
 
@@ -94,17 +113,17 @@ TACKYValue* createTackyValueFromConstantNode(CConstant* const_node) {
     if (!tackyVal) return NULL;
 
     tackyVal->type = TACKY_CONSTANT;
-    tackyVal->constant = CreateTackyConstantNode(const_node->val);
+    tackyVal->constant = CreateTackyConstantNode(const_node->val, const_node->type);
 
     return tackyVal;
 }
 
-TACKYValue* createTackyValueFromConstant(int val) {
+TACKYValue* createTackyValueFromConstant(int val, constantType type) {
     TACKYValue* tackyVal = calloc(1, sizeof(TACKYValue));
     if (!tackyVal) return NULL;
 
     tackyVal->type = TACKY_CONSTANT;
-    tackyVal->constant = CreateTackyConstantNode(val);
+    tackyVal->constant = CreateTackyConstantNode(val, type);
 
     return tackyVal;
 }
@@ -138,6 +157,7 @@ TACKYValue* copyTackyValue(TACKYValue* original) {
             return NULL;
         }
         copy->constant->value = original->constant->value;
+        copy->constant->type = original->constant->type;
         copy->identifier = NULL;
     } else if (original->type == TACKY_VAR) {
         copy->identifier = strdup(original->identifier);
@@ -225,7 +245,7 @@ TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar) {
     topLevel->topLevel.staticVar = staticVar;
     return topLevel;
 }
-TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, int val) {
+TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, int val, initialValueStaticInitType staticInitType) {
     TACKYStaticVar* staticVar = malloc(sizeof(TACKYStaticVar));
     if (!staticVar) return NULL;
 
@@ -237,6 +257,7 @@ TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, int val) {
 
     staticVar->global = global;
     staticVar->type = TACKY_STATIC_VAR;
-    staticVar->init = val;
+    staticVar->initVal.val = val;
+    staticVar->initVal.staticInitType = staticInitType;
     return staticVar;
 }

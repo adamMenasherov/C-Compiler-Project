@@ -1,6 +1,7 @@
 #include "C-ASTNodeExpect.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "../../../../../Lexer/Tokens/token.h"
 
 int tokensLeft(TokenList* tokens) {
@@ -54,10 +55,11 @@ int checkSpecifier(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
     return check(tokens, INT_KEYWORD)
         || check(tokens, STATIC_KEYWORD)
-        || check(tokens, EXTERN_KEYWORD);
+        || check(tokens, EXTERN_KEYWORD) 
+        || check(tokens, LONG_KEYWORD);
 }
-
-int expectConstant(TokenList* tokens) {
+    
+uint64_t expectConstant(TokenList* tokens, int* type) {
     if (!tokensLeft(tokens)) {
         fprintf(stderr, "Parser Error: Expected constant value but got end of file\n");
         exit(1);
@@ -65,13 +67,14 @@ int expectConstant(TokenList* tokens) {
 
     int cursor = TokenArray_getCursor(tokens->array);
     Token* tok = TokenArray_get(tokens->array, cursor);
-    if (!tok || tok->type != CONSTANT) {
+    if (!tok || (tok->type != CONSTANT && tok->type != LONG_CONSTANT)) {
         fprintf(stderr, "Parser Error: Expected constant value but got %s\n", 
             tok ? tok->value : "NULL");
         exit(1);
     }
     TokenArray_setCursor(tokens->array, cursor + 1);
-    return atoi(tok->value);
+    *type = (tok->type == CONSTANT) ? CONST_INT : CONST_LONG;
+    return strtoull(tok->value, NULL, 10);
 }
 
 binType compoundAssignmentToBinType(TokenType type) {

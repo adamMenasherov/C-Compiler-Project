@@ -8,7 +8,7 @@
  * @param loop The C AST while loop statement to parse
  * @param instructionList The list to which generated TACKY instructions will be added
  */
-void parseWhileLoopInstructions(CLoop* loop, TACKYInstructionList* instructionList);
+void parseWhileLoopInstructions(CLoop* loop, TACKYInstructionList* instructionList, SymbolTable* symTable);
 
 /**
  *  @brief Parses a C AST do-while loop statement and emits corresponding TACKY instructions, adding them to the instruction list.
@@ -16,7 +16,7 @@ void parseWhileLoopInstructions(CLoop* loop, TACKYInstructionList* instructionLi
  * @param loop The C AST do-while loop statement to parse
  * @param instructionList The list to which generated TACKY instructions will be added
  */
-void parseDoWhileLoopInstructions(CLoop* loop, TACKYInstructionList* instructionList);
+void parseDoWhileLoopInstructions(CLoop* loop, TACKYInstructionList* instructionList, SymbolTable* symTable);
 
 /**
  * @brief Parses a C AST for loop statement and emits corresponding TACKY instructions, adding them to the instruction list.
@@ -24,7 +24,7 @@ void parseDoWhileLoopInstructions(CLoop* loop, TACKYInstructionList* instruction
  * @param forLoop The C AST for loop statement to parse
  * @param instructionList The list to which generated TACKY instructions will be added
  */
-void parseForLoopInstructions(CForLoop* forLoop, TACKYInstructionList* instructionList);
+void parseForLoopInstructions(CForLoop* forLoop, TACKYInstructionList* instructionList, SymbolTable* symTable);
 
 /**
  * @brief Parses the initialization part of a C AST for loop statement and emits corresponding TACKY instructions, adding them to the instruction list.
@@ -32,4 +32,4 @@ void parseForLoopInstructions(CForLoop* forLoop, TACKYInstructionList* instructi
  * @param init The C AST for loop initialization to parse
  * @param instructionList The list to which generated TACKY instructions will be added
  */
-void parseForLoopInitInstructions(CForInit* init, TACKYInstructionList* instructionList);
+void parseForLoopInitInstructions(CForInit* init, TACKYInstructionList* instructionList, SymbolTable* symTable);

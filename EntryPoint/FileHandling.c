@@ -31,7 +31,7 @@ char* readSourceFile(char* fileName) {
 }
 
 
-char* generatePreprocessedFileName(char* originalFileName, char **objectFileName, char **asmFileName) {
+char* generateFileNames(char* originalFileName, char **objectFileName, char **asmFileName) {
     char* fileNameCopy = strdup(originalFileName); // Copying the filename because of strtok
     if (!fileNameCopy) exit(1);
 
@@ -93,11 +93,10 @@ char* compileFile(char* fileName) {
     char* asmFileName;
     TokenList* tokenList = createTokenList();
 
-    // Generating all file names and preprocessing
-    char* preprocessFileName = generatePreprocessedFileName(fileName, &objectFileName, &asmFileName);
+    char* preprocessFileName = generateFileNames(fileName, &objectFileName, &asmFileName);
     commandForPreprocessing(fileName, preprocessFileName); 
 
-    char* source = readSourceFile(preprocessFileName); // Reading source file into buffer
+    char* source = readSourceFile(preprocessFileName); 
     if (!source) {
         fprintf(stderr, "Error: Failed to read preprocessed file %s\n", preprocessFileName);
         free(preprocessFileName);
@@ -109,14 +108,12 @@ char* compileFile(char* fileName) {
     AST* ast = parse(tokenList); // Parsing the program to a AST structure
     printAST(ast);
     SymbolTable* symTable = resolveAST(ast);
-    printf("\n\n---------------------------------\n\n"); 
-    printf("\n\n---------------------------------\n\n");
     symbolTablePrint(symTable);
     printAST(ast);
  
-    TACKY_AST* tacky_ast = astToTACKY_AST(ast, symTable);
+    TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
-    ASM_AST* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
+    ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
     generateASMFile(asm_ast, asmFileName, symTable);
     commandForObjectFile(asmFileName, objectFileName);

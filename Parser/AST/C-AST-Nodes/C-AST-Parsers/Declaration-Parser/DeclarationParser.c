@@ -43,6 +43,7 @@ IdentifierArray* C_parseFuncParameters(TokenList* tokens, CFuncType* funcType) {
         paramIdx++;
         containsParam = 1;
     }
+    funcType->func.paramCnt = paramIdx;
     return params;
 }
 

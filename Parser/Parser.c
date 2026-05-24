@@ -19,8 +19,8 @@ AST* parse(TokenList* tokens) {
     return ast;
 }
 
-TACKY_AST* astToTACKY_AST(AST* ast, SymbolTable* symTable) {
-    TACKY_AST* tacky_ast = malloc(sizeof(TACKY_AST));
+TACKY* astToTACKY_AST(AST* ast, SymbolTable* symTable) {
+    TACKY* tacky_ast = malloc(sizeof(TACKY));
     if (!tacky_ast) return NULL;
     tacky_ast->prog = parseTACKYProgram(ast->prog, symTable);
     if (!tacky_ast->prog) {
@@ -30,22 +30,22 @@ TACKY_AST* astToTACKY_AST(AST* ast, SymbolTable* symTable) {
     return tacky_ast;
 }
 
-void freeTACKY_AST(TACKY_AST* tacky_ast) {
+void freeTACKY_AST(TACKY* tacky_ast) {
     if (tacky_ast) {
         freeTackyProgram(tacky_ast->prog);
         free(tacky_ast);
     }
 }
 
-void printTACKY_AST(TACKY_AST* tacky_ast) {
+void printTACKY_AST(TACKY* tacky_ast) {
     if (tacky_ast) {
         printTACKYProgram(tacky_ast->prog);
     }
 }
 
 
-ASM_AST* tackyAstToASM_AST(TACKY_AST* ast, SymbolTable* symTable) {
-    ASM_AST* asm_ast = malloc(sizeof(ASM_AST));
+ASM* tackyAstToASM_AST(TACKY* ast, SymbolTable* symTable) {
+    ASM* asm_ast = malloc(sizeof(ASM));
     if (!asm_ast) return NULL;
     asm_ast->prog = parseASMprogram(ast->prog, symTable);
     if (!asm_ast->prog) {
@@ -55,7 +55,7 @@ ASM_AST* tackyAstToASM_AST(TACKY_AST* ast, SymbolTable* symTable) {
     return asm_ast;
 }
 
-void freeASM_AST(ASM_AST* asm_ast) {
+void freeASM_AST(ASM* asm_ast) {
     if (asm_ast) {
         freeASMProgram(asm_ast->prog);
         free(asm_ast);
@@ -73,6 +73,6 @@ void printAST(AST* ast) {
     C_printProgram(ast->prog);
 }
 
-void printASM_AST(ASM_AST* asm_ast) {
+void printASM_AST(ASM* asm_ast) {
     printASMProgram(asm_ast->prog);
 }

@@ -1,7 +1,5 @@
 #pragma once
-
 #include <stddef.h>
-
 #define TABLE_SIZE 64
 
 typedef struct Entry {

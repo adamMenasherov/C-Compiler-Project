@@ -355,7 +355,7 @@ ASMTopLevel* createASMStaticVarFromTACKYStaticVar(TACKYStaticVar* tackyStaticVar
         return NULL;
     }
     asmStaticVar->global = tackyStaticVar->global;
-    asmStaticVar->init = tackyStaticVar->init;
+    asmStaticVar->init = tackyStaticVar->initVal.val;
 
     return createTopLevel(ASM_TOP_LEVEL_STATIC_VAR, asmStaticVar);
 }

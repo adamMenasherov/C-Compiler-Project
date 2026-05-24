@@ -95,6 +95,25 @@ static void C_freeConditional(CConditional* conditional) {
     free(conditional);
 }
 
+static void C_freeCast(CCast* castNode) {
+    if (!castNode) return;
+    C_freeFactor(castNode->exp);
+    free(castNode);
+}
+
+static void C_freeFunctionCall(CFunctionCall* funcCall) {
+    if (!funcCall) return;
+    free(funcCall->identifier);
+    if (funcCall->arguments) {
+        for (int i = 0; i < ExpressionFactorArray_size(funcCall->arguments); i++) {
+            CFactor* arg = ExpressionFactorArray_get(funcCall->arguments, i);
+            C_freeFactor(arg);
+        }
+        ExpressionFactorArray_free(funcCall->arguments);
+    }
+    free(funcCall);
+}
+
 void C_freeProgram(CProgram* prog) {
     if (!prog) return;
     C_freeFunctions(prog->function_def);
@@ -221,6 +240,12 @@ void C_freeFactor(CFactor* factor) {
             break;
         case FACTOR_CONDITIONAL:
             C_freeConditional(factor->exp.conditional);
+            break;
+        case FACTOR_CAST:
+            C_freeCast(factor->exp.cast);
+            break;
+        case FACTOR_FUNCTION_CALL:
+            C_freeFunctionCall(factor->exp.funcCall);
             break;
     }
 

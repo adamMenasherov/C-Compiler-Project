@@ -352,6 +352,8 @@ CFactor* C_CreateCopyOfFactor(CFactor* original) {
             return C_CreateFactorFromConditional(original->exp.conditional);
         case FACTOR_FUNCTION_CALL:
             return C_CreateFactorFromFunctionCall(original->exp.funcCall);
+        case FACTOR_CAST:
+            return C_CreateFactorFromCast(original->exp.cast);
         default:
             fprintf(stderr, "Invalid factor type in C_CreateCopyOfFactor\n");
             return NULL;
@@ -373,7 +375,7 @@ CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor*
     decl->type = DECL_VAR;
     decl->decl.variableDecl.declType = type;
     decl->decl.variableDecl.exp = assign;
-    decl->decl.variableDecl.varType = C_CreateType(varType);
+    decl->decl.variableDecl.varType = varType;
     decl->decl.variableDecl.storageClass = storageClass;
     decl->decl.variableDecl.identifier = iden;
     return decl;

@@ -6,53 +6,52 @@
 #include "../ParserInclude.h"
 
 
-typedef void (*ParseIfStatementFunc)(CIf* if_stmt, TACKYInstructionList* instructionList, TACKYValue* cond);
+typedef void (*ParseIfStatementFunc)(CIf* if_stmt, TACKYInstructionList* instructionList, TACKYValue* cond, SymbolTable* symTable);
 ParseIfStatementFunc ifStatementParsers[] = {
     [IF_WITH_ELSE] = parseIfStatementWithElseInstructions,
     [IF_WITHOUT_ELSE] = parseIfStatementWithoutElseInstructions
 };
 
 
-void parseIfStatementInstructions(CIf* if_stmt, TACKYInstructionList* instructionList) {
+void parseIfStatementInstructions(CIf* if_stmt, TACKYInstructionList* instructionList, SymbolTable* symTable) {
     int isPostfixUnary = 0;
-    TACKYValue* cond = emit_TACKY(if_stmt->condition, instructionList, &isPostfixUnary);
-    ifStatementParsers[if_stmt->type](if_stmt, instructionList, cond);
+    TACKYValue* cond = emit_TACKY(if_stmt->condition, instructionList, &isPostfixUnary, symTable);
+    ifStatementParsers[if_stmt->type](if_stmt, instructionList, cond, symTable);
 }
 
-void parseIfStatementWithElseInstructions(CIf* if_stmt, TACKYInstructionList* instructionList, TACKYValue* cond) {
+void parseIfStatementWithElseInstructions(CIf* if_stmt, TACKYInstructionList* instructionList, TACKYValue* cond, SymbolTable* symTable) {
     char* endLabel = generateEndLabel();
     char* elseLabel = generateElseLabel();
     addInstructionToList(instructionList, 
         createJumpInstruction(TACKY_JUMP_IF_ZERO, elseLabel, cond));
-    parseStatementInstructions(if_stmt->then, instructionList);
+    parseStatementInstructions(if_stmt->then, instructionList, symTable);
     addInstructionToList(instructionList,
         createJumpInstruction(TACKY_JUMP, endLabel, NULL));
     addInstructionToList(instructionList,
         createLabelInstruction(elseLabel));
-    parseStatementInstructions(if_stmt->else_stmt, instructionList);
+    parseStatementInstructions(if_stmt->else_stmt, instructionList, symTable);
     addInstructionToList(instructionList,
         createLabelInstruction(endLabel));
 }
 
-void parseIfStatementWithoutElseInstructions(CIf* if_stmt, TACKYInstructionList* instructionList, TACKYValue* cond) {
+void parseIfStatementWithoutElseInstructions(CIf* if_stmt, TACKYInstructionList* instructionList, TACKYValue* cond, SymbolTable* symTable) {
     char* endLabel = generateEndLabel();
     addInstructionToList(instructionList, 
     createJumpInstruction(TACKY_JUMP_IF_ZERO, endLabel, cond));
-    parseStatementInstructions(if_stmt->then, instructionList);
+    parseStatementInstructions(if_stmt->then, instructionList, symTable);
     addInstructionToList(instructionList,
     createLabelInstruction(endLabel));
 }
 
-void parseSwitchStatementInstructions(CSwitch* switch_stmt, TACKYInstructionList* instructionList, TACKYValue* switchExp) {
+void parseSwitchStatementInstructions(CSwitch* switch_stmt, TACKYInstructionList* instructionList, TACKYValue* switchExp, SymbolTable* symTable) {
     char* endLabel = generateEndLabel();
     char* defaultLabel = switch_stmt->defaultCase ? generateDefaultLabel() : endLabel;
     char* caseLabels[MAX_CASES];
-    int isWithDefault = switch_stmt->defaultCase;
+    int isWithDefault = switch_stmt->defaultCase != NULL;
 
     for (int i = 0; i < switch_stmt->caseCount; i++) {
         caseLabels[i] = generateCaseLabel(switch_stmt->cases[i]->matchVal->val);
-        char* tmpChar = generateTempName();
-        TACKYValue* tmpVar = createVarValue(tmpChar);
+        TACKYValue* tmpVar = makeTACKYVariable(SPEC_INT, symTable);
         TACKYValue* caseExp = createTackyValueFromConstantNode(switch_stmt->cases[i]->matchVal);
         addInstructionToList(instructionList,
             createBinaryInstruction(BIN_EQUALS, switchExp, caseExp, tmpVar));
@@ -71,7 +70,7 @@ void parseSwitchStatementInstructions(CSwitch* switch_stmt, TACKYInstructionList
     for (int i = 0; i < switch_stmt->caseCount; i++) {
         addInstructionToList(instructionList,
             createLabelInstruction(caseLabels[i]));
-        parseStatementInstructions(switch_stmt->cases[i]->body, instructionList);
+        parseStatementInstructions(switch_stmt->cases[i]->body, instructionList, symTable);
         if (switch_stmt->cases[i]->hasBreak) {
             addInstructionToList(instructionList,
                 createJumpInstruction(TACKY_JUMP, endLabel, NULL));
@@ -80,7 +79,7 @@ void parseSwitchStatementInstructions(CSwitch* switch_stmt, TACKYInstructionList
     if (isWithDefault) {
         addInstructionToList(instructionList,
             createLabelInstruction(defaultLabel));
-        parseStatementInstructions(switch_stmt->defaultCase, instructionList);
+        parseStatementInstructions(switch_stmt->defaultCase, instructionList, symTable);
     }
     addInstructionToList(instructionList,
         createLabelInstruction(endLabel));

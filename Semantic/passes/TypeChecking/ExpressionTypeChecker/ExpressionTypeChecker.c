@@ -4,13 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int getFunctionParamCount(const CFuncType* funcType) {
-    int count = 0;
-    if (!funcType) return 0;
-    while (count < MAX_PARAMS && funcType->func.params[count] != NULL) {
-        count++;
-    }
-    return count;
+static inline int getFunctionParamCount(const CFuncType* funcType) {
+    return funcType->func.paramCnt;
 }
 
 static CFactor* convertTo(CFactor* expr, specifierType targetType) {

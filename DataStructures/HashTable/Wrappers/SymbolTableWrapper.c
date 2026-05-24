@@ -5,6 +5,28 @@
 #include <stdlib.h>
 #include <string.h>
 
+static const char* getInitialValueString(initialValue* initValue) {
+    if (!initValue) return "null";
+    switch (initValue->type) {
+        case INITIAL_TENTATIVE:
+            return "tentative";
+        case INITIAL_NO_VALUE:
+            return "no_value";
+        case INITIAL_WITH_VALUE:
+            switch (initValue->value.staticInitVal.staticInitType) {
+                case STATIC_INIT_INT:
+                    return "int_value";
+                case STATIC_INIT_LONG:
+                    return "long_value";
+                default:
+                    return "unknown_static_init_type";
+            }
+        default:
+            return "unknown_initial_value_type";
+    }
+}
+
+
 static size_t hashIdentifier(void* key) {
     IdentifierTypeInfo* info = (IdentifierTypeInfo*)key;
     char* str;
@@ -36,7 +58,7 @@ static int equalIdentifier(void* lhs, void* rhs) {
     return strcmp(left->identifier, right->identifier) == 0;
 }
 
-initialValue* createInitialValue(initialValueType type, int intValue) {
+initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, int intValue) {
     initialValue* value = malloc(sizeof(initialValue));
     if (!value) return NULL;
 
@@ -46,14 +68,15 @@ initialValue* createInitialValue(initialValueType type, int intValue) {
         case INITIAL_NO_VALUE:
             break;
         case INITIAL_WITH_VALUE:
-            value->value.intValue = intValue;
+            value->value.staticInitVal.staticInitType = staticInitType;
+            value->value.staticInitVal.val = intValue;
             break;
     }
     return value;
 }
 
 initialValue* createIntInitialValue(initialValueType type, int intValue) {
-    return createInitialValue(type, intValue);
+    return createInitialValue(STATIC_INIT_INT, type, intValue);
 }
 
 static int getFunctionParamCount(const CFuncType* funcType) {
@@ -93,7 +116,7 @@ identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global,
     identifierAttrs* attrs = malloc(sizeof(identifierAttrs));
     if (!attrs) return NULL;
 
-    if (!initValue) attrs->attrs.staticAttr.initValue = createInitialValue(INITIAL_NO_VALUE, 0);
+    if (!initValue) attrs->attrs.staticAttr.initValue = createInitialValue(STATIC_INIT_INT, INITIAL_NO_VALUE, 0);
     else attrs->attrs.staticAttr.initValue = initValue;
 
     attrs->attrType = attrType;
@@ -172,10 +195,16 @@ void printIdentifierTypeInfo(void* data) {
     if (!info) return;
     switch (info->type) {
         case TYPE_INT:
-        case TYPE_LONG:
-            printf("{ identifier: \"%s\", type: INT, uniqueName: \"%s\" }",
+        printf("{ identifier: \"%s\", type: INT, uniqueName: \"%s\" }, initialValue: %s }",
                 info->identifier,
-                info->varInfo.uniqueName ? info->varInfo.uniqueName : "");
+                info->varInfo.uniqueName ? info->varInfo.uniqueName : "",
+                getInitialValueString(info->attrs->attrs.staticAttr.initValue));
+            break;
+        case TYPE_LONG:
+            printf("{ identifier: \"%s\", type: LONG, uniqueName: \"%s\", initialValue: %s }",
+                info->identifier,
+                info->varInfo.uniqueName ? info->varInfo.uniqueName : "", 
+             getInitialValueString(info->attrs->attrs.staticAttr.initValue));
             break;
         case TYPE_FUNCTION:
             printf("{ identifier: \"%s\", type: FUNCTION, uniqueName: \"%s\", paramCount: %d, isDefined: %s  }",

@@ -1,13 +1,15 @@
 #include "TACKYProgram.h"
 #include "TACKY-Parsers/ParserInclude.h"
 #include "TACKYUtils/TACKYConstructors.h"
+#include "../generateUtils.h"
+#include "../../Semantic/utils/SemanticUtils/SemanticUtils.h"
 
 TACKYFunction* parseTACKYFunction(CDeclaration* func, SymbolTable* symTable) {
     if (func->type != DECL_FUNC) return NULL;
     if (!func->decl.functionDecl.body) return NULL;
     int global = isGlobalFunction(func, symTable);
     TACKYInstructionList* list = createTACKYInstructionList();
-    parseBlock(func->decl.functionDecl.body, list);
+    parseBlock(func->decl.functionDecl.body, list, symTable);
     return createTACKYFunction(func->decl.functionDecl.identifier,
         func->decl.functionDecl.parameters, list, global);
 }
@@ -25,4 +27,11 @@ TACKYProgram* parseTACKYProgram(CProgram* program, SymbolTable* symTable) {
     }
     symbolTableForEach(symTable, convertSymbolsToTACKY, tackyProg->topLevels);
     return tackyProg;
+}
+
+TACKYValue* makeTACKYVariable(specifierType type, SymbolTable* symTable) {
+    char* temp_name = generateTempName();
+    identifierAttrs* attrs = createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 1);
+    symbolTableInsert(symTable, temp_name, specifierTypeToIdentifierType(type), NULL, 0, attrs); 
+    return createVarValue(temp_name);
 }

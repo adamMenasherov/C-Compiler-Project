@@ -4,17 +4,22 @@
 typedef void (*StaticVarHandler)(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels);
 
 static void handleInitialWithValue(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
-    int val = symbol->attrs->attrs.staticAttr.initValue->value.intValue;
+    int val = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.val;
+    initialValueStaticInitType staticInitType = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.staticInitType;
     TACKYTopLevelArray_append(
         topLevels,
-        createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, val))
+        createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, val, staticInitType))
     );
 }
 
 static void handleInitialTentative(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
+    initialValueStaticInitType staticInitType = STATIC_INIT_INT;
+    if (symbol->type == TYPE_LONG) {
+        staticInitType = STATIC_INIT_LONG;
+    }
     TACKYTopLevelArray_append(
         topLevels,
-        createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, 0))
+        createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, 0, staticInitType))
     );
 }
 

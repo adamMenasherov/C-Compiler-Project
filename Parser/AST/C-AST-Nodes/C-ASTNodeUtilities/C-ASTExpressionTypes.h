@@ -8,12 +8,8 @@ typedef struct CFactor CFactor;
 #include "../../../../DataStructures/DynamicArray/Wrappers/BlockItemArrayWrapper.h"
 #include "../../../../DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
 #include "../../../../DataStructures/DynamicArray/Wrappers/ExpressionFactorWrapper.h"
+#include "../../../Common/SharedNodeEnums.h"
 typedef BlockItemArray CBlockItemList;
-
-typedef enum {
-    CONST_INT,
-    CONST_LONG
-} constantType;
 
 typedef enum {
     FACTOR_CONSTANT,
@@ -41,45 +37,11 @@ typedef struct {
     unsigned int isExtern : 1;
 } TypeFlags;
 
-typedef enum {
-    UNARY_COMPLEMENT,
-    UNARY_NEGATE,
-    UNARY_NOT,
-    UNARY_INCREMENT,
-    UNARY_DECREMENT,
-    UNARY_INCREMENT_PREFIX,
-    UNARY_INCREMENT_POSTFIX,
-    UNARY_DECREMENT_PREFIX,
-    UNARY_DECREMENT_POSTFIX,
-    UNARY_NOT_UNARY_OP
-} unaryType;
 
 typedef enum {
     IF_WITHOUT_ELSE,
     IF_WITH_ELSE
 } ifType;
-
-typedef enum {
-    BIN_SUBTRACT,
-    BIN_ADD,
-    BIN_MULTIPLY,
-    BIN_DIVIDE,
-    BIN_REMAINDER,
-    BIN_AND,
-    BIN_OR,
-    BIN_EQUALS,
-    BIN_NOT_EQUALS,
-    BIN_LESS_THAN,
-    BIN_LESS_EQUAL,
-    BIN_GREATER_THAN,
-    BIN_GREATER_EQUAL,
-    BIN_NOT_BINARY_OP,
-    BIN_BITWISE_AND,
-    BIN_BITWISE_OR,
-    BIN_BITWISE_XOR,
-    BIN_LEFT_SHIFT,
-    BIN_RIGHT_SHIFT
-} binType;
 
 typedef enum {
     STMT_RETURN,
@@ -169,6 +131,7 @@ typedef struct CFuncType {
     struct {
         struct CFuncType* params[MAX_PARAMS];
         struct CFuncType* ret;
+        int paramCnt;
     } func;
 } CFuncType;
 
@@ -273,7 +236,7 @@ typedef struct CDeclaration {
     union {
         struct {
             varDeclType declType;
-            CFuncType* varType;
+            specifierType varType;
             specifierType storageClass;
             char * identifier;
             CFactor* exp;

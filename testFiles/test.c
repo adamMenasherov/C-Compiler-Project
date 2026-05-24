@@ -1,10 +1,9 @@
-static int foo(int b) {
-    static int a = 5;
-    a++;
-    return a + b;
-}
+static long val = 5;
 
 int main() {
-    static int a = 4;
-    return foo(a);
+    int a = 10;
+    long b = 5;
+    int c = a + b;
+
+    return c;
 }

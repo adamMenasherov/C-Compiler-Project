@@ -111,13 +111,13 @@ CFactor* C_parseConditionalMiddle(TokenList* tokens) {
 
 
 CConstant* C_parseConstant(TokenList* tokens) {
-    uint64_t val = expectConstant(tokens);
-    constantType type; 
+    int type;
+    uint64_t val = expectConstant(tokens, &type);
     if (val > LONG_MAX) {
         fprintf(stderr, "Parser Error: Constant value %lu is too large to fit in a long or int\n", val);
         exit(1);
     }
-    if (val <= INT_MAX && !check(tokens, LONG_CONSTANT))
+    if (val <= INT_MAX && type == CONST_INT)
         type = CONST_INT;
     else 
         type = CONST_LONG;

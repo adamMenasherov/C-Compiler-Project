@@ -9,3 +9,6 @@ void setType(CFactor* expr, specifierType type);
 void setTypeConst(CFactor* expr, constantType type);
 specifierType getCommonType(specifierType type1, specifierType type2);
 int isBasicType(specifierType type);
+IdentifierType specifierTypeToIdentifierType(specifierType type);
+initialValueStaticInitType convertExpTypeToStaticInitType(specifierType expType);
+specifierType getType(CFactor* factor);

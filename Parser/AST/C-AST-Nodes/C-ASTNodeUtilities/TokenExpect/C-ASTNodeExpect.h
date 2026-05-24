@@ -2,12 +2,13 @@
 #include "../../../../../Lexer/Tokens/tokenList.h"
 #include "../../../../../Lexer/Tokens/token.h"
 #include "../C-ASTExpressionTypes.h"
+#include <stdint.h>
 
 int check(TokenList* tokens, TokenType type);
 int checkBinaryOp(TokenList* tokens);
 int checkUnaryOp(TokenList* tokens);
 int checkCompoundAssignment(TokenList* tokens);
-int expectConstant(TokenList* tokens);
+uint64_t expectConstant(TokenList* tokens, int* type);
 int lookAheadOne(TokenList* tokens, TokenType type);
 int lookAheadOneType(TokenList* tokens);
 void expect(TokenList* tokens, TokenType type);

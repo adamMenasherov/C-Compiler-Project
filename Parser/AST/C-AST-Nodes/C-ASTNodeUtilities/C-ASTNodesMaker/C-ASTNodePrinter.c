@@ -238,7 +238,7 @@ void C_printVarDeclaration(CDeclaration* decl) {
     }
 
     printf("Declaration(\"%s\"", decl->decl.variableDecl.identifier);
-    printf(", Type: %s, StorageClass: %s", getSpecifierTypeName(decl->decl.variableDecl.varType->type), 
+    printf(", Type: %s, StorageClass: %s", getSpecifierTypeName(decl->decl.variableDecl.varType), 
                 getSpecifierTypeName(decl->decl.variableDecl.storageClass));
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
         printf(", ");

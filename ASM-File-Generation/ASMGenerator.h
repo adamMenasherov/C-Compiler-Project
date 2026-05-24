@@ -11,8 +11,8 @@ typedef enum {
 } REGISTER_SIZE;
 
 
-void generateASMFile(ASM_AST* ast, char* asm_file_name, SymbolTable* symbolTable);
-void printAsmFileFromAst(ASM_AST *ast, FILE *fp, SymbolTable* symbolTable);
+void generateASMFile(ASM* ast, char* asm_file_name, SymbolTable* symbolTable);
+void printAsmFileFromAst(ASM *ast, FILE *fp, SymbolTable* symbolTable);
 const char * asmUnaryOperatorToString(ASMUnaryOperator op);
 const char * asmBinaryOperatorToString(ASMBinaryOperator op);
 const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size);

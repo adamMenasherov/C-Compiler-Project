@@ -58,3 +58,29 @@ specifierType getCommonType(specifierType type1, specifierType type2) {
 int isBasicType(specifierType type) {
     return type == SPEC_INT || type == SPEC_LONG;
 }
+
+IdentifierType specifierTypeToIdentifierType(specifierType type) {
+    switch (type) {
+        case SPEC_INT:
+            return TYPE_INT;
+        case SPEC_LONG:
+            return TYPE_LONG;
+        default:
+            fprintf(stderr, "Invalid specifier type in specifierTypeToIdentifierType\n");
+            exit(1);
+    }
+}
+
+initialValueStaticInitType convertExpTypeToStaticInitType(specifierType expType) {
+    switch (expType) {
+        case SPEC_INT: return STATIC_INIT_INT;
+        case SPEC_LONG: return STATIC_INIT_LONG;
+        default:
+            fprintf(stderr, "Semantic Error: Unsupported initializer type for file scope variable\n");
+            exit(1);
+    }
+}
+
+specifierType getType(CFactor* factor) {
+    return factor->valueType;
+}

@@ -65,6 +65,20 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printf(")");
             break;
         }
+        case TACKY_TRUNCATE:
+            printf("Truncate(");
+            printTACKYValue(inst->instValue.truncate.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.truncate.dest);
+            printf(")");
+            break;
+        case TACKY_SIGN_EXTEND:
+            printf("SignExtend(");
+            printTACKYValue(inst->instValue.signExtend.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.signExtend.dest);
+            printf(")");
+            break;
         case TACKY_JUMP:
             printf("Jump(\"%s\")", inst->instValue.jump.label);
             break;
@@ -111,16 +125,29 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
     }
 }
 
+static const char* getStaticInitTypeName(initialValueStaticInitType type) {
+    switch (type) {
+        case STATIC_INIT_INT:
+            return "INT";
+        case STATIC_INIT_LONG:
+            return "LONG";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+
 void printTACKYStaticVar(const TACKYStaticVar* staticVar) {
     if (!staticVar) {
         printf("<null static var>\n");
         return;
     }
 
-    printf("StaticVar(\"%s\", global=%d, init=%d)\n",
+    printf("StaticVar(\"%s\", global=%d, init=%d, static_init_type = %s)\n",
            staticVar->identifier ? staticVar->identifier : "<unnamed>",
            staticVar->global,
-           staticVar->init);
+            staticVar->initVal.val,
+            getStaticInitTypeName(staticVar->initVal.staticInitType));
 }
 
 void printTACKYTopLevel(const TACKYTopLevel* topLevel) {
