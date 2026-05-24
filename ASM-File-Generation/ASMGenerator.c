@@ -39,13 +39,13 @@ void printProgramToASMFile(ASMProgram* prog, FILE *fp, SymbolTable* symbolTable)
 void printStaticVarToASMFile(ASMStaticVar* staticVar, FILE *fp) {
     if (!staticVar || !staticVar->identifier) return;
 
-    if (staticVar->init == 0) {
-        fputs("   .bss\n   .align 4\n", fp);
+    if (staticVar->initVal.val == 0) {
+        fprintf(fp, "   .bss\n   .align %d\n", staticVar->alignment);
         if (staticVar->global) {
             fprintf(fp, "   .globl %s\n", staticVar->identifier);
         }
         fprintf(fp, "%s:\n", staticVar->identifier);
-        fputs("\t.zero 4\n", fp);
+        fprintf(fp, "\t.zero %d\n", staticVar->size);
         return;
     }
 
@@ -54,7 +54,7 @@ void printStaticVarToASMFile(ASMStaticVar* staticVar, FILE *fp) {
         fprintf(fp, "   .globl %s\n", staticVar->identifier);
     }
     fprintf(fp, "%s:\n", staticVar->identifier);
-    fprintf(fp, "\t.long %d\n", staticVar->init);
+    fprintf(fp, "\t.long %d\n", staticVar->initVal.val);
 }
 
 

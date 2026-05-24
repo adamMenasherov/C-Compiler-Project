@@ -24,7 +24,7 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func, SymbolTable* symTable);
  * @param instruction The TACKY function call instruction containing the arguments to be moved
  * @param asmInstructionList The ASM instruction list to which the generated instructions will be appended
  */
-void addArgsAsInstructionsToFunc(TACKYInstructionList* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable);
+void addArgsAsInstructionsToFunc(TACKYFunction* tacky_func, ASMInstructionList* asmInstructionList, SymbolTable* symTable);
 
 /**
  * @brief Parses a TACKY return instruction and emits the corresponding ASM instructions to move the return value into the AX register and perform the return.
@@ -59,6 +59,25 @@ void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionL
  * @param asmInstructionList The list of ASM instructions to append the generated instructions to
  */
 void parseASMUnaryInstruction(TACKYInstruction* tackyInstList, ASMInstructionList* asmInstructionList, SymbolTable* symTable);
+
+/**
+ * @brief Parses a TACKY sign extension instruction and emits the corresponding ASM instructions to perform the sign extension from the source to the destination.
+ * 
+ * @param instruction The TACKY instruction representing the sign extension operation
+ * @param asmInstructionList The ASM instruction list to which the generated instructions will be appended
+ * @param symTable The symbol table for variable lookups and type information
+ */
+void parseASMSignExtendInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable);
+
+
+/**
+ * @brief Parses a TACKY truncate instruction and emits the corresponding ASM instructions to perform the truncation from the source to the destination.
+ * 
+ * @param instruction The TACKY instruction representing the truncate operation
+ * @param asmInstructionList The ASM instruction list to which the generated instructions will be appended
+ * @param symTable The symbol table for variable lookups and type information
+ */
+void parseASMTruncateInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable);
 
 
 /**

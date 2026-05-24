@@ -14,6 +14,7 @@ typedef enum {
     ASM_ALLOCATESTACK,
     ASM_DEALLOCATESTACK,
     ASM_MOV,
+    ASM_MOVSX,
     ASM_BINARY,
     ASM_CDQ,
     ASM_IDIV,
@@ -79,6 +80,7 @@ typedef enum {
     DX,
     DI,
     SI,
+    SP,
     R8,
     R9,
     R10,
@@ -127,18 +129,23 @@ typedef struct ASMInstruction {
             ASMOperand* op2;
         } binary;
         struct {
+            ASMType asmType;
             ASMOperand* divisor;
         } idiv;
         struct {
             char* identifier;
         } label;
         struct {
+            ASMType asmType;
             ASMOperand* op1;
             ASMOperand* op2;
         } cmp;
         struct {
             char * label;
         } jmp;
+        struct {
+            ASMType asmType;
+        } cdq;
         struct {
             ASMCondCode cond;
             char* label;
@@ -208,3 +215,6 @@ int isRelationalOp(binType type);
  * @return ASMCondCode The condition code corresponding to the given relational operator type
  */
 ASMCondCode getCondCodeForRelationalOp(binType type);
+ASMType convertTACKYTypeToASMType(TACKYValue* val);
+ASMType convertSpecifierTypeToASMType(specifierType type);
+ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info);

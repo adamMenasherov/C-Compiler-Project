@@ -105,10 +105,11 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
  * Instruction Creation Implementation
  * ============================================================ */
 
-ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest, SymbolTable* symTable) {
+ASMInstruction* createASMUnaryInstruction(unaryType type, ASMType asmType, TACKYValue* dest, SymbolTable* symTable) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_UNARY;
+    inst->instValue.unary.asmType = asmType;
     switch (type) {
         case UNARY_NEGATE:
             inst->instValue.unary.type = ASM_UNARY_NEG;
@@ -134,10 +135,11 @@ ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest, Symb
     return inst;
 }
 
-ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOperand* op2) {
+ASMInstruction* createASMBinaryInstruction(binType type, ASMType asmType, ASMOperand* op1, ASMOperand* op2) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_BINARY;
+    inst->instValue.binary.asmType = asmType;
     switch (type) {
         case BIN_ADD:
             inst->instValue.binary.type = ASM_BINARY_ADD;
@@ -172,10 +174,11 @@ ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOpe
     return inst;
 }
 
-ASMInstruction* createMovInstruction(ASMOperand* src, ASMOperand* dest) {
+ASMInstruction* createMovInstruction(ASMType asmType, ASMOperand* src, ASMOperand* dest) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_MOV;
+    inst->instValue.mov.asmType = asmType;
     inst->instValue.mov.operand1 = src;
     inst->instValue.mov.operand2 = dest;
     return inst;
@@ -189,20 +192,39 @@ ASMInstruction* createAllocStackInstruction(int size) {
     return inst;
 }
 
-ASMInstruction* createIdivInstruction(ASMOperand* divisor) {
+ASMInstruction* createIdivInstruction(ASMOperand* divisor, ASMType asmType) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_IDIV;
+    inst->instValue.idiv.asmType = asmType;
     inst->instValue.idiv.divisor = divisor;  // Use correct idiv union member
     return inst;
 }
 
-ASMInstruction* createASMCmpInstruction(ASMOperand* op1, ASMOperand* op2) {
+ASMInstruction* createASMCmpInstruction(ASMType asmType, ASMOperand* op1, ASMOperand* op2) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_CMP;
+    inst->instValue.cmp.asmType = asmType;
     inst->instValue.cmp.op1 = op1;
     inst->instValue.cmp.op2 = op2;
+    return inst;
+}
+
+ASMInstruction* createASMCDQInstruction(ASMType asmType) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_CDQ;
+    inst->instValue.cdq.asmType = asmType;
+    return inst;
+}
+
+ASMInstruction* createASMMovsxInstruction(ASMOperand* src, ASMOperand* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_MOVSX;
+    inst->instValue.movsx.operand1 = src;
+    inst->instValue.movsx.operand2 = dest;
     return inst;
 }
 
@@ -278,8 +300,11 @@ ASMInstruction* createASMReturnInstruction() {
 ASMInstruction* createASMAllocateStackInstruction(int size) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
-    inst->type = ASM_ALLOCATESTACK;
-    inst->instValue.allocatestack.size = size;
+    inst->type = ASM_BINARY;
+    inst->instValue.binary.type = ASM_BINARY_SUBTRACT; // Use SUBTRACT to represent stack allocation (e.g., SUB RSP, size)
+    inst->instValue.binary.asmType = ASM_QUADWORD; 
+    inst->instValue.binary.op2 = createRegisterOperand(SP); 
+    inst->instValue.binary.op1 = createImmediateOperand(size);
     return inst;
 }
 
@@ -298,8 +323,11 @@ ASMInstruction* createASMCallInstruction(char* functionName) {
 ASMInstruction* createASMDeallocateStackInstruction(int size) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
-    inst->type = ASM_DEALLOCATESTACK; 
-    inst->instValue.allocatestack.size = size; 
+    inst->type = ASM_BINARY;
+    inst->instValue.binary.type = ASM_BINARY_ADD; // Use ADD to represent stack deallocation (e.g., ADD RSP, size)
+    inst->instValue.binary.asmType = ASM_QUADWORD; 
+    inst->instValue.binary.op2 = createRegisterOperand(SP); 
+    inst->instValue.binary.op1 = createImmediateOperand(size);
     return inst;
 }
 

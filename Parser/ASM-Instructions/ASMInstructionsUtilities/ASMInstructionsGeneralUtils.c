@@ -19,3 +19,30 @@ ASMCondCode getCondCodeForRelationalOp(binType type) {
         default: return -1; // Invalid relational operator
     }
 }
+
+
+ASMType convertTACKYTypeToASMType(TACKYValue* val) {
+    if (val->constant->type == CONST_INT) {
+        return ASM_LONGWORD;
+    } else if (val->constant->type == CONST_LONG) {
+        return ASM_QUADWORD;
+    }
+    return ASM_LONGWORD; // Default to longword for variables (assuming 32-bit)
+}
+
+ASMType convertSpecifierTypeToASMType(specifierType type) {
+    switch (type) {
+        case SPEC_INT: return ASM_LONGWORD;
+        case SPEC_LONG: return ASM_QUADWORD;
+        default: return ASM_LONGWORD; // Default to longword for other types
+    }
+}
+
+ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info) {
+    if (!info) return ASM_LONGWORD; // Default to longword for unknown types
+    switch (info->type) {
+        case TYPE_INT: return ASM_LONGWORD;
+        case TYPE_LONG: return ASM_QUADWORD;
+        default: return ASM_LONGWORD; // Default to longword for other types
+    }
+}

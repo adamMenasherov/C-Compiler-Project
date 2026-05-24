@@ -433,3 +433,7 @@ int isCompoundAssignment(Token* tok) {
         default: return 0;
     }
 }
+
+specifierType getTypeFromCFuncType(CFuncType* type) {
+    return type->type;
+}

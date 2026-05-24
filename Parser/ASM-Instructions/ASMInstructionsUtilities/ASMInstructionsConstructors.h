@@ -74,7 +74,7 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable);
  * @param dest The destination operand where the result will be stored
  * @return A pointer to the created ASMInstruction
  */
-ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest, SymbolTable* symTable);
+ASMInstruction* createASMUnaryInstruction(unaryType type, ASMType asmType, TACKYValue* dest, SymbolTable* symTable);
 
 /**
  * @brief Creates an ASMInstruction representing a binary operation (e.g. ADD, SUB, MUL).
@@ -84,7 +84,7 @@ ASMInstruction* createASMUnaryInstruction(unaryType type, TACKYValue* dest, Symb
  * @param op2 The second operand for the binary operation
  * @return A pointer to the created ASMInstruction
  */
-ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOperand* op2);
+ASMInstruction* createASMBinaryInstruction(binType type, ASMType asmType, ASMOperand* op1, ASMOperand* op2);
 
 /**
  * @brief Create a Mov Instruction object
@@ -93,7 +93,7 @@ ASMInstruction* createASMBinaryInstruction(binType type, ASMOperand* op1, ASMOpe
  * @param dest The destination operand for the MOV instruction
  * @return ASMInstruction* pointer to the created MOV instruction 
  */
-ASMInstruction* createMovInstruction(ASMOperand* src, ASMOperand* dest);
+ASMInstruction* createMovInstruction(ASMType asmType, ASMOperand* src, ASMOperand* dest);
 
 /**
  * @brief Create a Alloc Stack Instruction object
@@ -109,7 +109,7 @@ ASMInstruction* createAllocStackInstruction(int size);
  * @param divisor The operand representing the divisor for the IDIV instruction
  * @return ASMInstruction* pointer to the created IDIV instruction
  */
-ASMInstruction* createIdivInstruction(ASMOperand* divisor);
+ASMInstruction* createIdivInstruction(ASMOperand* divisor, ASMType asmType);
 
 /**
  * @brief Create a Cmp Instruction object
@@ -118,7 +118,27 @@ ASMInstruction* createIdivInstruction(ASMOperand* divisor);
  * @param op2 The second operand for the comparison
  * @return ASMInstruction* pointer to the created CMP instruction
  */
-ASMInstruction* createASMCmpInstruction(ASMOperand* op1, ASMOperand* op2);
+ASMInstruction* createASMCmpInstruction(ASMType asmType, ASMOperand* op1, ASMOperand* op2);
+
+
+/**
+ * @brief Create a CDQ Instruction object
+ * 
+ * @param asmType The type of the CDQ instruction (e.g. LONGWORD, QUADWORD)
+ * @return ASMInstruction* pointer to the created CDQ instruction
+ */
+ASMInstruction* createASMCDQInstruction(ASMType asmType);
+
+
+/**
+ * @brief Create a MOVSX Instruction object
+ * 
+ * @param src The source operand for the MOVSX instruction
+ * @param dest The destination operand for the MOVSX instruction
+ * @return ASMInstruction* pointer to the created MOVSX instruction
+ */
+ASMInstruction* createASMMovsxInstruction(ASMOperand* src, ASMOperand* dest);
+
 
 /**
  * @brief Create a Jump Instruction object
