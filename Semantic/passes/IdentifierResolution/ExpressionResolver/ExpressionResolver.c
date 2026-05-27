@@ -52,6 +52,10 @@ static void handleFactorConditional(CFactor* fact, SemanticIdentifierMap* varMap
     resolveExpression(fact->exp.conditional->else_stmt, varMap, symbolTable);
 }
 
+static void handleFactorCast(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
+    resolveExpression(fact->exp.cast->exp, varMap, symbolTable);
+}
+
 static void handleFactorFunctionCall(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
     char* uniqueName = semanticMapGet(varMap, fact->exp.funcCall->identifier);
     if (!uniqueName) {
@@ -73,6 +77,7 @@ typedef void (*FactorHandler)(CFactor*, SemanticIdentifierMap*, SymbolTable*);
 static const FactorHandler factorHandlers[] = {
     [FACTOR_CONSTANT]      = handleFactorConstant,
     [FACTOR_UNARY]         = handleFactorUnary,
+    [FACTOR_CAST]          = handleFactorCast,
     [FACTOR_BINARY]        = handleFactorBinary,
     [FACTOR_VAR]           = handleFactorVar,
     [FACTOR_ASSIGNMENT]    = handleFactorAssignment,

@@ -21,13 +21,20 @@ ASMCondCode getCondCodeForRelationalOp(binType type) {
 }
 
 
-ASMType convertTACKYTypeToASMType(TACKYValue* val) {
-    if (val->constant->type == CONST_INT) {
-        return ASM_LONGWORD;
-    } else if (val->constant->type == CONST_LONG) {
-        return ASM_QUADWORD;
+ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable) {
+    if (!val) return ASM_LONGWORD;
+
+    if (val->type == TACKY_CONSTANT && val->constant) {
+        if (val->constant->type == CONST_INT) return ASM_LONGWORD;
+        if (val->constant->type == CONST_LONG) return ASM_QUADWORD;
     }
-    return ASM_LONGWORD; // Default to longword for variables (assuming 32-bit)
+
+    if ((val->type == TACKY_VAR || val->type == TACKY_STATIC) && val->identifier && symTable) {
+        IdentifierTypeInfo* info = symbolTableLookup(symTable, val->identifier);
+        if (info) return convertIdentifierTypeToASMType(info);
+    }
+
+    return ASM_LONGWORD;
 }
 
 ASMType convertSpecifierTypeToASMType(specifierType type) {

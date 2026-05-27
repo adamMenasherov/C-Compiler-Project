@@ -44,7 +44,7 @@ ASMOperand* createRegisterOperand(Register reg);
  * @param value The immediate value to be stored in the operand
  * @return ASMOperand* pointer to the created immediate operand
  */
-ASMOperand* createImmediateOperand(int value);
+ASMOperand* createImmediateOperand(uint64_t value);
 
 /**
  * @brief Create a Stack Operand object

@@ -1,11 +1,12 @@
 #include "SymbolTableWrapper.h"
 #include "Parser/AST/C-AST-Nodes/C-ASTNodes.h"
+#include "Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTOperatorNames.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static const char* getInitialValueString(initialValue* initValue) {
+static const char* getInitialValueTypeString(initialValue* initValue) {
     if (!initValue) return "null";
     switch (initValue->type) {
         case INITIAL_TENTATIVE:
@@ -18,12 +19,37 @@ static const char* getInitialValueString(initialValue* initValue) {
                     return "int_value";
                 case STATIC_INIT_LONG:
                     return "long_value";
+                case STATIC_INIT_UNSIGNED_INT:
+                    return "unsigned_int_value";
+                case STATIC_INIT_UNSIGNED_LONG:
+                    return "unsigned_long_value";
                 default:
                     return "unknown_static_init_type";
             }
         default:
             return "unknown_initial_value_type";
     }
+}
+
+static const char* getTypeString(IdentifierType type) {
+    switch (type) {
+        case TYPE_INT:
+            return "int";
+        case TYPE_LONG:
+            return "long";
+        case TYPE_UNSIGNED_INT:
+            return "unsigned int";
+        case TYPE_UNSIGNED_LONG:
+            return "unsigned long";
+        case TYPE_FUNCTION:
+            return "function";
+        default:
+            return "unknown";
+    }
+}
+
+static void getInitialValueString(initialValue* initValue, char* dest, size_t destSize) {
+    snprintf(dest, destSize, "%lu", initValue->value.staticInitVal.val);
 }
 
 
@@ -58,7 +84,7 @@ static int equalIdentifier(void* lhs, void* rhs) {
     return strcmp(left->identifier, right->identifier) == 0;
 }
 
-initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, int intValue) {
+initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, long intValue) {
     initialValue* value = malloc(sizeof(initialValue));
     if (!value) return NULL;
 
@@ -75,7 +101,7 @@ initialValue* createInitialValue(initialValueStaticInitType staticInitType, init
     return value;
 }
 
-initialValue* createIntInitialValue(initialValueType type, int intValue) {
+initialValue* createIntInitialValue(initialValueType type, long intValue) {
     return createInitialValue(STATIC_INIT_INT, type, intValue);
 }
 
@@ -191,28 +217,23 @@ void freeIdentifierTypeInfo(void* data) {
 }
 
 void printIdentifierTypeInfo(void* data) {
+    char initVal[21];
     IdentifierTypeInfo* info = (IdentifierTypeInfo*)data;
     if (!info) return;
-    switch (info->type) {
-        case TYPE_INT:
-        printf("{ identifier: \"%s\", type: INT, uniqueName: \"%s\" }, initialValue: %s }",
-                info->identifier,
-                info->varInfo.uniqueName ? info->varInfo.uniqueName : "",
-                getInitialValueString(info->attrs->attrs.staticAttr.initValue));
-            break;
-        case TYPE_LONG:
-            printf("{ identifier: \"%s\", type: LONG, uniqueName: \"%s\", initialValue: %s }",
-                info->identifier,
-                info->varInfo.uniqueName ? info->varInfo.uniqueName : "", 
-             getInitialValueString(info->attrs->attrs.staticAttr.initValue));
-            break;
-        case TYPE_FUNCTION:
-            printf("{ identifier: \"%s\", type: FUNCTION, uniqueName: \"%s\", paramCount: %d, isDefined: %s  }",
-                info->identifier,
-                info->funcInfo.uniqueName ? info->funcInfo.uniqueName : "",
-                getFunctionParamCount(info->funcInfo.funcType),
-                info->funcInfo.isDefined ? "true" : "false");
-            break;
+    if (info->type == TYPE_FUNCTION) {
+        printf("{ Identifier: %s, Type: Function, UniqueName: %s, FuncType: %s, IsDefined: %d }\n",
+            info->identifier,
+            info->funcInfo.uniqueName ? info->funcInfo.uniqueName : "null",
+            info->funcInfo.funcType ? getSpecifierTypeName(info->funcInfo.funcType->type) : "null",
+            info->funcInfo.isDefined);
+    } else {
+        getInitialValueString(info->attrs->attrs.staticAttr.initValue, initVal, sizeof(initVal));
+        printf("{ Identifier: %s, Type: %s, UniqueName: %s, initValType: %s, initVal: %s }\n",
+            info->identifier,
+            getTypeString(info->type),
+            info->varInfo.uniqueName ? info->varInfo.uniqueName : "null",
+            getInitialValueTypeString(info->attrs->attrs.staticAttr.initValue),
+            initVal);
     }
 }
 

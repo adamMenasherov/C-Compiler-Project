@@ -10,6 +10,7 @@ typedef enum {
     CC_DIGIT, // [0-9]
     CC_EXACT, // an exact character
     CC_LONG_SUFFIX, // [lL]
+    CC_SIGNED_SUFFIX, // [uU]
     CC_NO_CHARS // For epsilon transitions
 } CharClass;
 

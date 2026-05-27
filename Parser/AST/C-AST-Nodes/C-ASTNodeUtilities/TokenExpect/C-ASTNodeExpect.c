@@ -2,7 +2,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <limits.h>
 #include "../../../../../Lexer/Tokens/token.h"
+
+static int isConstantType(TokenType type) {
+    return type == CONSTANT || type == LONG_CONSTANT ||
+        type == UNSIGNED_CONSTANT || type == UNSIGNED_LONG_CONSTANT;
+}
+
+static int getConstantType(TokenType type) {
+    switch(type) {
+        case CONSTANT: return CONST_INT;
+        case LONG_CONSTANT: return CONST_LONG;
+        case UNSIGNED_CONSTANT: return CONST_UNSIGNED_INT;
+        case UNSIGNED_LONG_CONSTANT: return CONST_UNSIGNED_LONG;
+        default:
+            fprintf(stderr, "Parser Error: Expected constant token but got %s\n",
+                    tokenTypeToToken(type));
+            exit(1);
+    }
+}
 
 int tokensLeft(TokenList* tokens) {
     return TokenArray_getCursor(tokens->array) < TokenArray_size(tokens->array);
@@ -56,7 +75,9 @@ int checkSpecifier(TokenList* tokens) {
     return check(tokens, INT_KEYWORD)
         || check(tokens, STATIC_KEYWORD)
         || check(tokens, EXTERN_KEYWORD) 
-        || check(tokens, LONG_KEYWORD);
+        || check(tokens, LONG_KEYWORD)
+        || check(tokens, UNSIGNED)
+        || check(tokens, SIGNED);
 }
     
 uint64_t expectConstant(TokenList* tokens, int* type) {
@@ -67,14 +88,29 @@ uint64_t expectConstant(TokenList* tokens, int* type) {
 
     int cursor = TokenArray_getCursor(tokens->array);
     Token* tok = TokenArray_get(tokens->array, cursor);
-    if (!tok || (tok->type != CONSTANT && tok->type != LONG_CONSTANT)) {
+    if (!tok || isConstantType(tok->type) == 0) {
         fprintf(stderr, "Parser Error: Expected constant value but got %s\n", 
             tok ? tok->value : "NULL");
         exit(1);
     }
     TokenArray_setCursor(tokens->array, cursor + 1);
-    *type = (tok->type == CONSTANT) ? CONST_INT : CONST_LONG;
+    *type = getConstantType(tok->type);
+
     return strtoull(tok->value, NULL, 10);
+}
+
+constantType determineConstantType(uint64_t val, constantType type) {
+    if (type == CONST_UNSIGNED_LONG || type == CONST_LONG) return type;
+    else if (type == CONST_UNSIGNED_INT) {
+        if (val <= UINT_MAX && val >= 0) return type;
+        else return CONST_UNSIGNED_LONG;
+    }
+    else if (type == CONST_INT) {
+        if (val <= INT_MAX && val >= INT_MIN) return type;
+        else if (val <= LONG_MAX && val >= LONG_MIN) return CONST_LONG;
+        else return CONST_UNSIGNED_LONG;
+    }
+    
 }
 
 binType compoundAssignmentToBinType(TokenType type) {

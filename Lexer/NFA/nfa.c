@@ -26,6 +26,7 @@ int mapToCharClass(char c, CharClass cc, char exactC) {
     switch (cc) {
         case CC_ALPHA_UNDER: return isalpha(c) || c == '_'; break;
         case CC_DIGIT: return isdigit(c); break;
+        case CC_SIGNED_SUFFIX: return c == 'u' || c == 'U'; break;
         case CC_ALPHA_DIGIT: return isalnum(c) || c == '_'; break;
         case CC_LONG_SUFFIX: return c == 'l' || c == 'L'; break;
         case CC_EXACT: return c == exactC; break;
@@ -66,16 +67,23 @@ static NFA* nfaForIdentifiers() {
 static NFA* nfaForConstants() {
     NFA* nfa = calloc(1, sizeof(NFA));
     if (!nfa) return NULL;
-    int q0, q1, q2;
+    int q0, q1, q2, q3, q4;
 
     q0 = addStateToNFA(nfa, NOT_ACCEPTING);
     q1 = addStateToNFA(nfa, CONSTANT);
     q2 = addStateToNFA(nfa, LONG_CONSTANT);
+    q3 = addStateToNFA(nfa, UNSIGNED_CONSTANT);
+    q4 = addStateToNFA(nfa, UNSIGNED_LONG_CONSTANT);
 
     addTransitionToNFA(nfa, q0, q1, CC_DIGIT, '\0'); 
     addTransitionToNFA(nfa, q1, q1, CC_DIGIT, '\0'); // Loop for digit
-    addTransitionToNFA(nfa, q1, q2, CC_LONG_SUFFIX, '\0'); // If reaching the long suffix, then it is a long constant
-    addTransitionToNFA(nfa, q2, q2, CC_LONG_SUFFIX, '\0'); // Allow multiple long suffixes, because they're valid
+    //If reaching the long suffix, then it is a long constant
+    addTransitionToNFA(nfa, q1, q2, CC_LONG_SUFFIX, '\0');
+    //If reaching the unsigned suffix, then it is an unsigned constant
+    addTransitionToNFA(nfa, q1, q3, CC_SIGNED_SUFFIX, '\0');
+    //If reaching both the unsigned and long suffix, then it is an unsigned long constant
+    addTransitionToNFA(nfa, q2, q4, CC_SIGNED_SUFFIX, '\0');
+    addTransitionToNFA(nfa, q3, q4, CC_LONG_SUFFIX, '\0');
 
     return nfa;
 }

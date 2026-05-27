@@ -31,7 +31,8 @@ CFactor* C_parseFactor(TokenList* tokens) {
         return parsePostfixOperators(C_CreateFactorFromCast(C_parseCast(tokens)), tokens);
     }
 
-    if (check(tokens, CONSTANT) || check(tokens, LONG_CONSTANT)) {
+    if (check(tokens, CONSTANT) || check(tokens, LONG_CONSTANT)
+        || check(tokens, UNSIGNED_CONSTANT) || check(tokens, UNSIGNED_LONG_CONSTANT)) {
         return parsePostfixOperators(C_CreateFactorFromConstant(C_parseConstant(tokens)), tokens);
     }
 
@@ -113,16 +114,7 @@ CFactor* C_parseConditionalMiddle(TokenList* tokens) {
 CConstant* C_parseConstant(TokenList* tokens) {
     int type;
     uint64_t val = expectConstant(tokens, &type);
-    if (val > LONG_MAX) {
-        fprintf(stderr, "Parser Error: Constant value %lu is too large to fit in a long or int\n", val);
-        exit(1);
-    }
-    if (val <= INT_MAX && type == CONST_INT)
-        type = CONST_INT;
-    else 
-        type = CONST_LONG;
-
-    return C_CreateConstant(val, type);
+    return C_CreateConstant(val, determineConstantType(val, type));
 }
 
 CVar* C_parseVar(TokenList* tokens) {

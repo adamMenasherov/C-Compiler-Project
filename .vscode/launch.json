@@ -29,7 +29,7 @@
       "program": "${workspaceFolder}/compiler",
       "preLaunchTask": "build compiler",
       "args": [
-        "${workspaceFolder}/t1.c"
+        "${workspaceFolder}/testFiles/test.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

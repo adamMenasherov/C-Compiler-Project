@@ -2,7 +2,7 @@
 #include "../C-ASTExpressionTypes.h"
 #include "../../C-ASTNodes.h"
 
-CConstant* C_CreateConstant(int val, constantType type);
+CConstant* C_CreateConstant(uint64_t val, constantType type);
 CVar* C_CreateVar(char* identifier);
 CReturn* C_CreateReturn(CFactor* exp);
 CLoopStmt* C_CreateLoopStmt();

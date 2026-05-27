@@ -6,6 +6,24 @@
 #include "../Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
 #include "../DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
 
+static char* turnStaticInitTypeToAsm(initialValueStaticInitType type) {
+    switch (type) {
+        case STATIC_INIT_INT: return "long";
+        case STATIC_INIT_LONG: return "quad";
+        case STATIC_INIT_UNSIGNED_INT: return "long";
+        case STATIC_INIT_UNSIGNED_LONG: return "quad";
+        default: return "<unknown static init type>";
+    }
+}
+
+static char* turnASMTypeToAsm(ASMType type) {
+    switch (type) {
+        case ASM_LONGWORD: return "l";
+        case ASM_QUADWORD: return "q";
+        default: return "<unknown asm type>";
+    }
+}
+
 
 void generateASMFile(ASM* ast, char* asm_file_name, SymbolTable* symbolTable) {
     FILE* fp = fopen(asm_file_name, "w");
@@ -45,16 +63,17 @@ void printStaticVarToASMFile(ASMStaticVar* staticVar, FILE *fp) {
             fprintf(fp, "   .globl %s\n", staticVar->identifier);
         }
         fprintf(fp, "%s:\n", staticVar->identifier);
-        fprintf(fp, "\t.zero %d\n", staticVar->size);
+        fprintf(fp, "\t.zero %d\n", staticVar->alignment);
         return;
     }
 
     fputs("   .data\n", fp);
+    fprintf(fp, "   .align %d\n", staticVar->alignment);
     if (staticVar->global) {
         fprintf(fp, "   .globl %s\n", staticVar->identifier);
     }
     fprintf(fp, "%s:\n", staticVar->identifier);
-    fprintf(fp, "\t.long %d\n", staticVar->initVal.val);
+    fprintf(fp, "\t.%s %ld\n", turnStaticInitTypeToAsm(staticVar->initVal.staticInitType), staticVar->initVal.val);
 }
 
 
@@ -81,18 +100,22 @@ void printFunctionEpilogueToASMFile(FILE* fp) {
 
 void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, SymbolTable* symbolTable) {
     switch(inst->type) {
+        
         case ASM_MOV:
         {
-            fputs("\tmovl ", fp);
-            printOperandToASMFile(inst->instValue.mov.operand1, fp, REGISTER_32_BIT);
+            REGISTER_SIZE size = inst->instValue.mov.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            fprintf(fp, "\tmov%s ", turnASMTypeToAsm(inst->instValue.mov.asmType));
+            printOperandToASMFile(inst->instValue.mov.operand1, fp, size);
             fputs(", ", fp);
-            printOperandToASMFile(inst->instValue.mov.operand2, fp, REGISTER_32_BIT);
+            printOperandToASMFile(inst->instValue.mov.operand2, fp, size);
             fputc('\n', fp);
             break;
         }
         case ASM_UNARY: {
-            fprintf(fp, "\t%s ", asmUnaryOperatorToString(inst->instValue.unary.type));
-            printOperandToASMFile(inst->instValue.unary.op, fp, REGISTER_32_BIT);
+            REGISTER_SIZE size = inst->instValue.unary.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            fprintf(fp, "\t%s%s ", asmUnaryOperatorToString(inst->instValue.unary.type),
+                    turnASMTypeToAsm(inst->instValue.unary.asmType));
+            printOperandToASMFile(inst->instValue.unary.op, fp, size);
             fputc('\n', fp);
             break;
         }
@@ -117,34 +140,43 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, SymbolTable* sym
         }
 
         case ASM_CMP: {
-            fputs("\tcmpl ", fp);
-            printOperandToASMFile(inst->instValue.cmp.op1, fp, REGISTER_32_BIT);
+            REGISTER_SIZE size = inst->instValue.cmp.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            fprintf(fp, "\tcmp%s ", turnASMTypeToAsm(inst->instValue.cmp.asmType));
+            printOperandToASMFile(inst->instValue.cmp.op1, fp, size);
             fputs(", ", fp);
-            printOperandToASMFile(inst->instValue.cmp.op2, fp, REGISTER_32_BIT);
+            printOperandToASMFile(inst->instValue.cmp.op2, fp, size);
             fputc('\n', fp);
             break;
         }
 
         case ASM_BINARY: {
-            fprintf(fp, "\t%s ", asmBinaryOperatorToString(inst->instValue.binary.type));
+            REGISTER_SIZE size = inst->instValue.binary.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            fprintf(fp, "\t%s%s ", asmBinaryOperatorToString(inst->instValue.binary.type),
+                    turnASMTypeToAsm(inst->instValue.binary.asmType));
             if (inst->instValue.binary.type == ASM_BINARY_SHIFT_LEFT || inst->instValue.binary.type == ASM_BINARY_SHIFT_RIGHT) 
                 printOperandToASMFile(inst->instValue.binary.op1, fp, REGISTER_8_BIT);
             else 
-                printOperandToASMFile(inst->instValue.binary.op1, fp, REGISTER_32_BIT);
+                printOperandToASMFile(inst->instValue.binary.op1, fp, size);
             fputs(", ", fp);
-            printOperandToASMFile(inst->instValue.binary.op2, fp, REGISTER_32_BIT);
+            printOperandToASMFile(inst->instValue.binary.op2, fp, size);
+            fputc('\n', fp);
+            break;
+        }
+
+        case ASM_MOVSX: {
+            fprintf(fp, "\tmovslq ");
+            printOperandToASMFile(inst->instValue.movsx.operand1, fp, REGISTER_32_BIT);
+            fputs(", ", fp);
+            printOperandToASMFile(inst->instValue.movsx.operand2, fp, REGISTER_64_BIT);
             fputc('\n', fp);
             break;
         }
     
         case ASM_IDIV: {
-            fputs("\tidivl ", fp);
-            printOperandToASMFile(inst->instValue.idiv.divisor, fp, REGISTER_32_BIT);
+            REGISTER_SIZE size = inst->instValue.idiv.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            fprintf(fp, "\tidiv%s ", turnASMTypeToAsm(inst->instValue.idiv.asmType));
+            printOperandToASMFile(inst->instValue.idiv.divisor, fp, size);
             fputc('\n', fp);
-            break;
-        }
-        case ASM_ALLOCATESTACK: {
-            fprintf(fp, "\tsubq $%d, %%rsp\n", inst->instValue.allocatestack.size);
             break;
         }
         case ASM_RET: {
@@ -156,10 +188,6 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, SymbolTable* sym
             char* functionNameToCall = callingWithPLTOrNot((const char*)inst->instValue.call.functionName, symbolTable);
             fprintf(fp, "\tcall %s\n", functionNameToCall);
             if (functionNameToCall) free(functionNameToCall);
-            break;
-        }
-        case ASM_DEALLOCATESTACK: {
-            fprintf(fp, "\taddq $%d, %%rsp\n", inst->instValue.deallocatestack.size);
             break;
         }
 
@@ -178,7 +206,10 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, SymbolTable* sym
         }
         
         case ASM_CDQ: {
-            fputs("\tcdq\n", fp);
+            if (inst->instValue.cdq.asmType == ASM_LONGWORD) 
+                fputs("\tcdq\n", fp);
+            else
+                fputs("\tcqo\n", fp);
             break;
         }
     }
@@ -194,12 +225,12 @@ void printOperandToASMFile(ASMOperand* op, FILE *fp, REGISTER_SIZE size)
         }
             
         case ASM_OP_IMMEDIATE: {
-            fprintf(fp, "$%d", op->OperandValue.immediate);
+            fprintf(fp, "$%ld", (long)op->OperandValue.immediate);
             break;
         }
-            
+
         case ASM_OP_STACK: {
-            fprintf(fp, "%d(%%rbp)", op->OperandValue.immediate);
+            fprintf(fp, "%ld(%%rbp)", (long)op->OperandValue.immediate);
             break;
         }
         case ASM_OP_DATA: {
@@ -219,6 +250,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case CX: return "cl";
                 case R8: return "r8b";
                 case SI: return "sil";
+                case SP: return "spl";
                 case DI: return "dil";
                 case R9: return "r9b";
                 case R10: return "r10b";
@@ -230,6 +262,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case AX: return "ax";
                 case DX: return "dx";
                 case CX: return "cx";
+                case SP: return "sp";
                 case R8: return "r8w";
                 case R9: return "r9w";
                 case SI: return "si";
@@ -244,6 +277,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case DX: return "edx";
                 case CX: return "ecx";
                 case R8: return "r8d";
+                case SP: return "esp";
                 case SI: return "esi";
                 case DI: return "edi";
                 case R9: return "r9d";
@@ -257,6 +291,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case DX: return "rdx";
                 case CX: return "rcx";
                 case R8: return "r8";
+                case SP: return "rsp";
                 case R9: return "r9";
                 case SI: return "rsi";
                 case DI: return "rdi";
@@ -271,23 +306,23 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
 
 const char * asmUnaryOperatorToString(ASMUnaryOperator op) {
     switch (op) {
-        case ASM_UNARY_NEG: return "negl";
-        case ASM_UNARY_NOT: return "notl";
-        case ASM_UNARY_DEC: return "decl";
-        case ASM_UNARY_INC: return "incl";
+        case ASM_UNARY_NEG: return "neg";
+        case ASM_UNARY_NOT: return "not";
+        case ASM_UNARY_DEC: return "dec";
+        case ASM_UNARY_INC: return "inc";
         default: return "<unknown unary operator>";
     }
 }
 const char * asmBinaryOperatorToString(ASMBinaryOperator op) {
     switch (op) {
-        case ASM_BINARY_ADD: return "addl";
-        case ASM_BINARY_SUBTRACT: return "subl";
-        case ASM_BINARY_MULTIPLY: return "imull";
-        case ASM_BINARY_AND: return "andl";
-        case ASM_BINARY_OR: return "orl";
-        case ASM_BINARY_XOR: return "xorl";
-        case ASM_BINARY_SHIFT_LEFT: return "sall";
-        case ASM_BINARY_SHIFT_RIGHT: return "sarl";
+        case ASM_BINARY_ADD: return "add";
+        case ASM_BINARY_SUBTRACT: return "sub";
+        case ASM_BINARY_MULTIPLY: return "imul";
+        case ASM_BINARY_AND: return "and";
+        case ASM_BINARY_OR: return "or";
+        case ASM_BINARY_XOR: return "xor";
+        case ASM_BINARY_SHIFT_LEFT: return "sal";
+        case ASM_BINARY_SHIFT_RIGHT: return "sar";
         default: return "<unknown binary operator>";
     }
 }

@@ -108,11 +108,14 @@ char* compileFile(char* fileName) {
     AST* ast = parse(tokenList); // Parsing the program to a AST structure
     printAST(ast);
     SymbolTable* symTable = resolveAST(ast);
+    printf("----- Symbol Table -----\n");
     symbolTablePrint(symTable);
     printAST(ast);
  
+    printf("----- TACKY  -----\n");
     TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
+    printf("----- ASM  -----\n");
     ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
     generateASMFile(asm_ast, asmFileName, symTable);

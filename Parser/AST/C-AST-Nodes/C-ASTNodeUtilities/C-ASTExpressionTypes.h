@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #define MAX_PARAMS 128
 #define MAX_CASES 1024
 
@@ -25,6 +26,8 @@ typedef enum {
 typedef enum {
     SPEC_LONG,
     SPEC_INT,
+    SPEC_UNSIGNED_INT,
+    SPEC_UNSIGNED_LONG,
     SPEC_STATIC,
     SPEC_EXTERN,
     SPEC_NULL
@@ -33,6 +36,8 @@ typedef enum {
 typedef struct {
     unsigned int isLong : 1;
     unsigned int isInt : 1;
+    unsigned int isSigned : 1;
+    unsigned int isUnsigned : 1;
     unsigned int isStatic : 1;
     unsigned int isExtern : 1;
 } TypeFlags;
@@ -93,7 +98,7 @@ typedef struct CCompound CCompound;
 
 typedef struct {
     constantType type;
-    int val; 
+    uint64_t val;
 } CConstant;
 
 typedef struct {

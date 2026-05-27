@@ -13,6 +13,8 @@ static const char* getConstantTypeName(constantType type) {
     switch (type) {
         case CONST_INT: return "int";
         case CONST_LONG: return "long";
+        case CONST_UNSIGNED_INT: return "unsigned int";
+        case CONST_UNSIGNED_LONG: return "unsigned long";
         default: return "unknown";
     }
 }
@@ -261,7 +263,7 @@ void C_printUnary(CUnary* unary) {
 
 void C_printConstant(CConstant* constant) {
     if (!constant) return;
-    printf("Constant(%s:%d)", getConstantTypeName(constant->type), constant->val);
+    printf("Constant(%s:%lu)", getConstantTypeName(constant->type), constant->val);
 }
 
 void C_printBlockItem(CBlockItem* blockItem) {

@@ -93,7 +93,7 @@ typedef struct {
     OperandType type;
     union {
         Register reg;
-        int immediate;
+        uint64_t immediate;
         char* identifier;
     } OperandValue;
 } ASMOperand;
@@ -215,6 +215,6 @@ int isRelationalOp(binType type);
  * @return ASMCondCode The condition code corresponding to the given relational operator type
  */
 ASMCondCode getCondCodeForRelationalOp(binType type);
-ASMType convertTACKYTypeToASMType(TACKYValue* val);
+ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable);
 ASMType convertSpecifierTypeToASMType(specifierType type);
 ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info);

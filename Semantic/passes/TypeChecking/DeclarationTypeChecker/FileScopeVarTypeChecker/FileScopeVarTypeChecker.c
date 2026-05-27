@@ -9,6 +9,10 @@ static initialValueStaticInitType getDeclStaticInitType(CDeclaration* decl) {
             return STATIC_INIT_INT;
         case SPEC_LONG:
             return STATIC_INIT_LONG;
+        case SPEC_UNSIGNED_INT:
+            return STATIC_INIT_UNSIGNED_INT;
+        case SPEC_UNSIGNED_LONG:
+            return STATIC_INIT_UNSIGNED_LONG;
         default:
             fprintf(stderr, "Semantic Error: Unsupported file-scope declaration type for variable '%s'\n",
                 decl->decl.variableDecl.identifier);
@@ -22,13 +26,21 @@ static void validateFileScopeType(CDeclaration* decl) {
             decl->decl.variableDecl.identifier);
         exit(1);
     }
+
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp->type != FACTOR_CONSTANT) {
+        fprintf(stderr, "Semantic Error: Non-constant initializer for file-scope variable '%s'\n",
+            decl->decl.variableDecl.identifier);
+        exit(1);
+    }
 }
 
 static initialValue* resolveFileScopeInitValue(CDeclaration* decl) {
     initialValueStaticInitType staticInitType = getDeclStaticInitType(decl);
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
-        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, decl->decl.variableDecl.exp->exp.cnst->val);
+        uint64_t val = decl->decl.variableDecl.exp->exp.cnst->val;
+        convertValFromType(&val, decl->decl.variableDecl.varType);
+        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val);
     }
         
     if (decl->decl.variableDecl.storageClass == SPEC_EXTERN)
@@ -40,6 +52,11 @@ static int resolveFileScopeLinkage(CDeclaration* decl, IdentifierTypeInfo* exist
     if (!existing) return requestedGlobal;
     if (existing->type == TYPE_FUNCTION) {
         fprintf(stderr, "Semantic Error: Function '%s' redeclared as variable\n",
+            decl->decl.variableDecl.identifier);
+        exit(1);
+    }
+    if (existing->type != specifierTypeToIdentifierType(decl->decl.variableDecl.varType)) {
+        fprintf(stderr, "Semantic Error: Conflicting variable types for variable '%s'\n",
             decl->decl.variableDecl.identifier);
         exit(1);
     }

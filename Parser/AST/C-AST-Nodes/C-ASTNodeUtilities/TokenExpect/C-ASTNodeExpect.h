@@ -27,6 +27,7 @@ int tokensLeft(TokenList* tokens);
 int isUnaryOp(Token* tok);
 int isBinaryOp(Token* tok);
 int isLoopStatement(Token* tok);
+constantType determineConstantType(uint64_t val, constantType type);
 int isCompoundAssignment(Token* tok);
 int isPostfixUnaryOp(unaryType type);
 int isIncrementDecrementOp(unaryType type);

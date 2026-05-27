@@ -79,7 +79,7 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func, SymbolTable* symTable) 
 
 void parseASMReturn(TACKYValue* tacky_ret, ASMInstructionList* instruction_list, SymbolTable* symTable) {
     ASMInstruction* mov_inst = createMovInstruction
-                        (convertTACKYTypeToASMType(tacky_ret), tackyValueToASMOperand(tacky_ret, symTable), createRegisterOperand(AX));
+                        (convertTACKYTypeToASMType(tacky_ret, symTable), tackyValueToASMOperand(tacky_ret, symTable), createRegisterOperand(AX));
     addASMInstructionAtEnd(instruction_list, mov_inst);
 
     ASMInstruction* ret_inst = createASMReturnInstruction();
@@ -94,8 +94,12 @@ void addArgsAsInstructionsToFunc(TACKYFunction* tacky_func, ASMInstructionList* 
 
     for (int i = 0; i < lenArgs && i < 6; i++) {
         char* arg = IdentifierArray_get(params, i);
+        ASMType paramAsmType = ASM_LONGWORD;
+        if (funcType && funcType->func.params[i]) {
+            paramAsmType = convertSpecifierTypeToASMType(funcType->func.params[i]->type);
+        }
         ASMInstruction* mov_arg_inst = createMovInstruction(
-            convertSpecifierTypeToASMType(getTypeFromCFuncType(funcType)),
+            paramAsmType,
             createRegisterOperand(argResigters[i]),
             tackyValueToASMOperand(createVarValue(arg), symTable));
         addASMInstructionAtEnd(asmInstructionList, mov_arg_inst);
@@ -103,8 +107,12 @@ void addArgsAsInstructionsToFunc(TACKYFunction* tacky_func, ASMInstructionList* 
     int stackPos = 16;
     for (int i = 6; i < lenArgs; i++) {
         char* arg = IdentifierArray_get(params, i);
+        ASMType paramAsmType = ASM_LONGWORD;
+        if (funcType && funcType->func.params[i]) {
+            paramAsmType = convertSpecifierTypeToASMType(funcType->func.params[i]->type);
+        }
         ASMInstruction* movInst = createMovInstruction(
-            ASM_LONGWORD,
+            paramAsmType,
             createStackOperand(stackPos), 
             tackyValueToASMOperand(createVarValue(arg), symTable)); 
         addASMInstructionAtEnd(asmInstructionList, movInst);
@@ -139,10 +147,18 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
         }
         case TACKY_COPY: {
             ASMInstruction* mov_inst = createMovInstruction(
-                convertTACKYTypeToASMType(instruction->instValue.copy.src),
+                convertTACKYTypeToASMType(instruction->instValue.copy.src, symTable),
                 tackyValueToASMOperand(instruction->instValue.copy.src, symTable), 
                 tackyValueToASMOperand(instruction->instValue.copy.dest, symTable));
             addASMInstructionAtEnd(asmInstructionList, mov_inst);
+            break;
+        }
+        case TACKY_SIGN_EXTEND: {
+            parseASMSignExtendInstruction(instruction, asmInstructionList, symTable);
+            break;
+        }
+        case TACKY_TRUNCATE: {
+            parseASMTruncateInstruction(instruction, asmInstructionList, symTable);
             break;
         }
 
@@ -174,7 +190,8 @@ void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionL
 
     for (int i = 0; i < lenArgs && i < 6; i++) {
         TACKYValue* arg = TACKYValueArray_get(instruction->instValue.funCall.args, i);
-        ASMInstruction* mov_arg_inst = createMovInstruction(ASM_QUADWORD,
+        ASMType argType = convertTACKYTypeToASMType(arg, symTable);
+        ASMInstruction* mov_arg_inst = createMovInstruction(argType,
             tackyValueToASMOperand(arg, symTable), 
             createRegisterOperand(argResigters[i]));
         addASMInstructionAtEnd(asmInstructionList, mov_arg_inst);
@@ -183,7 +200,7 @@ void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionL
     for (int i = lenArgs - 1; i >= 6; i--) {
         TACKYValue* arg = TACKYValueArray_get(instruction->instValue.funCall.args, i);
         ASMOperand* argOp = tackyValueToASMOperand(arg, symTable);
-        ASMType argType = convertTACKYTypeToASMType(arg);
+        ASMType argType = convertTACKYTypeToASMType(arg, symTable);
         if (argOp->type == ASM_OP_IMMEDIATE || argOp->type == ASM_OP_REGISTER || argType == ASM_QUADWORD) {
             ASMInstruction* push_inst = createASMPushInstruction(argOp);
             addASMInstructionAtEnd(asmInstructionList, push_inst);
@@ -205,16 +222,21 @@ void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionL
         addASMInstructionAtEnd(asmInstructionList, 
             createASMDeallocateStackInstruction(bytesToRemove));
     }
+    ASMType retAsmType = ASM_LONGWORD;
+    IdentifierTypeInfo* calledFunction = symbolTableLookup(symTable, instruction->instValue.funCall.functionName);
+    if (calledFunction && calledFunction->type == TYPE_FUNCTION && calledFunction->funcInfo.funcType && calledFunction->funcInfo.funcType->func.ret) {
+        retAsmType = convertSpecifierTypeToASMType(calledFunction->funcInfo.funcType->func.ret->type);
+    }
     ASMOperand* retDest = tackyValueToASMOperand(instruction->instValue.funCall.resultVar, symTable);
     addASMInstructionAtEnd(asmInstructionList, 
-        createMovInstruction(ASM_LONGWORD, createRegisterOperand(AX), retDest)); 
+        createMovInstruction(retAsmType, createRegisterOperand(AX), retDest)); 
 }
 
 
 void parseCondJumpInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     ASMCondCode cond = (instruction->type == TACKY_JUMP_IF_ZERO) ? ASM_COND_CODE_E : ASM_COND_CODE_NE;
     ASMInstruction* cmp_inst = createASMCmpInstruction(
-        convertTACKYTypeToASMType(instruction->instValue.condJump.condition),
+        convertTACKYTypeToASMType(instruction->instValue.condJump.condition, symTable),
         createImmediateOperand(0),
         tackyValueToASMOperand(instruction->instValue.condJump.condition, symTable)
     );
@@ -228,14 +250,14 @@ void parseCondJumpInstruction(TACKYInstruction* instruction, ASMInstructionList*
 void handleUnaryNot(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     // For NOT operation, move source to destination, then apply NOT
     ASMInstruction* cmp_inst = createASMCmpInstruction(
-        convertTACKYTypeToASMType(instruction->instValue.unaryOp.src),
+        convertTACKYTypeToASMType(instruction->instValue.unaryOp.src, symTable),
         createImmediateOperand(0),
         tackyValueToASMOperand(instruction->instValue.unaryOp.src, symTable)
     );
     addASMInstructionAtEnd(asmInstructionList, cmp_inst);
 
     ASMInstruction* mov_inst = createMovInstruction(
-        convertTACKYTypeToASMType(instruction->instValue.unaryOp.dest),
+        convertTACKYTypeToASMType(instruction->instValue.unaryOp.dest, symTable),
         createImmediateOperand(0),
         tackyValueToASMOperand(instruction->instValue.unaryOp.dest, symTable)
     );
@@ -257,26 +279,26 @@ void parseASMUnaryInstruction(TACKYInstruction* instruction, ASMInstructionList*
     if (isIncrementDecrementOp(instruction->instValue.unaryOp.type)) {
         ASMInstruction* unary_inst = createASMUnaryInstruction(
             instruction->instValue.unaryOp.type,
-            convertTACKYTypeToASMType(instruction->instValue.unaryOp.src),
+            convertTACKYTypeToASMType(instruction->instValue.unaryOp.src, symTable),
             instruction->instValue.unaryOp.src,
             symTable);
         addASMInstructionAtEnd(asmInstructionList, unary_inst);
 
         ASMInstruction* mov_inst = createMovInstruction(
-            convertTACKYTypeToASMType(instruction->instValue.unaryOp.src),
+            convertTACKYTypeToASMType(instruction->instValue.unaryOp.src, symTable),
             tackyValueToASMOperand(instruction->instValue.unaryOp.src, symTable),
             tackyValueToASMOperand(instruction->instValue.unaryOp.dest, symTable));
         addASMInstructionAtEnd(asmInstructionList, mov_inst);
     } else {
         ASMInstruction* mov_inst = createMovInstruction(
-            convertTACKYTypeToASMType(instruction->instValue.unaryOp.src),
+            convertTACKYTypeToASMType(instruction->instValue.unaryOp.src, symTable),
             tackyValueToASMOperand(instruction->instValue.unaryOp.src, symTable), 
             tackyValueToASMOperand(instruction->instValue.unaryOp.dest, symTable));
         addASMInstructionAtEnd(asmInstructionList, mov_inst);
 
         ASMInstruction* unary_inst = createASMUnaryInstruction(
             instruction->instValue.unaryOp.type, 
-            convertTACKYTypeToASMType(instruction->instValue.unaryOp.dest),
+            convertTACKYTypeToASMType(instruction->instValue.unaryOp.dest, symTable),
             instruction->instValue.unaryOp.dest,
             symTable);
         addASMInstructionAtEnd(asmInstructionList, unary_inst);
@@ -295,14 +317,14 @@ void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList
     }
 
     ASMInstruction* mov_inst = createMovInstruction(
-        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1),
+        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable),
         tackyValueToASMOperand(instruction->instValue.binaryOp.src1, symTable), 
         tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable));
     addASMInstructionAtEnd(asmInstructionList, mov_inst);
     
     ASMInstruction* binary_inst = createASMBinaryInstruction(
         instruction->instValue.binaryOp.binaryOpType,
-        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1),
+        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable),
         tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable),
         tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable)
     );
@@ -312,14 +334,14 @@ void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList
 
 void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     ASMInstruction* cmp_inst = createASMCmpInstruction(
-        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1),
+        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable),
         tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable),
         tackyValueToASMOperand(instruction->instValue.binaryOp.src1, symTable)
     );
     addASMInstructionAtEnd(asmInstructionList, cmp_inst);
 
     ASMInstruction* movInst = createMovInstruction(
-        convertTACKYTypeToASMType(instruction->instValue.binaryOp.dest),
+        convertTACKYTypeToASMType(instruction->instValue.binaryOp.dest, symTable),
         createImmediateOperand(0),
         tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable)
     );
@@ -334,32 +356,32 @@ void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructionList*
 
 void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     ASMInstruction* mov_inst = createMovInstruction(
-                convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1),
+                convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable),
                 tackyValueToASMOperand(instruction->instValue.binaryOp.src1, symTable), 
                 createRegisterOperand(AX));
     addASMInstructionAtEnd(asmInstructionList, mov_inst);
 
 
-    ASMInstruction* cdq_inst = createASMCDQInstruction(convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1));
+    ASMInstruction* cdq_inst = createASMCDQInstruction(convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable));
     addASMInstructionAtEnd(asmInstructionList, cdq_inst);
 
     // Create IDIV instruction
     ASMInstruction* idiv_inst = createIdivInstruction(
         tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable),
-        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1));
+        convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable));
     addASMInstructionAtEnd(asmInstructionList, idiv_inst);
 
     if (instruction->instValue.binaryOp.binaryOpType == BIN_REMAINDER) {
         // Move remainder from RDX to destination for modulo
         ASMInstruction* mov_modulo_result = createMovInstruction(
-            convertTACKYTypeToASMType(instruction->instValue.binaryOp.dest),
+            convertTACKYTypeToASMType(instruction->instValue.binaryOp.dest, symTable),
             createRegisterOperand(DX), 
             tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable));
         addASMInstructionAtEnd(asmInstructionList, mov_modulo_result);
     } else {
         // Move quotient from RAX to destination for division
         ASMInstruction* mov_div_result = createMovInstruction(
-            convertTACKYTypeToASMType(instruction->instValue.binaryOp.dest),
+            convertTACKYTypeToASMType(instruction->instValue.binaryOp.dest, symTable),
             createRegisterOperand(AX), 
             tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable));
         addASMInstructionAtEnd(asmInstructionList, mov_div_result);
@@ -376,11 +398,16 @@ ASMTopLevel* createASMStaticVarFromTACKYStaticVar(TACKYStaticVar* tackyStaticVar
         return NULL;
     }
     asmStaticVar->global = tackyStaticVar->global;
-    asmStaticVar->initVal.val = (int)tackyStaticVar->initVal.val;
-    if (tackyStaticVar->type == TACKY_INT) {
+    asmStaticVar->initVal.val = tackyStaticVar->initVal.val;
+    asmStaticVar->initVal.staticInitType = tackyStaticVar->initVal.staticInitType;
+    if (tackyStaticVar->initVal.staticInitType == STATIC_INIT_INT
+        || tackyStaticVar->initVal.staticInitType == STATIC_INIT_UNSIGNED_INT) {
         asmStaticVar->alignment = 4;
-    } else if (tackyStaticVar->type == TACKY_LONG) {
+    } else if (tackyStaticVar->initVal.staticInitType == STATIC_INIT_LONG
+               || tackyStaticVar->initVal.staticInitType == STATIC_INIT_UNSIGNED_LONG) {
         asmStaticVar->alignment = 8;
+    } else {
+        asmStaticVar->alignment = 4;
     }
 
     return createTopLevel(ASM_TOP_LEVEL_STATIC_VAR, asmStaticVar);

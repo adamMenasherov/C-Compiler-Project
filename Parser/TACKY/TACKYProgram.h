@@ -18,6 +18,7 @@ typedef enum {
     TACKY_FUNCTION_CALL,
     TACKY_LABEL,
     TACKY_SIGN_EXTEND,
+    TACKY_ZERO_EXTEND,
     TACKY_TRUNCATE
 } TACKYInstructionType;
 
@@ -38,7 +39,7 @@ typedef enum {
 } TACKYValueType;
 
 typedef struct {
-    int value;
+    uint64_t value;
     constantType type;
 } TACKYConstant;
 
@@ -88,6 +89,10 @@ typedef struct TACKYInstruction {
             TACKYValue* src;
             TACKYValue* dest;
         } signExtend;
+        struct {
+            TACKYValue* src;
+            TACKYValue* dest;
+        } zeroExtend;
         struct {
             TACKYValue* src;
             TACKYValue* dest;

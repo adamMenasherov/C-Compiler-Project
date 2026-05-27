@@ -50,7 +50,7 @@ ASMOperand* createRegisterOperand(Register reg) {
     return operand;
 }
 
-ASMOperand* createImmediateOperand(int value) {
+ASMOperand* createImmediateOperand(uint64_t value) {
     ASMOperand* operand = malloc(sizeof(ASMOperand));
     if (!operand) return NULL;
 
@@ -81,7 +81,7 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
         }
         case TACKY_VAR: {
             if ((info = symbolTableLookup(symTable, val->identifier)) &&
-                info->type == TYPE_INT &&
+                info->attrs &&
                 info->attrs->attrType == IDENTIFIER_STATIC_ATTR) {
                 operand->type = ASM_OP_DATA;
                 operand->OperandValue.identifier = strdup(val->identifier);
@@ -181,14 +181,6 @@ ASMInstruction* createMovInstruction(ASMType asmType, ASMOperand* src, ASMOperan
     inst->instValue.mov.asmType = asmType;
     inst->instValue.mov.operand1 = src;
     inst->instValue.mov.operand2 = dest;
-    return inst;
-}
-
-ASMInstruction* createAllocStackInstruction(int size) {
-    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
-    if (!inst) return NULL;
-    inst->type = ASM_ALLOCATESTACK;
-    inst->instValue.allocatestack.size = size;
     return inst;
 }
 

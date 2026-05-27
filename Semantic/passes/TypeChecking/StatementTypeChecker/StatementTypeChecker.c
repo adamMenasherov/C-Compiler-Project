@@ -2,11 +2,32 @@
 #include "../ExpressionTypeChecker/ExpressionTypeChecker.h"
 #include "../TypeChecker/TypeChecker.h"
 #include "../DeclarationTypeChecker/DeclarationTypeChecker.h"
+#include "../../../../Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
+#include "../../../utils/SemanticUtils/SemanticUtils.h"
 #include <stdio.h>
 #include <stdlib.h>
 
+static specifierType currentFuncReturnType = SPEC_INT;
+
+void setCurrentFunctionReturnType(specifierType retType) {
+    currentFuncReturnType = retType;
+}
+
+static CFactor* convertReturnExprToFuncType(CFactor* expr, specifierType targetType) {
+    if (!expr || expr->valueType == targetType) return expr;
+    CCast* castNode = C_CreateCast(targetType, expr);
+    CFactor* castExpr = C_CreateFactorFromCast(castNode);
+    if (!castExpr) {
+        fprintf(stderr, "Semantic Error: Failed to create implicit cast for return expression\n");
+        exit(1);
+    }
+    setType(castExpr, targetType);
+    return castExpr;
+}
+
 static void handleTypeCheckReturn(CStatement* stmt, SymbolTable* symbolTable) {
     typeCheckExpression(stmt->stmt.ret->exp, symbolTable);
+    stmt->stmt.ret->exp = convertReturnExprToFuncType(stmt->stmt.ret->exp, currentFuncReturnType);
 }
 
 static void handleTypeCheckExpression(CStatement* stmt, SymbolTable* symbolTable) {

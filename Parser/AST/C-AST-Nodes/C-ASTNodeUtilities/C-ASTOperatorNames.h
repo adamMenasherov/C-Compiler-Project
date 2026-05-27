@@ -49,6 +49,8 @@ static inline const char* getSpecifierTypeName(specifierType type) {
         case SPEC_LONG: return "long";
         case SPEC_STATIC: return "static";
         case SPEC_EXTERN: return "extern";
+        case SPEC_UNSIGNED_INT: return "unsigned int";
+        case SPEC_UNSIGNED_LONG: return "unsigned long";
         default: return "Unknown";
     }
 }

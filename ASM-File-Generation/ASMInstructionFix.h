@@ -10,6 +10,9 @@ void insertPseudoToTable(CharIntMap* table, char* identifier, int *offset, ASMSy
 ASMOperand* changePseudoToStackOp(int offset, ASMOperand* operandToFree);
 ASMOperand* handlePseudoOp(ASMOperand* operand, CharIntMap* table, int* offset, ASMSymbolTable* asmSymTable);
 void handleMemoryToMemoryForMov(ASMInstruction* inst);
+void handleLargeImmediateForMov(ASMInstruction* inst);
+void handleLargeImmediateForCmp(ASMInstruction* inst);
+void handleLargeImmediateForBinary(ASMInstruction* inst);
 void handleMemoryToMemoryForBinary(ASMInstruction* inst);
 void handleMovsxInstruction(ASMInstruction* inst);
 void handleMemoryToMemoryForCmp(ASMInstruction* inst);

@@ -2,6 +2,7 @@
 #include "../Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsFree.h"
 #include "../DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
 #include <stdlib.h>
+#include <stdint.h>
 
 static int getPseudoSlotSize(const char* identifier, ASMSymbolTable* asmSymTable) {
     ASMSymTabEntry* entry;
@@ -27,6 +28,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table, ASM
                     inst->instValue.mov.operand2 = newOp;
                 }
                 handleMemoryToMemoryForMov(inst);
+                handleLargeImmediateForMov(inst);
                 break;
             }
             case ASM_MOVSX:
@@ -64,6 +66,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table, ASM
                     inst->instValue.binary.op2 = newOp;
                 }
                 handleShiftingOperation(inst);
+                handleLargeImmediateForBinary(inst);
                 handleMemoryToMemoryForBinary(inst);
                 handleImulOperation(inst);
                 break;
@@ -78,6 +81,7 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table, ASM
                 }
                 handleMemoryToMemoryForCmp(inst);
                 handleConstantAsDestCmpOperation(inst);
+                handleLargeImmediateForCmp(inst);
                 break;
             }
             case ASM_SETCC:
@@ -87,12 +91,26 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table, ASM
                 }
                 break;
             }
+            case ASM_PUSH:
+            {
+                if ((newOp = handlePseudoOp(inst->instValue.push.op, table, &usedStackBytes, asmSymTable))) {
+                    inst->instValue.push.op = newOp;
+                }
+                break;
+            }
+            case ASM_POP:
+            {
+                if ((newOp = handlePseudoOp(inst->instValue.pop.op, table, &usedStackBytes, asmSymTable))) {
+                    inst->instValue.pop.op = newOp;
+                }
+                break;
+            }
             default: continue;
         }
     }
 
     charIntMapPrint(table);
-    addASMInstructionAtBeginning(instList, createAllocStackInstruction(fixStackSizeForFunction(usedStackBytes)));
+    addASMInstructionAtBeginning(instList, createASMAllocateStackInstruction(fixStackSizeForFunction(usedStackBytes)));
 }
 
 
@@ -136,6 +154,12 @@ static int isMemoryOp(ASMOperand* op) {
     return op && (op->type == ASM_OP_STACK || op->type == ASM_OP_DATA);
 }
 
+static int isLargeImmediate(ASMOperand* op) {
+    if (!op || op->type != ASM_OP_IMMEDIATE) return 0;
+    int64_t val = (int64_t)op->OperandValue.immediate;
+    return val < INT32_MIN || val > INT32_MAX;
+}
+
 static int isBothMemoryOps(ASMOperand* op1, ASMOperand* op2) {
     return isMemoryOp(op1) && isMemoryOp(op2);
 }
@@ -149,6 +173,63 @@ void handleMemoryToMemoryForMov(ASMInstruction* inst) {
     ASMInstruction* movToDest = createMovInstruction(inst->instValue.mov.asmType, createRegisterOperand(R10), dst);
     movToDest->next = inst->next;
     inst->next = movToDest;
+}
+
+void handleLargeImmediateForMov(ASMInstruction* inst) {
+    if (inst->type != ASM_MOV) return;
+    if (inst->instValue.mov.asmType != ASM_QUADWORD) return;
+    ASMOperand* src = inst->instValue.mov.operand1;
+    if (!isLargeImmediate(src)) return;
+    if (inst->instValue.mov.operand2->type == ASM_OP_REGISTER) return;
+
+    ASMOperand* dst = inst->instValue.mov.operand2;
+    inst->instValue.mov.operand2 = createRegisterOperand(R10);
+
+    ASMInstruction* movToDest = createMovInstruction(ASM_QUADWORD, createRegisterOperand(R10), dst);
+    movToDest->next = inst->next;
+    inst->next = movToDest;
+}
+
+void handleLargeImmediateForCmp(ASMInstruction* inst) {
+    if (inst->type != ASM_CMP) return;
+    if (inst->instValue.cmp.asmType != ASM_QUADWORD) return;
+    ASMOperand* op1 = inst->instValue.cmp.op1;
+    if (!isLargeImmediate(op1)) return;
+
+    inst->instValue.cmp.op1 = createRegisterOperand(R10);
+
+    ASMInstruction* movToR10 = createMovInstruction(ASM_QUADWORD, op1, createRegisterOperand(R10));
+    if (movToR10) {
+        ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
+        *cmpInst = *inst;
+        cmpInst->next = inst->next;
+
+        *inst = *movToR10;
+        inst->next = cmpInst;
+        free(movToR10);
+    }
+}
+
+void handleLargeImmediateForBinary(ASMInstruction* inst) {
+    if (inst->type != ASM_BINARY) return;
+    if (inst->instValue.binary.asmType != ASM_QUADWORD) return;
+    if (inst->instValue.binary.type == ASM_BINARY_SHIFT_LEFT ||
+        inst->instValue.binary.type == ASM_BINARY_SHIFT_RIGHT) return;
+    ASMOperand* op1 = inst->instValue.binary.op1;
+    if (!isLargeImmediate(op1)) return;
+
+    inst->instValue.binary.op1 = createRegisterOperand(R10);
+
+    ASMInstruction* movToR10 = createMovInstruction(ASM_QUADWORD, op1, createRegisterOperand(R10));
+    if (movToR10) {
+        ASMInstruction* binaryInst = calloc(1, sizeof(ASMInstruction));
+        *binaryInst = *inst;
+        binaryInst->next = inst->next;
+
+        *inst = *movToR10;
+        inst->next = binaryInst;
+        free(movToR10);
+    }
 }
 
 void handleShiftingOperation(ASMInstruction* inst) {

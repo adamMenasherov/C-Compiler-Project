@@ -40,13 +40,13 @@ void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMa
     }
     SemanticIdentifierMap* newVarMap = copySemanticIdentifierMap(varMap);
     markAllEntriesOutOfCurrentScope(newVarMap);
-    resolveParams(func->decl.functionDecl.parameters, newVarMap, symbolTable);
+    resolveParams(func->decl.functionDecl.parameters, func->decl.functionDecl.funcType, newVarMap, symbolTable);
     resolveBlock(func->decl.functionDecl.body, newVarMap, symbolTable);
     resolveBlockWithLabeling(func->decl.functionDecl.body);
     freeSemanticIdentifierMap(newVarMap);
 }
 
-void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
+void resolveParams(IdentifierArray* params, CFuncType* funcType, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
     for (int i = 0; i < IdentifierArray_size(params); i++) {
         char* param = IdentifierArray_get(params, i);
         char* uniqueParamName = generateUniqueVariableName(param);
@@ -61,7 +61,11 @@ void resolveParams(IdentifierArray* params, SemanticIdentifierMap* varMap, Symbo
         }
         semanticMapPut(varMap, param, uniqueParamName, 1, 0);
         IdentifierArray_set(params, i, uniqueParamName);
-        symbolTableInsert(symbolTable, uniqueParamName, TYPE_INT, NULL, 1,
+        specifierType paramSpecType = SPEC_INT;
+        if (funcType && funcType->func.params[i]) {
+            paramSpecType = funcType->func.params[i]->type;
+        }
+        symbolTableInsert(symbolTable, uniqueParamName, specifierTypeToIdentifierType(paramSpecType), NULL, 1,
             createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
     }
 }

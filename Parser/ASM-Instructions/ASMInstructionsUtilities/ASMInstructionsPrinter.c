@@ -1,4 +1,5 @@
 #include "ASMInstructionsPrinter.h"
+#include "Parser/Common/SharedTypeNames.h"
 #include <stdio.h>
 
 
@@ -33,6 +34,7 @@ static const char* getRegisterNameForASM_AST(Register reg) {
         case DX: return "DX";
         case DI: return "DI";
         case SI: return "SI";
+        case SP: return "SP";
         case R8: return "R8";
         case R9: return "R9";
         case R10: return "R10";
@@ -53,7 +55,6 @@ static const char * getCondCodeString(ASMCondCode cond) {
     }
 }
 
-
 void printASMOperand(const ASMOperand* operand) {
     if (!operand) {
         printf("<null>");
@@ -62,7 +63,7 @@ void printASMOperand(const ASMOperand* operand) {
 
     switch (operand->type) {
         case ASM_OP_IMMEDIATE:
-            printf("Imm(%d)", operand->OperandValue.immediate);
+                printf("Imm(%ld)", (long)operand->OperandValue.immediate);
             break;
 
         case ASM_OP_REGISTER:
@@ -78,7 +79,7 @@ void printASMOperand(const ASMOperand* operand) {
             break;
 
         case ASM_OP_STACK:
-            printf("Stack(%d)", operand->OperandValue.immediate);
+                printf("Stack(%ld)", (long)operand->OperandValue.immediate);
             break;
         
         case ASM_OP_DATA:
@@ -104,6 +105,14 @@ void printASMInstruction(const ASMInstruction* inst) {
             printASMOperand(inst->instValue.mov.operand1);
             printf(", ");
             printASMOperand(inst->instValue.mov.operand2);
+            printf(")");
+            break;
+
+        case ASM_MOVSX:
+            printf("Movsx(");
+            printASMOperand(inst->instValue.movsx.operand1);
+            printf(", ");
+            printASMOperand(inst->instValue.movsx.operand2);
             printf(")");
             break;
 
@@ -221,10 +230,11 @@ static void printASMStaticVar(const ASMStaticVar* staticVar) {
         return;
     }
 
-    printf("StaticVar(%s, global=%d, init=%d)\n",
+        printf("StaticVar(%s, global=%d, initVal=%ld, initType=%s)\n",
            staticVar->identifier ? staticVar->identifier : "<unnamed>",
            staticVar->global,
-           staticVar->init);
+           staticVar->initVal.val,
+            getStaticInitTypeName(staticVar->initVal.staticInitType));
 }
 
 static void printASMTopLevel(const ASMTopLevel* topLevel) {

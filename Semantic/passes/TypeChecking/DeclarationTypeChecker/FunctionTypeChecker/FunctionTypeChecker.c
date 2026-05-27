@@ -1,5 +1,6 @@
 #include "FunctionTypeChecker.h"
 #include "../../TypeChecker/TypeChecker.h"
+#include "../../StatementTypeChecker/StatementTypeChecker.h"
 #include "../../../../utils/SemanticUtils/SemanticUtils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,10 +44,14 @@ static void validateFunctionRedeclaration(CDeclaration* decl, IdentifierTypeInfo
     *global = (requestedGlobal == -1) ? existing->attrs->global : requestedGlobal;
 }
 
-static void insertFunctionParams(IdentifierArray* params, SymbolTable* symbolTable) {
+static void insertFunctionParams(IdentifierArray* params, CFuncType* funcType, SymbolTable* symbolTable) {
     for (int i = 0; i < IdentifierArray_size(params); i++) {
         char* param = IdentifierArray_get(params, i);
-        symbolTableInsert(symbolTable, param, TYPE_INT, NULL, 1,
+        specifierType paramSpecType = SPEC_INT;
+        if (funcType && funcType->func.params[i]) {
+            paramSpecType = funcType->func.params[i]->type;
+        }
+        symbolTableInsert(symbolTable, param, specifierTypeToIdentifierType(paramSpecType), NULL, 1,
             createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
     }
 }
@@ -68,6 +73,8 @@ void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) 
         alreadyDefined || decl->decl.functionDecl.body != NULL,
         createIdentifierAttrs(IDENTIFIER_FUN_ATTR, global, NULL, alreadyDefined));
 
-    insertFunctionParams(decl->decl.functionDecl.parameters, symbolTable);
+    insertFunctionParams(decl->decl.functionDecl.parameters, decl->decl.functionDecl.funcType, symbolTable);
+    if (decl->decl.functionDecl.funcType && decl->decl.functionDecl.funcType->func.ret)
+        setCurrentFunctionReturnType(decl->decl.functionDecl.funcType->func.ret->type);
     typeCheckBlock(decl->decl.functionDecl.body, symbolTable);
 }

@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 
-CConstant* C_CreateConstant(int val, constantType type) {
+CConstant* C_CreateConstant(uint64_t val, constantType type) {
     CConstant* constant = malloc(sizeof(CConstant));
     if  (!constant) return NULL;
 

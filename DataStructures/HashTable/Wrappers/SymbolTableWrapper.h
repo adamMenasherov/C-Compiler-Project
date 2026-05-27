@@ -6,12 +6,16 @@
 typedef enum {
     TYPE_INT,
     TYPE_LONG,
+    TYPE_UNSIGNED_INT,
+    TYPE_UNSIGNED_LONG,
     TYPE_FUNCTION
 } IdentifierType;
 
 typedef enum {
     STATIC_INIT_INT,
-    STATIC_INIT_LONG
+    STATIC_INIT_LONG,
+    STATIC_INIT_UNSIGNED_INT,
+    STATIC_INIT_UNSIGNED_LONG
 } initialValueStaticInitType;
 
 typedef enum {
@@ -28,7 +32,7 @@ typedef enum {
 
 typedef struct {
     initialValueStaticInitType staticInitType;
-    int val;
+    uint64_t val;
 } staticInitialVal;
 
 
@@ -78,8 +82,8 @@ int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType
 IdentifierTypeInfo* symbolTableLookup(SymbolTable* table, const char* identifier);
 identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global, initialValue* initValue, int defined);
 int symbolTableContains(SymbolTable* table, const char* identifier);
-initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, int intValue);
-initialValue* createIntInitialValue(initialValueType type, int intValue);
+initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, long intValue);
+initialValue* createIntInitialValue(initialValueType type, long intValue);
 int symbolTableRemove(SymbolTable* table, const char* identifier);
 void freeSymbolTable(SymbolTable* table);
 void symbolTablePrint(SymbolTable* table);

@@ -31,6 +31,11 @@ static void handleExternLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
                 decl->decl.variableDecl.identifier);
             exit(1);
         }
+        if (existing->type != specifierTypeToIdentifierType(decl->decl.variableDecl.varType)) {
+            fprintf(stderr, "Semantic Error: Conflicting variable types for variable '%s'\n",
+                decl->decl.variableDecl.identifier);
+            exit(1);
+        }
         return;
     }
     symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, specifierTypeToIdentifierType(decl->decl.variableDecl.varType), NULL, 1,
@@ -38,14 +43,18 @@ static void handleExternLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
 }
 
 static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITHOUT_EXP)
-        return createInitialValue(STATIC_INIT_INT, INITIAL_WITH_VALUE, 0);
+    initialValueStaticInitType staticInitType =
+        (decl->decl.variableDecl.varType == SPEC_LONG) ? STATIC_INIT_LONG : STATIC_INIT_INT;
 
-    if (decl->decl.variableDecl.varType &&
-        decl->decl.variableDecl.varType == SPEC_INT &&
-        decl->decl.variableDecl.exp &&
-        decl->decl.variableDecl.exp->type == FACTOR_CONSTANT)
-        return createInitialValue(STATIC_INIT_INT, INITIAL_WITH_VALUE, decl->decl.variableDecl.exp->exp.cnst->val);
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITHOUT_EXP)
+        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, 0);
+
+    if (decl->decl.variableDecl.exp &&
+        decl->decl.variableDecl.exp->type == FACTOR_CONSTANT) {
+        long val = (long)decl->decl.variableDecl.exp->exp.cnst->val;
+        if (staticInitType == STATIC_INIT_INT) val = (long)(int)val;
+        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val);
+    }
 
     fprintf(stderr, "Semantic Error: Non-constant initializer for local static variable '%s'\n",
         fromTempToOrigin(decl->decl.variableDecl.identifier));
@@ -59,6 +68,9 @@ static void handleStaticLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
 }
 
 static void handleRegularLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
+    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, specifierTypeToIdentifierType(decl->decl.variableDecl.varType), NULL, 0,
+        createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
+
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
         CFactor* init = decl->decl.variableDecl.exp;
         typeCheckExpression(init, symbolTable);
@@ -67,8 +79,6 @@ static void handleRegularLocalVar(CDeclaration* decl, SymbolTable* symbolTable) 
             decl->decl.variableDecl.varType
         );
     }
-    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, specifierTypeToIdentifierType(decl->decl.variableDecl.varType), NULL, 0,
-        createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
 }
 
 

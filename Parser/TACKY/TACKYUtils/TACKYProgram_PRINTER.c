@@ -1,6 +1,7 @@
 #include "TACKYProgram_PRINTER.h"
 #include "../../AST/C-AST-Nodes/C-ASTNodes.h"
 #include "../../AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTOperatorNames.h"
+#include "../../Common/SharedTypeNames.h"
 #include <stdio.h>
 
 /* ------------------------------------------------------------------ */
@@ -20,7 +21,7 @@ void printTACKYValue(const TACKYValue* val) {
     switch (val->type) {
         case TACKY_CONSTANT:
             if (val->constant) {
-                printf("Constant(%d)", val->constant->value);
+                printf("Constant(%lu)", val->constant->value);
             } else {
                 printf("Constant(<null>)");
             }
@@ -79,6 +80,13 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printTACKYValue(inst->instValue.signExtend.dest);
             printf(")");
             break;
+        case TACKY_ZERO_EXTEND:
+            printf("ZeroExtend(");
+            printTACKYValue(inst->instValue.zeroExtend.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.zeroExtend.dest);
+            printf(")");
+            break;
         case TACKY_JUMP:
             printf("Jump(\"%s\")", inst->instValue.jump.label);
             break;
@@ -125,25 +133,13 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
     }
 }
 
-static const char* getStaticInitTypeName(initialValueStaticInitType type) {
-    switch (type) {
-        case STATIC_INIT_INT:
-            return "INT";
-        case STATIC_INIT_LONG:
-            return "LONG";
-        default:
-            return "UNKNOWN";
-    }
-}
-
-
 void printTACKYStaticVar(const TACKYStaticVar* staticVar) {
     if (!staticVar) {
         printf("<null static var>\n");
         return;
     }
 
-    printf("StaticVar(\"%s\", global=%d, init=%d, static_init_type = %s)\n",
+    printf("StaticVar(\"%s\", global=%d, init=%ld, static_init_type = %s)\n",
            staticVar->identifier ? staticVar->identifier : "<unnamed>",
            staticVar->global,
             staticVar->initVal.val,

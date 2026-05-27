@@ -4,7 +4,7 @@
 typedef void (*StaticVarHandler)(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels);
 
 static void handleInitialWithValue(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
-    int val = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.val;
+    long val = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.val;
     initialValueStaticInitType staticInitType = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.staticInitType;
     TACKYTopLevelArray_append(
         topLevels,

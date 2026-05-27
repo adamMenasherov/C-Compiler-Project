@@ -88,6 +88,14 @@ TACKYInstruction* createTruncateInstruction(TACKYValue* src, TACKYValue* dest) {
     return inst;
 }
 
+TACKYInstruction* createZeroExtendInstruction(TACKYValue* src, TACKYValue* dest) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_ZERO_EXTEND;
+    inst->instValue.zeroExtend.src = src;
+    inst->instValue.zeroExtend.dest = dest;
+    return inst;
+}
 
 TACKYInstructionList* createTACKYInstructionList() {
     return InstructionArray_create();
@@ -99,7 +107,7 @@ void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruct
     }
 }
 
-TACKYConstant* CreateTackyConstantNode(int val, constantType type) {
+TACKYConstant* CreateTackyConstantNode(uint64_t val, constantType type) {
     TACKYConstant* constantNode = malloc(sizeof(TACKYConstant));
     if (!constantNode) return NULL;
 
@@ -118,7 +126,7 @@ TACKYValue* createTackyValueFromConstantNode(CConstant* const_node) {
     return tackyVal;
 }
 
-TACKYValue* createTackyValueFromConstant(int val, constantType type) {
+TACKYValue* createTackyValueFromConstant(uint64_t val, constantType type) {
     TACKYValue* tackyVal = calloc(1, sizeof(TACKYValue));
     if (!tackyVal) return NULL;
 
@@ -245,7 +253,7 @@ TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar) {
     topLevel->topLevel.staticVar = staticVar;
     return topLevel;
 }
-TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, int val, initialValueStaticInitType staticInitType) {
+TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, long val, initialValueStaticInitType staticInitType) {
     TACKYStaticVar* staticVar = malloc(sizeof(TACKYStaticVar));
     if (!staticVar) return NULL;
 
@@ -256,7 +264,7 @@ TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, int val, init
     }
 
     staticVar->global = global;
-    staticVar->type = TACKY_STATIC_VAR;
+    staticVar->type = (staticInitType == STATIC_INIT_LONG) ? TACKY_LONG : TACKY_INT;
     staticVar->initVal.val = val;
     staticVar->initVal.staticInitType = staticInitType;
     return staticVar;

@@ -1,9 +1,6 @@
-static long val = 5;
-
 int main() {
-    int a = 10;
-    long b = 5;
-    int c = a + b;
-
-    return c;
+    if (3 < 5)
+        return 0;
+    else
+        return 1;
 }

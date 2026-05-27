@@ -209,18 +209,29 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
 
 TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     TACKYValue* result = emit_TACKY(exp->exp.cast->exp, instruction_list, NULL, symTable);
-    specifierType sourceType = getCastSourceType(exp->exp.cast->exp, symTable);
-    if (exp->valueType == sourceType) {
+    specifierType t = getCastSourceType(exp->exp.cast->exp, symTable);
+    specifierType inner_type = exp->valueType;
+    if (inner_type == t) {
         return result; // No cast needed
     }
-    TACKYValue* dst = makeTACKYVariable(exp->valueType, symTable);
-    if (exp->valueType == SPEC_LONG) {
+    TACKYValue* dst = makeTACKYVariable(t, symTable);
+    if (size(t) == size(inner_type)) {
+        addInstructionToList(instruction_list, 
+            createCopyInstruction(result, dst));
+        return dst;
+    }
+    else if (size(t) < size(inner_type)) {
+        addInstructionToList(instruction_list, 
+            createTruncateInstruction(result, dst));
+    }
+    else if (isSigned(inner_type)) {
         addInstructionToList(instruction_list, 
             createSignExtendInstruction(result, dst));
     }
     else {
         addInstructionToList(instruction_list, 
-            createTruncateInstruction(result, dst));
+            createZeroExtendInstruction(result, dst));
     }
+        
     return dst;
 }

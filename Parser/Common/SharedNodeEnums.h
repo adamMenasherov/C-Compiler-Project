@@ -6,7 +6,9 @@
  */
 typedef enum {
     CONST_INT,
-    CONST_LONG
+    CONST_LONG,
+    CONST_UNSIGNED_INT,
+    CONST_UNSIGNED_LONG
 } constantType;
 
 typedef enum {

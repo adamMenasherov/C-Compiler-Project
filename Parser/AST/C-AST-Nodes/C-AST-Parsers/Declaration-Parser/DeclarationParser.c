@@ -30,6 +30,10 @@ IdentifierArray* C_parseFuncParameters(TokenList* tokens, CFuncType* funcType) {
         }
 
         C_parseTypeAndStorageClass(tokens, &paramType, &storageClass);
+        if (storageClass != SPEC_NULL) {
+            fprintf(stderr, "Parser Error: Function parameters cannot have storage class specifiers\n");
+            exit(1);
+        }
         funcType->func.params[paramIdx] = C_CreateType(paramType);
         char* identifier = expectIdentifier(tokens);
         IdentifierArray_append(params, identifier);
@@ -124,6 +128,8 @@ void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifie
         else PARSE_SPECIFIER(LONG_KEYWORD,   typeFound.isLong,    "long")
         else PARSE_SPECIFIER(STATIC_KEYWORD, storageClassFound.isStatic, "static")
         else PARSE_SPECIFIER(EXTERN_KEYWORD, storageClassFound.isExtern, "extern")
+        else PARSE_SPECIFIER(UNSIGNED, typeFound.isUnsigned, "unsigned")
+        else PARSE_SPECIFIER(SIGNED, typeFound.isSigned, "signed");
     }
 
     if ((storageClassFound.isStatic + storageClassFound.isExtern) > 1) {
@@ -138,7 +144,10 @@ void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifie
 }
 
 specifierType C_parseType(TypeFlags typeFound) {
-    if (typeFound.isLong) return SPEC_LONG;
-    if (typeFound.isInt) return SPEC_INT;
-    return SPEC_NULL; // Should never reach here
+    specifierType res = SPEC_NULL;
+    int signedUnsigned = typeFound.isUnsigned ? 1 : (typeFound.isSigned ? -1 : 0);
+    if (typeFound.isLong) return signedUnsigned == 1 ? SPEC_UNSIGNED_LONG : SPEC_LONG;
+    else if (typeFound.isInt) return signedUnsigned == 1 ? SPEC_UNSIGNED_INT : SPEC_INT;
+    else res = signedUnsigned == 1 ? SPEC_UNSIGNED_INT : (signedUnsigned == -1 ? SPEC_INT : SPEC_NULL);
+    return res;
 }
