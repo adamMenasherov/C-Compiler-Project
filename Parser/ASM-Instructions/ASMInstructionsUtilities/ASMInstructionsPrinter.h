@@ -21,6 +21,12 @@ void printASMInstruction(const ASMInstruction* inst);
 void printASMInstructionList(const ASMInstructionList* list);
 
 /**
+ * Prints an ASMType in the form:
+ *   LongWord | QuadWord
+ */
+void printASMType(ASMType type);
+
+/**
  * Prints an ASMFunction in the form:
  *   Function(name,
  *       <instructions>

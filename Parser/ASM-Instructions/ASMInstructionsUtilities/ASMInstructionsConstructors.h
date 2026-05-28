@@ -84,7 +84,8 @@ ASMInstruction* createASMUnaryInstruction(unaryType type, ASMType asmType, TACKY
  * @param op2 The second operand for the binary operation
  * @return A pointer to the created ASMInstruction
  */
-ASMInstruction* createASMBinaryInstruction(binType type, ASMType asmType, ASMOperand* op1, ASMOperand* op2);
+ASMBinaryOperator binTypeToASMBinaryOperator(binType type);
+ASMInstruction* createASMBinaryInstruction(ASMBinaryOperator op, ASMType asmType, ASMOperand* op1, ASMOperand* op2);
 
 /**
  * @brief Create a Mov Instruction object
@@ -110,6 +111,25 @@ ASMInstruction* createAllocStackInstruction(int size);
  * @return ASMInstruction* pointer to the created IDIV instruction
  */
 ASMInstruction* createIdivInstruction(ASMOperand* divisor, ASMType asmType);
+
+/**
+ * @brief Create a Div Instruction object for unsigned division
+ * 
+ * @param divisor The operand representing the divisor for the DIV instruction
+ * @param asmType The type of the division operation (e.g. LONGWORD, QUADWORD)
+ * @return ASMInstruction* 
+ */
+ASMInstruction* createDivInstruction(ASMOperand* divisor, ASMType asmType);
+
+
+/**
+ * @brief Create a MOVZX Instruction object
+ * 
+ * @param src The source operand for the MOVZX instruction
+ * @param dest The destination operand for the MOVZX instruction
+ * @return ASMInstruction* pointer to the created MOVZX instruction
+ */
+ASMInstruction* createASMMovZeroExtendInstruction(ASMOperand* src, ASMOperand* dest);
 
 /**
  * @brief Create a Cmp Instruction object

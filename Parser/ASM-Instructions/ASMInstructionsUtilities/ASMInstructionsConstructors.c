@@ -68,6 +68,24 @@ ASMOperand* createStackOperand(int offset) {
     return operand;
 }
 
+ASMInstruction* createASMMovZeroExtendInstruction(ASMOperand* src, ASMOperand* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_MOVZEROEXTEND; // Using MOVZX for zero extension
+    inst->instValue.movZeroExtend.operand1 = src;
+    inst->instValue.movZeroExtend.operand2 = dest;
+    return inst;
+}
+
+ASMInstruction* createDivInstruction(ASMOperand* divisor, ASMType asmType) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_DIV; // Using a separate type for unsigned division
+    inst->instValue.div.asmType = asmType; // Reusing idiv union member for divisor
+    inst->instValue.div.divisor = divisor;
+    return inst;
+}
+
 ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
     IdentifierTypeInfo* info;
     ASMOperand* operand = malloc(sizeof(ASMOperand));
@@ -135,40 +153,26 @@ ASMInstruction* createASMUnaryInstruction(unaryType type, ASMType asmType, TACKY
     return inst;
 }
 
-ASMInstruction* createASMBinaryInstruction(binType type, ASMType asmType, ASMOperand* op1, ASMOperand* op2) {
+ASMBinaryOperator binTypeToASMBinaryOperator(binType type) {
+    switch (type) {
+        case BIN_ADD:          return ASM_BINARY_ADD;
+        case BIN_SUBTRACT:     return ASM_BINARY_SUBTRACT;
+        case BIN_MULTIPLY:     return ASM_BINARY_MULTIPLY;
+        case BIN_BITWISE_AND:  return ASM_BINARY_AND;
+        case BIN_BITWISE_OR:   return ASM_BINARY_OR;
+        case BIN_BITWISE_XOR:  return ASM_BINARY_XOR;
+        case BIN_LEFT_SHIFT:   return ASM_BINARY_SHIFT_LEFT;
+        case BIN_RIGHT_SHIFT:  return ASM_BINARY_SHIFT_RIGHT;
+        default:               return -1;
+    }
+}
+
+ASMInstruction* createASMBinaryInstruction(ASMBinaryOperator op, ASMType asmType, ASMOperand* op1, ASMOperand* op2) {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_BINARY;
     inst->instValue.binary.asmType = asmType;
-    switch (type) {
-        case BIN_ADD:
-            inst->instValue.binary.type = ASM_BINARY_ADD;
-            break;
-        case BIN_SUBTRACT:
-            inst->instValue.binary.type = ASM_BINARY_SUBTRACT;
-            break;
-        case BIN_MULTIPLY:
-            inst->instValue.binary.type = ASM_BINARY_MULTIPLY;
-            break;
-        case BIN_BITWISE_AND:
-            inst->instValue.binary.type = ASM_BINARY_AND;
-            break;
-        case BIN_BITWISE_OR:
-            inst->instValue.binary.type = ASM_BINARY_OR;
-            break;
-        case BIN_BITWISE_XOR:
-            inst->instValue.binary.type = ASM_BINARY_XOR;
-            break;
-        case BIN_LEFT_SHIFT:
-            inst->instValue.binary.type = ASM_BINARY_SHIFT_LEFT;
-            break;
-        case BIN_RIGHT_SHIFT:
-            inst->instValue.binary.type = ASM_BINARY_SHIFT_RIGHT;
-            break;
-        default: 
-            free(inst);
-            return NULL; // Unsupported binary type
-    }
+    inst->instValue.binary.type = op;
     inst->instValue.binary.op1 = op1;
     inst->instValue.binary.op2 = op2;
     return inst;

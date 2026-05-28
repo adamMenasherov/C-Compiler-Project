@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"compiler_exit:$?\")",
+      "Read(//tmp/**)",
+      "Bash(echo \"run_exit:$?\")"
+    ]
+  }
+}

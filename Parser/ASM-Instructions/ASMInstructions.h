@@ -3,6 +3,8 @@
 #include "ASMInstructionsUtilities/ASMInstructionsConstructors.h"
 
 
+typedef ASMInstruction* (*divisionInst)(ASMOperand*, ASMType);
+
 /**
  * Converts a TACKYProgram into its ASM representation.
  * @param tacky_prog The TACKY program to convert
@@ -97,6 +99,15 @@ void parseASMBinaryInstruction(TACKYInstruction* tackyInstList, ASMInstructionLi
 void parseCondJumpInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable);
 
 /**
+ * @brief Handles the translation of a TACKY zero extension instruction into its corresponding ASM instructions to perform the zero extension from the source to the destination.
+ * 
+ * @param instruction The TACKY instruction representing the zero extension operation
+ * @param asmInstructionList The ASM instruction list to which the generated instructions will be appended
+ * @param symTable The symbol table for variable lookups and type information
+ */
+void parseZeroExtendInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable);
+
+/**
  * @brief Handles the special case for divide and modulo operations.
  * 
  * @param instruction The TACKY instruction for the divide or modulo operation
@@ -120,3 +131,5 @@ void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructionList*
  * @return ASMTopLevel* pointer to the created ASMTopLevel representing the static variable
  */
 ASMTopLevel* createASMStaticVarFromTACKYStaticVar(TACKYStaticVar* tackyStaticVar);
+
+divisionInst getDivisionInst(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable);

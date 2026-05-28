@@ -179,6 +179,13 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, SymbolTable* sym
             fputc('\n', fp);
             break;
         }
+        case ASM_DIV: {
+            REGISTER_SIZE size = inst->instValue.div.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            fprintf(fp, "\tdiv%s ", turnASMTypeToAsm(inst->instValue.div.asmType));
+            printOperandToASMFile(inst->instValue.div.divisor, fp, size);
+            fputc('\n', fp);
+            break;
+        }
         case ASM_RET: {
             printFunctionEpilogueToASMFile(fp);
             fputs("\tret\n\n", fp);
@@ -335,6 +342,10 @@ const char* asmCondCodeToString(ASMCondCode cond) {
         case ASM_COND_CODE_LE: return "le";
         case ASM_COND_CODE_G: return "g";
         case ASM_COND_CODE_GE: return "ge";
+        case ASM_COND_CODE_B: return "b";
+        case ASM_COND_CODE_BE: return "be";
+        case ASM_COND_CODE_A: return "a";
+        case ASM_COND_CODE_AE: return "ae";
         default: return "<unknown condition code>";
     }
 }

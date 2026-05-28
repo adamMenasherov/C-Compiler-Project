@@ -13,5 +13,5 @@ int isBasicType(specifierType type);
 IdentifierType specifierTypeToIdentifierType(specifierType type);
 initialValueStaticInitType convertExpTypeToStaticInitType(specifierType expType);
 specifierType getType(CFactor* factor);
-int isSigned(specifierType type);
+int isSignedSpecifier(specifierType type);
 void convertValFromType(uint64_t* val, specifierType toType);

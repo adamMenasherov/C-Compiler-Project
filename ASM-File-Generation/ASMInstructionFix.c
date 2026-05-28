@@ -4,6 +4,50 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+typedef struct {
+    ASMInstruction* head;
+    ASMInstruction* tail;
+} Emitter;
+
+static void emit(Emitter* e, ASMInstruction* inst) {
+    if (!inst) return;
+    inst->next = NULL;
+    if (!e->head) {
+        e->head = e->tail = inst;
+    } else {
+        e->tail->next = inst;
+        e->tail = inst;
+    }
+}
+
+static ASMOperand* reg(int r) { return createRegisterOperand(r); }
+
+static int isMemoryOp(ASMOperand* op) {
+    return op && (op->type == ASM_OP_STACK || op->type == ASM_OP_DATA);
+}
+
+static int isBothMemoryOps(ASMOperand* a, ASMOperand* b) {
+    return isMemoryOp(a) && isMemoryOp(b);
+}
+
+static int isLargeImmediate(ASMOperand* op) {
+    if (!op || op->type != ASM_OP_IMMEDIATE) return 0;
+    int64_t val = (int64_t)op->OperandValue.immediate;
+    return val < INT32_MIN || val > INT32_MAX;
+}
+
+static int isRegister(ASMOperand* op) {
+    return op && op->type == ASM_OP_REGISTER;
+}
+
+static int isImmediate(ASMOperand* op) {
+    return op && op->type == ASM_OP_IMMEDIATE;
+}
+
+static int isShiftBinary(ASMBinaryOperator t) {
+    return t == ASM_BINARY_SHIFT_LEFT || t == ASM_BINARY_SHIFT_RIGHT;
+}
+
 static int getPseudoSlotSize(const char* identifier, ASMSymbolTable* asmSymTable) {
     ASMSymTabEntry* entry;
     if (!identifier || !asmSymTable) return 4;
@@ -13,444 +57,271 @@ static int getPseudoSlotSize(const char* identifier, ASMSymbolTable* asmSymTable
     return entry->objEntry.assemblyType == ASM_QUADWORD ? 8 : 4;
 }
 
-void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table, ASMSymbolTable* asmSymTable) {
-    int usedStackBytes = 0;
-    ASMInstruction* inst;
-    ASMOperand* newOp;
-    for (inst = instList->head; inst != NULL; inst = inst->next) {
-        switch (inst->type) {
-            case ASM_MOV:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.mov.operand1, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.mov.operand1 = newOp;
-                }
-                if ((newOp = handlePseudoOp(inst->instValue.mov.operand2, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.mov.operand2 = newOp;
-                }
-                handleMemoryToMemoryForMov(inst);
-                handleLargeImmediateForMov(inst);
-                break;
-            }
-            case ASM_MOVSX:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.movsx.operand1, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.movsx.operand1 = newOp;
-                }
-                if ((newOp = handlePseudoOp(inst->instValue.movsx.operand2, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.movsx.operand2 = newOp;
-                }
-                handleMovsxInstruction(inst);
-                break;
-            }
-            case ASM_IDIV:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.idiv.divisor, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.idiv.divisor = newOp;
-                }
-                handleConstantAsDestIdivOperation(inst);
-                break;
-            }
-            case ASM_UNARY:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.unary.op, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.unary.op = newOp;
-                }
-                break;
-            }
-            case ASM_BINARY:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.binary.op1, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.binary.op1 = newOp;
-                }
-                if ((newOp = handlePseudoOp(inst->instValue.binary.op2, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.binary.op2 = newOp;
-                }
-                handleShiftingOperation(inst);
-                handleLargeImmediateForBinary(inst);
-                handleMemoryToMemoryForBinary(inst);
-                handleImulOperation(inst);
-                break;
-            }
-            case ASM_CMP:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.cmp.op1, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.cmp.op1 = newOp;
-                }
-                if ((newOp = handlePseudoOp(inst->instValue.cmp.op2, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.cmp.op2 = newOp;
-                }
-                handleMemoryToMemoryForCmp(inst);
-                handleConstantAsDestCmpOperation(inst);
-                handleLargeImmediateForCmp(inst);
-                break;
-            }
-            case ASM_SETCC:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.setcc.op, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.setcc.op = newOp;
-                }
-                break;
-            }
-            case ASM_PUSH:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.push.op, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.push.op = newOp;
-                }
-                break;
-            }
-            case ASM_POP:
-            {
-                if ((newOp = handlePseudoOp(inst->instValue.pop.op, table, &usedStackBytes, asmSymTable))) {
-                    inst->instValue.pop.op = newOp;
-                }
-                break;
-            }
-            default: continue;
-        }
-    }
-
-    charIntMapPrint(table);
-    addASMInstructionAtBeginning(instList, createASMAllocateStackInstruction(fixStackSizeForFunction(usedStackBytes)));
-}
-
-
-void insertPseudoToTable(CharIntMap* table, char* identifier, int* offset, ASMSymbolTable* asmSymTable) {
-    int val;
-    int size;
-    int alignment;
-    int used;
+static void insertPseudoToTable(CharIntMap* table, char* identifier,
+                                int* offset, ASMSymbolTable* asmSymTable) {
+    int val, size, alignment, used;
     if (charIntMapGet(table, identifier, &val)) return;
 
     size = getPseudoSlotSize(identifier, asmSymTable);
     alignment = size;
     used = *offset + size;
-    if (used % alignment != 0) {
+    if (used % alignment != 0) {          // align slot to its own size
         used += alignment - (used % alignment);
     }
-
     charIntMapPut(table, identifier, -used);
     *offset = used;
 }
 
+static ASMOperand* resolvePseudo(ASMOperand* operand, CharIntMap* table,
+                                 int* offset, ASMSymbolTable* asmSymTable) {
+    if (!operand || operand->type != ASM_OP_PSEUDO) return NULL;
 
-ASMOperand* changePseudoToStackOp(int offset, ASMOperand* operandToFree) {
-    ASMOperand* stckOp = createStackOperand(offset);
-    freeASMOperand(operandToFree);
-    return stckOp;
-}
-
-
-ASMOperand* handlePseudoOp(ASMOperand* operand, CharIntMap* table, int* offset, ASMSymbolTable* asmSymTable) {
-    if (!operand) return NULL;
-    if (operand->type != ASM_OP_PSEUDO) return NULL;
     insertPseudoToTable(table, operand->OperandValue.identifier, offset, asmSymTable);
-
     int storedOffset;
     charIntMapGet(table, operand->OperandValue.identifier, &storedOffset);
-    return changePseudoToStackOp(storedOffset, operand);
+
+    ASMOperand* stackOp = createStackOperand(storedOffset);
+    freeASMOperand(operand);
+    return stackOp;
 }
 
-static int isMemoryOp(ASMOperand* op) {
-    return op && (op->type == ASM_OP_STACK || op->type == ASM_OP_DATA);
-}
+#define RESOLVE(field) do {                                                  \
+    ASMOperand* _r = resolvePseudo((field), table, offset, asmSymTable);     \
+    if (_r) (field) = _r;                                                    \
+} while (0)
 
-static int isLargeImmediate(ASMOperand* op) {
-    if (!op || op->type != ASM_OP_IMMEDIATE) return 0;
-    int64_t val = (int64_t)op->OperandValue.immediate;
-    return val < INT32_MIN || val > INT32_MAX;
-}
+static void fixMov(Emitter* e, ASMInstruction* in) {
+    ASMType t = in->instValue.mov.asmType;
+    ASMOperand* src = in->instValue.mov.operand1;
+    ASMOperand* dst = in->instValue.mov.operand2;
 
-static int isBothMemoryOps(ASMOperand* op1, ASMOperand* op2) {
-    return isMemoryOp(op1) && isMemoryOp(op2);
-}
+    int largeImmToMem = (t == ASM_QUADWORD) && isLargeImmediate(src) && !isRegister(dst);
 
-
-void handleMemoryToMemoryForMov(ASMInstruction* inst) {
-    if (!isBothMemoryOps(inst->instValue.mov.operand1, inst->instValue.mov.operand2)) return;
-    ASMOperand* dst = inst->instValue.mov.operand2;
-    inst->instValue.mov.operand2 = createRegisterOperand(R10);
-
-    ASMInstruction* movToDest = createMovInstruction(inst->instValue.mov.asmType, createRegisterOperand(R10), dst);
-    movToDest->next = inst->next;
-    inst->next = movToDest;
-}
-
-void handleLargeImmediateForMov(ASMInstruction* inst) {
-    if (inst->type != ASM_MOV) return;
-    if (inst->instValue.mov.asmType != ASM_QUADWORD) return;
-    ASMOperand* src = inst->instValue.mov.operand1;
-    if (!isLargeImmediate(src)) return;
-    if (inst->instValue.mov.operand2->type == ASM_OP_REGISTER) return;
-
-    ASMOperand* dst = inst->instValue.mov.operand2;
-    inst->instValue.mov.operand2 = createRegisterOperand(R10);
-
-    ASMInstruction* movToDest = createMovInstruction(ASM_QUADWORD, createRegisterOperand(R10), dst);
-    movToDest->next = inst->next;
-    inst->next = movToDest;
-}
-
-void handleLargeImmediateForCmp(ASMInstruction* inst) {
-    if (inst->type != ASM_CMP) return;
-    if (inst->instValue.cmp.asmType != ASM_QUADWORD) return;
-    ASMOperand* op1 = inst->instValue.cmp.op1;
-    if (!isLargeImmediate(op1)) return;
-
-    inst->instValue.cmp.op1 = createRegisterOperand(R10);
-
-    ASMInstruction* movToR10 = createMovInstruction(ASM_QUADWORD, op1, createRegisterOperand(R10));
-    if (movToR10) {
-        ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
-        *cmpInst = *inst;
-        cmpInst->next = inst->next;
-
-        *inst = *movToR10;
-        inst->next = cmpInst;
-        free(movToR10);
+    if (isBothMemoryOps(src, dst) || largeImmToMem) {   // src must pass through a reg
+        emit(e, createMovInstruction(t, src, reg(R10)));
+        src = reg(R10);
     }
+    emit(e, createMovInstruction(t, src, dst));
 }
 
-void handleLargeImmediateForBinary(ASMInstruction* inst) {
-    if (inst->type != ASM_BINARY) return;
-    if (inst->instValue.binary.asmType != ASM_QUADWORD) return;
-    if (inst->instValue.binary.type == ASM_BINARY_SHIFT_LEFT ||
-        inst->instValue.binary.type == ASM_BINARY_SHIFT_RIGHT) return;
-    ASMOperand* op1 = inst->instValue.binary.op1;
-    if (!isLargeImmediate(op1)) return;
+static void fixMovsx(Emitter* e, ASMInstruction* in) {
+    ASMOperand* src = in->instValue.movsx.operand1;
+    ASMOperand* dst = in->instValue.movsx.operand2;
+    int memDst = isMemoryOp(dst);
 
-    inst->instValue.binary.op1 = createRegisterOperand(R10);
-
-    ASMInstruction* movToR10 = createMovInstruction(ASM_QUADWORD, op1, createRegisterOperand(R10));
-    if (movToR10) {
-        ASMInstruction* binaryInst = calloc(1, sizeof(ASMInstruction));
-        *binaryInst = *inst;
-        binaryInst->next = inst->next;
-
-        *inst = *movToR10;
-        inst->next = binaryInst;
-        free(movToR10);
+    if (isImmediate(src)) {                 // src can't be a constant
+        emit(e, createMovInstruction(ASM_LONGWORD, src, reg(R10)));
+        src = reg(R10);
     }
+    ASMOperand* realDst = memDst ? reg(R11) : dst;
+    emit(e, createASMMovsxInstruction(src, realDst));
+    if (memDst) emit(e, createMovInstruction(ASM_QUADWORD, reg(R11), dst));  // write back
 }
 
-void handleShiftingOperation(ASMInstruction* inst) {
-    if (inst->type != ASM_BINARY) return;
-    if (inst->instValue.binary.type != ASM_BINARY_SHIFT_LEFT &&
-        inst->instValue.binary.type != ASM_BINARY_SHIFT_RIGHT) return;
-    if (!inst->instValue.binary.op1 || !inst->instValue.binary.op2) return;
-    if (inst->instValue.binary.op1->type == ASM_OP_IMMEDIATE) return;
-    if (inst->instValue.binary.op1->type == ASM_OP_REGISTER &&
-        inst->instValue.binary.op1->OperandValue.reg == CX) return;
-
-    ASMInstruction* originalNext = inst->next;
-    ASMOperand* countOp = inst->instValue.binary.op1;
-
-    ASMInstruction* pushRcx = createASMPushInstruction(createRegisterOperand(CX));
-    ASMInstruction* movToCx = createMovInstruction(ASM_LONGWORD, countOp, createRegisterOperand(CX));
-    ASMInstruction* shiftInst = calloc(1, sizeof(ASMInstruction));
-    ASMInstruction* popRcx = createASMPopInstruction(createRegisterOperand(CX));
-    if (!pushRcx || !movToCx || !shiftInst || !popRcx) return;
-
-    *shiftInst = *inst;
-    shiftInst->instValue.binary.op1 = createRegisterOperand(CX);
-
-    ASMInstruction* movDestToR11 = NULL;
-    if (shiftInst->instValue.binary.op2->type == ASM_OP_IMMEDIATE) {
-        ASMOperand* immDest = shiftInst->instValue.binary.op2;
-        shiftInst->instValue.binary.op2 = createRegisterOperand(R11);
-        movDestToR11 = createMovInstruction(shiftInst->instValue.binary.asmType, immDest, createRegisterOperand(R11));
-        if (!movDestToR11) return;
-    }
-
-    pushRcx->next = movToCx;
-    if (movDestToR11) {
-        movToCx->next = movDestToR11;
-        movDestToR11->next = shiftInst;
+static void fixMovZeroExtend(Emitter* e, ASMInstruction* in) {
+    ASMOperand* src = in->instValue.movZeroExtend.operand1;
+    ASMOperand* dst = in->instValue.movZeroExtend.operand2;
+    if (isRegister(dst)) {
+        emit(e, createMovInstruction(ASM_LONGWORD, src, dst));
     } else {
-        movToCx->next = shiftInst;
-    }
-    shiftInst->next = popRcx;
-    popRcx->next = originalNext;
-
-    *inst = *pushRcx;
-    inst->next = movToCx;
-    free(pushRcx);
-}
-
-void handleMemoryToMemoryForBinary(ASMInstruction* inst) {
-    if (!isBothMemoryOps(inst->instValue.binary.op1, inst->instValue.binary.op2)) return;
-    ASMOperand* op1 = inst->instValue.binary.op1;
-    inst->instValue.binary.op1 = createRegisterOperand(R10);
-
-    ASMInstruction* movToR10 = createMovInstruction(inst->instValue.binary.asmType, op1, createRegisterOperand(R10));
-    if (movToR10) {
-        ASMInstruction* binaryInst = calloc(1, sizeof(ASMInstruction));
-        *binaryInst = *inst;
-        binaryInst->next = inst->next;
-
-        *inst = *movToR10;
-        inst->next = binaryInst;
-        free(movToR10);
+        emit(e, createMovInstruction(ASM_LONGWORD, src, reg(R11)));
+        emit(e, createMovInstruction(ASM_QUADWORD, reg(R11), dst));
     }
 }
 
-void handleMemoryToMemoryForCmp(ASMInstruction* inst) {
-    if (!isBothMemoryOps(inst->instValue.cmp.op1, inst->instValue.cmp.op2)) return;
-    ASMOperand* op1 = inst->instValue.cmp.op1;
-    inst->instValue.cmp.op1 = createRegisterOperand(R10);
+static void fixIdiv(Emitter* e, ASMInstruction* in) {
+    ASMType t = in->instValue.idiv.asmType;
+    ASMOperand* divisor = in->instValue.idiv.divisor;
 
-    ASMInstruction* movToR10 = createMovInstruction(inst->instValue.cmp.asmType, op1, createRegisterOperand(R10));
-    if (movToR10) {
-        ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
-        *cmpInst = *inst;
-        cmpInst->next = inst->next;
-
-        *inst = *movToR10;
-        inst->next = cmpInst;
-        free(movToR10);
+    if (!isRegister(divisor)) {             // divisor can't be a constant
+        emit(e, createMovInstruction(t, divisor, reg(R10)));
+        divisor = reg(R10);
     }
+    emit(e, createIdivInstruction(divisor, t));
 }
 
-void handleConstantAsDestIdivOperation(ASMInstruction* inst) {
-    if (inst->type != ASM_IDIV) return;
-    if (!inst->instValue.idiv.divisor || inst->instValue.idiv.divisor->type == ASM_OP_REGISTER) {
-        return;
+static void fixDiv(Emitter* e, ASMInstruction* in) {
+    ASMType t = in->instValue.div.asmType;
+    ASMOperand* divisor = in->instValue.div.divisor;
+
+    if (!isRegister(divisor)) {             // divisor can't be a constant
+        emit(e, createMovInstruction(t, divisor, reg(R10)));
+        divisor = reg(R10);
     }
-
-    ASMOperand* divisor = inst->instValue.idiv.divisor;
-    inst->instValue.idiv.divisor = createRegisterOperand(R10);
-
-    ASMInstruction* movToR10 = createMovInstruction(inst->instValue.idiv.asmType, divisor, createRegisterOperand(R10));
-    if (movToR10) {
-        ASMInstruction* idivInst = calloc(1, sizeof(ASMInstruction));
-        *idivInst = *inst;
-        idivInst->next = inst->next;
-
-        *inst = *movToR10;
-        inst->next = idivInst;
-        free(movToR10);
-    }
+    emit(e, createDivInstruction(divisor, t));
 }
 
-void handleConstantAsDestCmpOperation(ASMInstruction* inst) {
-    if (inst->type != ASM_CMP) return;
-    if (!inst->instValue.cmp.op2 || inst->instValue.cmp.op2->type == ASM_OP_REGISTER) {
-        return;
-    }
-
-    ASMOperand* op2 = inst->instValue.cmp.op2;
-    inst->instValue.cmp.op2 = createRegisterOperand(R11);
-
-    ASMInstruction* movToR11 = createMovInstruction(inst->instValue.cmp.asmType, op2, createRegisterOperand(R11));
-    if (movToR11) {
-        ASMInstruction* cmpInst = calloc(1, sizeof(ASMInstruction));
-        *cmpInst = *inst;
-        cmpInst->next = inst->next;
-
-        *inst = *movToR11;
-        inst->next = cmpInst;
-        free(movToR11);
-    }
+static void fixUnary(Emitter* e, ASMInstruction* in) {
+    ASMInstruction* copy = calloc(1, sizeof(ASMInstruction));
+    *copy = *in;
+    emit(e, copy);
 }
 
+static void fixShift(Emitter* e, ASMInstruction* in) {
+    ASMBinaryOperator op = in->instValue.binary.type;
+    ASMType t = in->instValue.binary.asmType;
+    ASMOperand* count = in->instValue.binary.op1;
+    ASMOperand* dst = in->instValue.binary.op2;
 
-void handleImmediateAsDestForShift(ASMInstruction* inst) {
-    if (inst->type != ASM_BINARY) return;
-    if (inst->instValue.binary.type != ASM_BINARY_SHIFT_LEFT && inst->instValue.binary.type != ASM_BINARY_SHIFT_RIGHT) return;
-    if (inst->instValue.binary.op2->type != ASM_OP_IMMEDIATE) return;
+    // shift count must live in CL; preserve CX around the borrow
+    int countNeedsCx = !isImmediate(count) &&
+                       !(isRegister(count) && count->OperandValue.reg == CX);
 
-    ASMOperand* immOp = inst->instValue.binary.op2;
-    inst->instValue.binary.op2 = createRegisterOperand(R11);
-
-    ASMInstruction* movToR11 = createMovInstruction(inst->instValue.binary.asmType, immOp, createRegisterOperand(R11));
-    if (movToR11) {
-        ASMInstruction* shiftInst = calloc(1, sizeof(ASMInstruction));
-        *shiftInst = *inst;
-        shiftInst->next = inst->next;
-
-        *inst = *movToR11;
-        inst->next = shiftInst;
-        free(movToR11);
+    if (countNeedsCx) {
+        emit(e, createASMPushInstruction(reg(CX)));
+        emit(e, createMovInstruction(ASM_LONGWORD, count, reg(CX)));
+        count = reg(CX);
     }
-}
-
-void handleImulOperation(ASMInstruction* inst) {
-    if (inst->type != ASM_BINARY || inst->instValue.binary.type != ASM_BINARY_MULTIPLY) return;
-    if (inst->instValue.binary.op2->type != ASM_OP_STACK) return;
-
-    ASMOperand* memOp2 = inst->instValue.binary.op2;
-    ASMOperand* memOp2Copy = createStackOperand(memOp2->OperandValue.immediate);
-    ASMInstruction* mov1 = createMovInstruction(inst->instValue.binary.asmType, memOp2, createRegisterOperand(R11));
-    ASMInstruction* mov2 = createMovInstruction(inst->instValue.binary.asmType, createRegisterOperand(R11), memOp2Copy);
-    inst->instValue.binary.op2 = createRegisterOperand(R11);
-
-    if (mov1 && mov2 && memOp2Copy) {
-        ASMInstruction* iMulInst = calloc(1, sizeof(ASMInstruction));
-        *iMulInst = *inst;
-
-        mov2->next = inst->next;
-        iMulInst->next = mov2;
-
-        *inst = *mov1;
-        inst->next = iMulInst;
-        free(mov1);
-        return;
-    }
-
-    freeASMOperand(memOp2Copy);
-    freeASMInstruction(mov1);
-    freeASMInstruction(mov2);
-}
-
-
-void handleMovsxInstruction(ASMInstruction* inst) {
-    if (inst->type != ASM_MOVSX) return;
-
-    ASMOperand* src = inst->instValue.movsx.operand1;
-    ASMOperand* dst = inst->instValue.movsx.operand2;
-    int needsSrcRewrite = src && src->type == ASM_OP_IMMEDIATE;
-    int needsDstRewrite = isMemoryOp(dst);
-    ASMInstruction* originalNext = inst->next;
-
-    if (!needsSrcRewrite && !needsDstRewrite) return;
-
-    ASMInstruction* first = NULL;
-    ASMInstruction* tail = NULL;
-
-    if (needsSrcRewrite) {
-        ASMInstruction* movSrcToR10 = createMovInstruction(ASM_LONGWORD, src, createRegisterOperand(R10));
-        if (!movSrcToR10) return;
-        first = movSrcToR10;
-        tail = movSrcToR10;
-    }
-
-    ASMInstruction* movsxInst = calloc(1, sizeof(ASMInstruction));
-    if (!movsxInst) return;
-    movsxInst->type = ASM_MOVSX;
-    movsxInst->instValue.movsx.operand1 = needsSrcRewrite ? createRegisterOperand(R10) : src;
-    movsxInst->instValue.movsx.operand2 = needsDstRewrite ? createRegisterOperand(R11) : dst;
-
-    if (!first) {
-        first = movsxInst;
-        tail = movsxInst;
+    if (isImmediate(dst)) {                 // dst can't be a constant: use R11, write back
+        emit(e, createMovInstruction(t, dst, reg(R11)));
+        emit(e, createASMBinaryInstruction(op, t, count, reg(R11)));
+        emit(e, createMovInstruction(t, reg(R11), in->instValue.binary.op2));
     } else {
-        tail->next = movsxInst;
-        tail = movsxInst;
+        emit(e, createASMBinaryInstruction(op, t, count, dst));
+    }
+    if (countNeedsCx) emit(e, createASMPopInstruction(reg(CX)));
+}
+
+static void fixBinary(Emitter* e, ASMInstruction* in) {
+    ASMBinaryOperator op = in->instValue.binary.type;
+    ASMType t = in->instValue.binary.asmType;
+
+    if (isShiftBinary(op)) { fixShift(e, in); return; }
+
+    ASMOperand* op1 = in->instValue.binary.op1;
+    ASMOperand* op2 = in->instValue.binary.op2;
+
+    if (t == ASM_QUADWORD && isLargeImmediate(op1)) {   // 64-bit imm must go via reg
+        emit(e, createMovInstruction(ASM_QUADWORD, op1, reg(R10)));
+        op1 = reg(R10);
+    }
+    if (isBothMemoryOps(op1, op2)) {        // no mem,mem form
+        emit(e, createMovInstruction(t, op1, reg(R10)));
+        op1 = reg(R10);
+    }
+    if (op == ASM_BINARY_MULTIPLY && isMemoryOp(op2)) { // imul dst can't be memory
+        emit(e, createMovInstruction(t, op2, reg(R11)));
+        emit(e, createASMBinaryInstruction(op, t, op1, reg(R11)));
+        emit(e, createMovInstruction(t, reg(R11), op2));
+        return;
+    }
+    emit(e, createASMBinaryInstruction(op, t, op1, op2));
+}
+
+static void fixCmp(Emitter* e, ASMInstruction* in) {
+    ASMType t = in->instValue.cmp.asmType;
+    ASMOperand* op1 = in->instValue.cmp.op1;
+    ASMOperand* op2 = in->instValue.cmp.op2;
+
+    if (t == ASM_QUADWORD && isLargeImmediate(op1)) {   // 64-bit imm must go via reg
+        emit(e, createMovInstruction(ASM_QUADWORD, op1, reg(R10)));
+        op1 = reg(R10);
+    }
+    if (isBothMemoryOps(op1, op2)) {        // no mem,mem form
+        emit(e, createMovInstruction(t, op1, reg(R10)));
+        op1 = reg(R10);
+    }
+    if (!isRegister(op2)) {                 // second operand can't be a constant
+        emit(e, createMovInstruction(t, op2, reg(R11)));
+        op2 = reg(R11);
+    }
+    emit(e, createASMCmpInstruction(t, op1, op2));
+}
+
+static void fixSetcc(Emitter* e, ASMInstruction* in) {
+    emit(e, createASMSetCCInstruction(in->instValue.setcc.cond,
+                                   in->instValue.setcc.op));
+}
+
+static void fixPush(Emitter* e, ASMInstruction* in) {
+    emit(e, createASMPushInstruction(in->instValue.push.op));
+}
+
+static void fixPop(Emitter* e, ASMInstruction* in) {
+    emit(e, createASMPopInstruction(in->instValue.pop.op));
+}
+
+static void fixPassthrough(Emitter* e, ASMInstruction* in) {
+    ASMInstruction* copy = calloc(1, sizeof(ASMInstruction));
+    *copy = *in;                            // labels/jumps/ret/cdq need no rewrite
+    emit(e, copy);
+}
+
+void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table,
+                            ASMSymbolTable* asmSymTable, SymbolTable* symTable) {
+    (void)symTable;
+    int usedStackBytes = 0;
+    int* offset = &usedStackBytes;          // alias for the RESOLVE macro
+    Emitter e = { NULL, NULL };
+    ASMInstruction* in;
+
+    for (in = instList->head; in != NULL; in = in->next) {
+        switch (in->type) {
+            case ASM_MOV:
+                RESOLVE(in->instValue.mov.operand1);
+                RESOLVE(in->instValue.mov.operand2);
+                fixMov(&e, in);
+                break;
+            case ASM_MOVSX:
+                RESOLVE(in->instValue.movsx.operand1);
+                RESOLVE(in->instValue.movsx.operand2);
+                fixMovsx(&e, in);
+                break;
+            case ASM_MOVZEROEXTEND:
+                RESOLVE(in->instValue.movZeroExtend.operand1);
+                RESOLVE(in->instValue.movZeroExtend.operand2);
+                fixMovZeroExtend(&e, in);
+                break;
+            case ASM_IDIV:
+                RESOLVE(in->instValue.idiv.divisor);
+                fixIdiv(&e, in);
+                break;
+            case ASM_DIV:
+                RESOLVE(in->instValue.div.divisor);
+                fixDiv(&e, in);
+                break;
+            case ASM_UNARY:
+                RESOLVE(in->instValue.unary.op);
+                fixUnary(&e, in);
+                break;
+            case ASM_BINARY:
+                RESOLVE(in->instValue.binary.op1);
+                RESOLVE(in->instValue.binary.op2);
+                fixBinary(&e, in);
+                break;
+            case ASM_CMP:
+                RESOLVE(in->instValue.cmp.op1);
+                RESOLVE(in->instValue.cmp.op2);
+                fixCmp(&e, in);
+                break;
+            case ASM_SETCC:
+                RESOLVE(in->instValue.setcc.op);
+                fixSetcc(&e, in);
+                break;
+            case ASM_PUSH:
+                RESOLVE(in->instValue.push.op);
+                fixPush(&e, in);
+                break;
+            case ASM_POP:
+                RESOLVE(in->instValue.pop.op);
+                fixPop(&e, in);
+                break;
+            default:
+                fixPassthrough(&e, in);
+                break;
+        }
     }
 
-    if (needsDstRewrite) {
-        ASMInstruction* movR11ToDest = createMovInstruction(ASM_QUADWORD, createRegisterOperand(R11), dst);
-        if (!movR11ToDest) return;
-        tail->next = movR11ToDest;
-        tail = movR11ToDest;
-    }
-    tail->next = originalNext;
-    *inst = *first;
-    free(first);
+    charIntMapPrint(table);
+
+    instList->head = e.head;                // swap in the rebuilt list
+    addASMInstructionAtBeginning(
+        instList,
+        createASMAllocateStackInstruction(fixStackSizeForFunction(usedStackBytes)));
 }
 
 int fixStackSizeForFunction(int stackSize) {
     if (stackSize <= 0) return 0;
     int rem = stackSize % 16;
-    if (rem == 0) return stackSize;
-    return stackSize + (16 - rem);
+    return rem == 0 ? stackSize : stackSize + (16 - rem);   // round up to 16
 }

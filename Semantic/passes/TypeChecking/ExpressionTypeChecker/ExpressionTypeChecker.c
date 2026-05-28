@@ -99,6 +99,12 @@ static void handleTypeCheckConditional(CFactor* expr, SymbolTable* symbolTable) 
     typeCheckExpression(expr->exp.conditional->condition, symbolTable);
     typeCheckExpression(expr->exp.conditional->then, symbolTable);
     typeCheckExpression(expr->exp.conditional->else_stmt, symbolTable);
+    specifierType thenType = expr->exp.conditional->then->valueType;
+    specifierType elseType = expr->exp.conditional->else_stmt->valueType;
+    specifierType commonType = getCommonType(thenType, elseType);
+    expr->exp.conditional->then = convertTo(expr->exp.conditional->then, commonType);
+    expr->exp.conditional->else_stmt = convertTo(expr->exp.conditional->else_stmt, commonType);
+    setType(expr, commonType);
 }
 
 static void handleTypeCheckConstant(CFactor* expr, SymbolTable* symbolTable) {

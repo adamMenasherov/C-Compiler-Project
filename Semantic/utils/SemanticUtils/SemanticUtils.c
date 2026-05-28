@@ -64,7 +64,7 @@ void setTypeConst(CFactor* expr, constantType type) {
 specifierType getCommonType(specifierType type1, specifierType type2) {
     if (type1 == type2) return type1;
     if (size(type1) == size(type2)) {
-        if (isSigned(type1)) return type2;
+        if (isSignedSpecifier(type1)) return type2;
         else return type1;
     }
     if (size(type1) > size(type2)) return type1;
@@ -105,7 +105,7 @@ specifierType getType(CFactor* factor) {
     return factor->valueType;
 }
 
-int isSigned(specifierType type) {
+int isSignedSpecifier(specifierType type) {
     return type == SPEC_INT || type == SPEC_LONG;
 }
 

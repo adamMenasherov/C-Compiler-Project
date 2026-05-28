@@ -3,6 +3,21 @@
 
 typedef void (*StaticVarHandler)(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels);
 
+static initialValueStaticInitType identifierTypeToStaticInitType(IdentifierType type) {
+    switch (type) {
+        case TYPE_INT:
+            return STATIC_INIT_INT;
+        case TYPE_LONG:
+            return STATIC_INIT_LONG;
+        case TYPE_UNSIGNED_INT:
+            return STATIC_INIT_UNSIGNED_INT;
+        case TYPE_UNSIGNED_LONG:
+            return STATIC_INIT_UNSIGNED_LONG;
+        default:
+            return STATIC_INIT_INT;
+    }
+}
+
 static void handleInitialWithValue(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
     long val = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.val;
     initialValueStaticInitType staticInitType = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.staticInitType;
@@ -13,10 +28,7 @@ static void handleInitialWithValue(IdentifierTypeInfo* symbol, TACKYTopLevelArra
 }
 
 static void handleInitialTentative(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
-    initialValueStaticInitType staticInitType = STATIC_INIT_INT;
-    if (symbol->type == TYPE_LONG) {
-        staticInitType = STATIC_INIT_LONG;
-    }
+    initialValueStaticInitType staticInitType = identifierTypeToStaticInitType(symbol->type);
     TACKYTopLevelArray_append(
         topLevels,
         createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, 0, staticInitType))
@@ -27,7 +39,6 @@ static const StaticVarHandler staticVarHandlers[] = {
     [INITIAL_WITH_VALUE] = handleInitialWithValue,
     [INITIAL_TENTATIVE] = handleInitialTentative,
 };
-
 
 
 void convertSymbolsToTACKY(IdentifierTypeInfo* symbol, void* userData) {

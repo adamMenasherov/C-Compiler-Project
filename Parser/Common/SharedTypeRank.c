@@ -1,4 +1,5 @@
 #include "SharedTypeRank.h"
+#include "DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,37 @@ int size(specifierType type) {
             return 8;
         default:
             fprintf(stderr, "Invalid specifier type in size function\n");
+            exit(1);
+    }
+}
+
+
+int isSignedIdentifierType(IdentifierType type) {
+    switch (type) {
+        case TYPE_INT:
+        case TYPE_LONG:
+            return 1;
+        case TYPE_UNSIGNED_INT:
+        case TYPE_UNSIGNED_LONG:
+            return 0;
+        default:
+            fprintf(stderr, "Invalid identifier type in isSignedIdentifierType function\n");
+            exit(1);
+    }
+}
+
+specifierType constantTypeToSpecifierType(constantType type) {
+    switch (type) {
+        case CONST_INT:
+            return SPEC_INT;
+        case CONST_LONG:
+            return SPEC_LONG;
+        case CONST_UNSIGNED_INT:
+            return SPEC_UNSIGNED_INT;
+        case CONST_UNSIGNED_LONG:
+            return SPEC_UNSIGNED_LONG;
+        default:
+            fprintf(stderr, "Invalid constant type in constantTypeToSpecifierType function\n");
             exit(1);
     }
 }

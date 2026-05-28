@@ -43,7 +43,8 @@ int lookAheadOneType(TokenList* tokens) {
     if (TokenArray_getCursor(tokens->array) + 1 >= TokenArray_size(tokens->array)) return 0;
     Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array) + 1);
     if (!tok) return 0;
-    return tok->type == INT_KEYWORD || tok->type == LONG_KEYWORD;
+    return tok->type == INT_KEYWORD || tok->type == LONG_KEYWORD ||
+           tok->type == UNSIGNED || tok->type == SIGNED;
 }
 
 int checkCompoundAssignment(TokenList* tokens) {
@@ -101,16 +102,17 @@ uint64_t expectConstant(TokenList* tokens, int* type) {
 
 constantType determineConstantType(uint64_t val, constantType type) {
     if (type == CONST_UNSIGNED_LONG || type == CONST_LONG) return type;
+
     else if (type == CONST_UNSIGNED_INT) {
-        if (val <= UINT_MAX && val >= 0) return type;
+        if (val <= UINT_MAX) return type;   
         else return CONST_UNSIGNED_LONG;
     }
     else if (type == CONST_INT) {
-        if (val <= INT_MAX && val >= INT_MIN) return type;
-        else if (val <= LONG_MAX && val >= LONG_MIN) return CONST_LONG;
+        int64_t sval = (int64_t)val;        
+        if (sval >= INT_MIN  && sval <= INT_MAX)  return CONST_INT;
+        else if (sval >= LONG_MIN && sval <= LONG_MAX) return CONST_LONG;
         else return CONST_UNSIGNED_LONG;
     }
-    
 }
 
 binType compoundAssignmentToBinType(TokenType type) {

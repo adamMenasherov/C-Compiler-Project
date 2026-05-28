@@ -15,9 +15,11 @@ typedef enum {
     ASM_DEALLOCATESTACK,
     ASM_MOV,
     ASM_MOVSX,
+    ASM_MOVZEROEXTEND,
     ASM_BINARY,
     ASM_CDQ,
     ASM_IDIV,
+    ASM_DIV,
     ASM_LABEL,
     ASM_SETCC,
     ASM_JUMP,
@@ -53,7 +55,11 @@ typedef enum {
     ASM_COND_CODE_L,
     ASM_COND_CODE_LE,
     ASM_COND_CODE_G,
-    ASM_COND_CODE_GE
+    ASM_COND_CODE_GE,
+    ASM_COND_CODE_A,
+    ASM_COND_CODE_AE,
+    ASM_COND_CODE_B,
+    ASM_COND_CODE_BE
 } ASMCondCode;
 
 typedef enum {
@@ -112,6 +118,10 @@ typedef struct ASMInstruction {
             ASMOperand* operand2;
         } movsx;
         struct {
+            ASMOperand* operand1;
+            ASMOperand* operand2;
+        } movZeroExtend;
+        struct {
             ASMType asmType;
             ASMUnaryOperator type;
             ASMOperand* op;
@@ -132,6 +142,10 @@ typedef struct ASMInstruction {
             ASMType asmType;
             ASMOperand* divisor;
         } idiv;
+        struct {
+            ASMType asmType;
+            ASMOperand* divisor;
+        } div;
         struct {
             char* identifier;
         } label;
@@ -214,7 +228,9 @@ int isRelationalOp(binType type);
  * @param type The binary operation type for which to get the corresponding condition code
  * @return ASMCondCode The condition code corresponding to the given relational operator type
  */
-ASMCondCode getCondCodeForRelationalOp(binType type);
+ASMCondCode getCondCodeForRelationalOp(binType type, int isSigned);
 ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable);
 ASMType convertSpecifierTypeToASMType(specifierType type);
 ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info);
+int signedOrUnsigned(TACKYInstruction* instruction, SymbolTable* symTable);
+int isSignedTACKYValue(TACKYValue* val, SymbolTable* symTable);

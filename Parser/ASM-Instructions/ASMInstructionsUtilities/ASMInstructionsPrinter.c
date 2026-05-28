@@ -51,6 +51,10 @@ static const char * getCondCodeString(ASMCondCode cond) {
         case ASM_COND_CODE_LE: return "LE";
         case ASM_COND_CODE_G: return "G";
         case ASM_COND_CODE_GE: return "GE";
+        case ASM_COND_CODE_A: return "A";
+        case ASM_COND_CODE_AE: return "AE";
+        case ASM_COND_CODE_B: return "B";
+        case ASM_COND_CODE_BE: return "BE";
         default: return "Unknown";
     }
 }
@@ -102,6 +106,8 @@ void printASMInstruction(const ASMInstruction* inst) {
     switch (inst->type) {
         case ASM_MOV:
             printf("Mov(");
+            printASMType(inst->instValue.mov.asmType);
+            printf(", ");
             printASMOperand(inst->instValue.mov.operand1);
             printf(", ");
             printASMOperand(inst->instValue.mov.operand2);
@@ -115,7 +121,14 @@ void printASMInstruction(const ASMInstruction* inst) {
             printASMOperand(inst->instValue.movsx.operand2);
             printf(")");
             break;
-
+        
+        case ASM_MOVZEROEXTEND:
+            printf("MovZeroExtend(");
+            printASMOperand(inst->instValue.movZeroExtend.operand1);
+            printf(", ");
+            printASMOperand(inst->instValue.movZeroExtend.operand2);
+            printf(")");
+            break;
         case ASM_UNARY:
             printf("Unary(%s, ", asmUnaryOperatorToString(inst->instValue.unary.type));
             printASMOperand(inst->instValue.unary.op);
@@ -147,7 +160,14 @@ void printASMInstruction(const ASMInstruction* inst) {
             printASMOperand(inst->instValue.idiv.divisor);
             printf(")");
             break;
-        
+
+        case ASM_DIV:
+            printf("Div(");
+            printASMType(inst->instValue.div.asmType);
+            printf(", ");
+            printASMOperand(inst->instValue.div.divisor);
+            printf(")");
+            break;
         case ASM_CDQ:
             printf("CDQ");
             break;
@@ -210,6 +230,20 @@ void printASMInstructionList(const ASMInstructionList* list) {
         printf("        ");
         printASMInstruction(current);
         printf("\n");
+    }
+}
+
+void printASMType(ASMType type) {
+    switch (type) {
+        case ASM_LONGWORD:
+            printf("LongWord");
+            break;
+        case ASM_QUADWORD:
+            printf("QuadWord");
+            break;
+        default:
+            printf("UnknownType");
+            break;
     }
 }
 

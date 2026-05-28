@@ -337,27 +337,38 @@ CFuncType* C_CreateType(specifierType type) {
 
 CFactor* C_CreateCopyOfFactor(CFactor* original) {
     if (!original) return NULL;
+    CFactor* copy = NULL;
     switch (original->type) {
         case FACTOR_CONSTANT:
-            return C_CreateFactorFromConstant(original->exp.cnst);
+            copy = C_CreateFactorFromConstant(original->exp.cnst);
+            break;
         case FACTOR_UNARY:
-            return C_CreateFactorFromUnary(original->exp.unary);
+            copy = C_CreateFactorFromUnary(original->exp.unary);
+            break;
         case FACTOR_BINARY:
-            return C_CreateFactorFromBinary(original->exp.binary);
+            copy = C_CreateFactorFromBinary(original->exp.binary);
+            break;
         case FACTOR_VAR:
-            return C_CreateFactorFromVar(original->exp.var);
+            copy = C_CreateFactorFromVar(original->exp.var);
+            break;
         case FACTOR_ASSIGNMENT:
-            return C_CreateFactorFromAssignment(original->exp.assignment);
+            copy = C_CreateFactorFromAssignment(original->exp.assignment);
+            break;
         case FACTOR_CONDITIONAL:
-            return C_CreateFactorFromConditional(original->exp.conditional);
+            copy = C_CreateFactorFromConditional(original->exp.conditional);
+            break;
         case FACTOR_FUNCTION_CALL:
-            return C_CreateFactorFromFunctionCall(original->exp.funcCall);
+            copy = C_CreateFactorFromFunctionCall(original->exp.funcCall);
+            break;
         case FACTOR_CAST:
-            return C_CreateFactorFromCast(original->exp.cast);
+            copy = C_CreateFactorFromCast(original->exp.cast);
+            break;
         default:
             fprintf(stderr, "Invalid factor type in C_CreateCopyOfFactor\n");
             return NULL;
     }
+    if (copy) copy->valueType = original->valueType;
+    return copy;
 }
 
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {

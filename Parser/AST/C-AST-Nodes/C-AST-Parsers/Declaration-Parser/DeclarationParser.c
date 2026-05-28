@@ -136,6 +136,10 @@ void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifie
         fprintf(stderr, "Parser Error: Expected at most one storage class specifier\n");
         exit(1);
     }
+    if (typeFound.isSigned && typeFound.isUnsigned) {
+        fprintf(stderr, "Parser Error: Cannot combine 'signed' and 'unsigned' specifiers\n");
+        exit(1);
+    }
 
     *type = C_parseType(typeFound);
     *storageClass = storageClassFound.isStatic ? SPEC_STATIC

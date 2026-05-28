@@ -16,7 +16,7 @@ static specifierType getCastSourceType(CFactor* sourceExpr, SymbolTable* symTabl
             return identifierTypeToSpecifierType(info->type);
         }
         case FACTOR_CONSTANT:
-            return sourceExpr->exp.cnst->type == CONST_LONG ? SPEC_LONG : SPEC_INT;
+            return constantTypeToSpecifierType(sourceExpr->exp.cnst->type);
         case FACTOR_CAST:
             return sourceExpr->exp.cast->targetType;
         default:
@@ -209,8 +209,8 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
 
 TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     TACKYValue* result = emit_TACKY(exp->exp.cast->exp, instruction_list, NULL, symTable);
-    specifierType t = getCastSourceType(exp->exp.cast->exp, symTable);
-    specifierType inner_type = exp->valueType;
+    specifierType inner_type = getCastSourceType(exp->exp.cast->exp, symTable);
+    specifierType t = exp->exp.cast->targetType;
     if (inner_type == t) {
         return result; // No cast needed
     }
@@ -224,7 +224,7 @@ TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list,
         addInstructionToList(instruction_list, 
             createTruncateInstruction(result, dst));
     }
-    else if (isSigned(inner_type)) {
+    else if (isSignedSpecifier(inner_type)) {
         addInstructionToList(instruction_list, 
             createSignExtendInstruction(result, dst));
     }

@@ -7,6 +7,7 @@
 #include "../TACKY/TACKYUtils/TACKYConstructors.h"
 #include "../../DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
 #include "../AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
+#include "../Common/SharedTypeRank.h"
 
 
 ASMProgram* parseASMprogram(TACKYProgram* tacky_prog, SymbolTable* symTable) {
@@ -72,7 +73,7 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func, SymbolTable* symTable) 
     );
     addASMInstructionAtEnd(asm_func->inst, createASMReturnInstruction());
     ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
-    pseudoToStackPositions(asm_func->inst, asm_func->pseudoTable, asmSymTable);
+    pseudoToStackPositions(asm_func->inst, asm_func->pseudoTable, asmSymTable, symTable);
     
     return asm_func;
 }
@@ -155,6 +156,10 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
         }
         case TACKY_SIGN_EXTEND: {
             parseASMSignExtendInstruction(instruction, asmInstructionList, symTable);
+            break;
+        }
+        case TACKY_ZERO_EXTEND: {
+            parseZeroExtendInstruction(instruction, asmInstructionList, symTable);
             break;
         }
         case TACKY_TRUNCATE: {
@@ -323,7 +328,7 @@ void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList
     addASMInstructionAtEnd(asmInstructionList, mov_inst);
     
     ASMInstruction* binary_inst = createASMBinaryInstruction(
-        instruction->instValue.binaryOp.binaryOpType,
+        binTypeToASMBinaryOperator(instruction->instValue.binaryOp.binaryOpType),
         convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable),
         tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable),
         tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable)
@@ -347,11 +352,19 @@ void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructionList*
     );
     addASMInstructionAtEnd(asmInstructionList, movInst);
 
-    ASMCondCode cond = getCondCodeForRelationalOp(instruction->instValue.binaryOp.binaryOpType);
+    ASMCondCode cond = getCondCodeForRelationalOp(instruction->instValue.binaryOp.binaryOpType, signedOrUnsigned(instruction, symTable));
     ASMInstruction* setcc_inst = createASMSetCCInstruction(cond, 
                                 tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable));
     addASMInstructionAtEnd(asmInstructionList, setcc_inst);
+}
 
+void parseZeroExtendInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
+    addASMInstructionAtEnd(asmInstructionList, 
+        createASMMovZeroExtendInstruction(
+            tackyValueToASMOperand(instruction->instValue.zeroExtend.src, symTable), 
+            tackyValueToASMOperand(instruction->instValue.zeroExtend.dest, symTable)
+        )
+    );
 }
 
 void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
@@ -362,11 +375,9 @@ void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* a
     addASMInstructionAtEnd(asmInstructionList, mov_inst);
 
 
-    ASMInstruction* cdq_inst = createASMCDQInstruction(convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable));
-    addASMInstructionAtEnd(asmInstructionList, cdq_inst);
-
-    // Create IDIV instruction
-    ASMInstruction* idiv_inst = createIdivInstruction(
+    divisionInst divInstFunc = getDivisionInst(instruction, asmInstructionList, symTable);
+    // Create division instruction
+    ASMInstruction* idiv_inst = divInstFunc(
         tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable),
         convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable));
     addASMInstructionAtEnd(asmInstructionList, idiv_inst);
@@ -430,4 +441,22 @@ void parseASMTruncateInstruction(TACKYInstruction* instruction, ASMInstructionLi
             tackyValueToASMOperand(instruction->instValue.truncate.dest, symTable)
         )
     );
+}
+
+divisionInst getDivisionInst(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
+    TACKYValue* src1 = instruction->instValue.binaryOp.src1;
+    if(isSignedTACKYValue(src1, symTable)) {
+        ASMInstruction* cdq_inst = createASMCDQInstruction(
+                convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable));
+        addASMInstructionAtEnd(asmInstructionList, cdq_inst);
+        return createIdivInstruction;
+    } else {
+        ASMInstruction* movInst = createMovInstruction(
+            convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable),
+            createImmediateOperand(0),
+            createRegisterOperand(DX)
+        );
+        addASMInstructionAtEnd(asmInstructionList, movInst);
+        return createDivInstruction;
+    }
 }
