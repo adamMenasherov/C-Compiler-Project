@@ -28,6 +28,7 @@ typedef enum {
     SPEC_INT,
     SPEC_UNSIGNED_INT,
     SPEC_UNSIGNED_LONG,
+    SPEC_DOUBLE,
     SPEC_STATIC,
     SPEC_EXTERN,
     SPEC_NULL
@@ -36,6 +37,7 @@ typedef enum {
 typedef struct {
     unsigned int isLong : 1;
     unsigned int isInt : 1;
+    unsigned int isDouble : 1;
     unsigned int isSigned : 1;
     unsigned int isUnsigned : 1;
     unsigned int isStatic : 1;
@@ -98,7 +100,10 @@ typedef struct CCompound CCompound;
 
 typedef struct {
     constantType type;
-    uint64_t val;
+    union {
+        int64_t intValue;
+        double doubleValue;
+    } value;
 } CConstant;
 
 typedef struct {
@@ -135,7 +140,6 @@ typedef struct CFuncType {
     specifierType type;
     struct {
         struct CFuncType* params[MAX_PARAMS];
-        struct CFuncType* ret;
         int paramCnt;
     } func;
 } CFuncType;

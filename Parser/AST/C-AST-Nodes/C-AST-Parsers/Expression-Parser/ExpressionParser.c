@@ -31,8 +31,7 @@ CFactor* C_parseFactor(TokenList* tokens) {
         return parsePostfixOperators(C_CreateFactorFromCast(C_parseCast(tokens)), tokens);
     }
 
-    if (check(tokens, CONSTANT) || check(tokens, LONG_CONSTANT)
-        || check(tokens, UNSIGNED_CONSTANT) || check(tokens, UNSIGNED_LONG_CONSTANT)) {
+    if (checkConstant(tokens)) {
         return parsePostfixOperators(C_CreateFactorFromConstant(C_parseConstant(tokens)), tokens);
     }
 
@@ -113,8 +112,14 @@ CFactor* C_parseConditionalMiddle(TokenList* tokens) {
 
 CConstant* C_parseConstant(TokenList* tokens) {
     int type;
-    uint64_t val = expectConstant(tokens, &type);
-    return C_CreateConstant(val, determineConstantType(val, type));
+    uint64_t intValue;
+    double floatValue;
+    expectConstant(tokens, &type, &intValue, &floatValue);
+    if (type == CONST_FLOATING_POINT) {
+        return C_CreateConstant(intValue, floatValue, type);
+    } else {
+        return C_CreateConstant(intValue, floatValue, determineConstantType(intValue, type));
+    }
 }
 
 CVar* C_parseVar(TokenList* tokens) {

@@ -184,7 +184,7 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
         createJumpInstruction(jumpType, shortCircuitLabel, rightVal));
 
     addInstructionToList(instruction_list,
-        createCopyInstruction(createTackyValueFromConstant(retVal, CONST_INT), resultVar));
+        createCopyInstruction(createTackyValueFromConstant(retVal, 0.0, CONST_INT), resultVar));
 
     addInstructionToList(instruction_list,
         createJumpInstruction(TACKY_JUMP, endLabel, NULL));
@@ -193,7 +193,7 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
         createLabelInstruction(shortCircuitLabel));
 
     addInstructionToList(instruction_list,
-        createCopyInstruction(createTackyValueFromConstant(1 - retVal, CONST_INT), resultVar));
+        createCopyInstruction(createTackyValueFromConstant(1 - retVal, 0.0, CONST_INT), resultVar));
 
     addInstructionToList(instruction_list,
         createLabelInstruction(endLabel));
@@ -215,10 +215,14 @@ TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list,
         return result; // No cast needed
     }
     TACKYValue* dst = makeTACKYVariable(t, symTable);
+    if (t == SPEC_DOUBLE || inner_type == SPEC_DOUBLE) {
+        addInstructionToList(instruction_list, 
+            generateTACKYDoubleIntCast(result, dst, inner_type, t, symTable));
+        return dst;
+    }
     if (size(t) == size(inner_type)) {
         addInstructionToList(instruction_list, 
             createCopyInstruction(result, dst));
-        return dst;
     }
     else if (size(t) < size(inner_type)) {
         addInstructionToList(instruction_list, 

@@ -8,8 +8,8 @@
 static int areFunctionTypesCompatible(const CFuncType* left, const CFuncType* right) {
     int idx = 0;
     if (!left || !right) return 0;
-    if (!left->func.ret || !right->func.ret) return 0;
-    if (left->func.ret->type != right->func.ret->type) return 0;
+    if (!left->type || !right->type) return 0;
+    if (left->type != right->type) return 0;
 
     while (idx < MAX_PARAMS) {
         CFuncType* leftParam  = left->func.params[idx];
@@ -74,7 +74,7 @@ void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) 
         createIdentifierAttrs(IDENTIFIER_FUN_ATTR, global, NULL, alreadyDefined));
 
     insertFunctionParams(decl->decl.functionDecl.parameters, decl->decl.functionDecl.funcType, symbolTable);
-    if (decl->decl.functionDecl.funcType && decl->decl.functionDecl.funcType->func.ret)
-        setCurrentFunctionReturnType(decl->decl.functionDecl.funcType->func.ret->type);
+    if (decl->decl.functionDecl.funcType)
+        setCurrentFunctionReturnType(decl->decl.functionDecl.funcType->type);
     typeCheckBlock(decl->decl.functionDecl.body, symbolTable);
 }

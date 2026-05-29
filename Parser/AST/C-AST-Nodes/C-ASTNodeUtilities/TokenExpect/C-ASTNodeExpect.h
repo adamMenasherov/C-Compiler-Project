@@ -7,8 +7,9 @@
 int check(TokenList* tokens, TokenType type);
 int checkBinaryOp(TokenList* tokens);
 int checkUnaryOp(TokenList* tokens);
+int checkConstant(TokenList* tokens);
 int checkCompoundAssignment(TokenList* tokens);
-uint64_t expectConstant(TokenList* tokens, int* type);
+void expectConstant(TokenList* tokens, int* type, uint64_t* intValue, double* floatValue);
 int lookAheadOne(TokenList* tokens, TokenType type);
 int lookAheadOneType(TokenList* tokens);
 void expect(TokenList* tokens, TokenType type);

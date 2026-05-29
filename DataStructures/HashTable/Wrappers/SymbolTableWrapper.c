@@ -23,6 +23,8 @@ static const char* getInitialValueTypeString(initialValue* initValue) {
                     return "unsigned_int_value";
                 case STATIC_INIT_UNSIGNED_LONG:
                     return "unsigned_long_value";
+                case STATIC_INIT_DOUBLE:
+                    return "double_value";
                 default:
                     return "unknown_static_init_type";
             }
@@ -43,13 +45,19 @@ static const char* getTypeString(IdentifierType type) {
             return "unsigned long";
         case TYPE_FUNCTION:
             return "function";
+        case TYPE_DOUBLE:
+            return "double";
         default:
             return "unknown";
     }
 }
 
 static void getInitialValueString(initialValue* initValue, char* dest, size_t destSize) {
-    snprintf(dest, destSize, "%lu", initValue->value.staticInitVal.val);
+    if (initValue->value.staticInitVal.staticInitType == STATIC_INIT_DOUBLE) {
+        snprintf(dest, destSize, "%f", initValue->value.staticInitVal.val.doubleVal);
+    } else {
+        snprintf(dest, destSize, "%lu", initValue->value.staticInitVal.val.intVal);
+    }
 }
 
 
@@ -84,7 +92,7 @@ static int equalIdentifier(void* lhs, void* rhs) {
     return strcmp(left->identifier, right->identifier) == 0;
 }
 
-initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, long intValue) {
+initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, uint64_t intValue, double doubleValue) {
     initialValue* value = malloc(sizeof(initialValue));
     if (!value) return NULL;
 
@@ -95,14 +103,22 @@ initialValue* createInitialValue(initialValueStaticInitType staticInitType, init
             break;
         case INITIAL_WITH_VALUE:
             value->value.staticInitVal.staticInitType = staticInitType;
-            value->value.staticInitVal.val = intValue;
+            if (staticInitType == STATIC_INIT_DOUBLE) {
+                value->value.staticInitVal.val.doubleVal = doubleValue;
+            } else {
+                value->value.staticInitVal.val.intVal = intValue;
+            }
             break;
     }
     return value;
 }
 
 initialValue* createIntInitialValue(initialValueType type, long intValue) {
-    return createInitialValue(STATIC_INIT_INT, type, intValue);
+    return createInitialValue(STATIC_INIT_INT, type, intValue, 0.0);
+}
+
+initialValue* createDoubleInitialValue(initialValueType type, double doubleValue) {
+    return createInitialValue(STATIC_INIT_DOUBLE, type, 0, doubleValue);
 }
 
 static int getFunctionParamCount(const CFuncType* funcType) {
@@ -142,7 +158,7 @@ identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global,
     identifierAttrs* attrs = malloc(sizeof(identifierAttrs));
     if (!attrs) return NULL;
 
-    if (!initValue) attrs->attrs.staticAttr.initValue = createInitialValue(STATIC_INIT_INT, INITIAL_NO_VALUE, 0);
+    if (!initValue) attrs->attrs.staticAttr.initValue = createInitialValue(STATIC_INIT_INT, INITIAL_NO_VALUE, 0, 0.0);
     else attrs->attrs.staticAttr.initValue = initValue;
 
     attrs->attrType = attrType;

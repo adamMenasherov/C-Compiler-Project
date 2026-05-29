@@ -55,6 +55,9 @@ void setTypeConst(CFactor* expr, constantType type) {
         case CONST_UNSIGNED_LONG:
             expr->valueType = SPEC_UNSIGNED_LONG;
             break;
+        case CONST_FLOATING_POINT:
+            expr->valueType = SPEC_DOUBLE;
+            break;
         default:
             fprintf(stderr, "Invalid constant type in setTypeConst\n");
             exit(1);
@@ -63,6 +66,7 @@ void setTypeConst(CFactor* expr, constantType type) {
 
 specifierType getCommonType(specifierType type1, specifierType type2) {
     if (type1 == type2) return type1;
+    if (type1 == SPEC_DOUBLE || type2 == SPEC_DOUBLE) return SPEC_DOUBLE;
     if (size(type1) == size(type2)) {
         if (isSignedSpecifier(type1)) return type2;
         else return type1;
@@ -85,6 +89,8 @@ IdentifierType specifierTypeToIdentifierType(specifierType type) {
             return TYPE_UNSIGNED_INT;
         case SPEC_UNSIGNED_LONG:
             return TYPE_UNSIGNED_LONG;
+        case SPEC_DOUBLE:
+            return TYPE_DOUBLE;
         default:
             fprintf(stderr, "Invalid specifier type in specifierTypeToIdentifierType\n");
             exit(1);

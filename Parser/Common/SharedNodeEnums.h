@@ -8,7 +8,8 @@ typedef enum {
     CONST_INT,
     CONST_LONG,
     CONST_UNSIGNED_INT,
-    CONST_UNSIGNED_LONG
+    CONST_UNSIGNED_LONG,
+    CONST_FLOATING_POINT,
 } constantType;
 
 typedef enum {

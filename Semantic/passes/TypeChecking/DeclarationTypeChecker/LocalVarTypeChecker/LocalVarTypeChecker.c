@@ -47,13 +47,17 @@ static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
         (decl->decl.variableDecl.varType == SPEC_LONG) ? STATIC_INIT_LONG : STATIC_INIT_INT;
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITHOUT_EXP)
-        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, 0);
+        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, 0, 0.0);
 
-    if (decl->decl.variableDecl.exp &&
-        decl->decl.variableDecl.exp->type == FACTOR_CONSTANT) {
-        long val = (long)decl->decl.variableDecl.exp->exp.cnst->val;
-        if (staticInitType == STATIC_INIT_INT) val = (long)(int)val;
-        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val);
+    if (decl->decl.variableDecl.exp && decl->decl.variableDecl.exp->type == FACTOR_CONSTANT) {
+        if (decl->decl.variableDecl.exp->valueType == SPEC_DOUBLE) {
+            double val = decl->decl.variableDecl.exp->exp.cnst->value.doubleValue;
+            return createDoubleInitialValue(INITIAL_WITH_VALUE, val);
+        } else {
+            uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;
+            convertValFromType(&val, decl->decl.variableDecl.varType);
+            return createIntInitialValue(INITIAL_WITH_VALUE, val);
+        }
     }
 
     fprintf(stderr, "Semantic Error: Non-constant initializer for local static variable '%s'\n",
@@ -80,7 +84,6 @@ static void handleRegularLocalVar(CDeclaration* decl, SymbolTable* symbolTable) 
         );
     }
 }
-
 
 typedef void (*LocalVarHandler)(CDeclaration*, SymbolTable*);
 static const LocalVarHandler localVarHandlers[] = {

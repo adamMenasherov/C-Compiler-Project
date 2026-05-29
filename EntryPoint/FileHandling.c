@@ -11,7 +11,21 @@
 #include "Parser/TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
 #include "Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
 #include "ASM-File-Generation/ASMGenerator.h"
+#include "DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
 
+
+char* generateLibraryStrings(IdentifierArray* libraries) {
+    int size = 0;
+    char* finalChar; 
+    for (size_t i = 0; i < libraries->size; i++) {
+        char* library = (char*)libraries->data[i];
+        size += strlen(library);
+        finalChar = realloc(finalChar, size);
+        strcat(finalChar, library); 
+    }
+
+    return finalChar;
+}
 
 char* readSourceFile(char* fileName) {
     FILE* fp = fopen(fileName, "r");
@@ -110,40 +124,36 @@ char* compileFile(char* fileName) {
     SymbolTable* symTable = resolveAST(ast);
     printf("----- Symbol Table -----\n");
     symbolTablePrint(symTable);
+
+
     printAST(ast);
- 
     printf("----- TACKY  -----\n");
     TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
-    printf("----- ASM  -----\n");
+    /*printf("----- ASM  -----\n");
     ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
     generateASMFile(asm_ast, asmFileName, symTable);
     commandForObjectFile(asmFileName, objectFileName);
-    /*freeASM_AST(asm_ast);
+    freeASM_AST(asm_ast);
     freeTACKY_AST(tacky_ast);
+    */
+
     freeSymbolTable(symTable);
 
     freeAST(ast);
     free(source); 
     free(asmFileName);
     free(preprocessFileName);
-    freeTokenList(tokenList);*/
+    freeTokenList(tokenList);
 
     return objectFileName;
 }
 
-
-
-void startProcess(int argc, char* argv[]) {
-    char* finalExecutableName = "a.out";
-    int isCFlagPresent = 0, countObject = 0, outputSpecified = 0;
-    char** objectFileNames = malloc(sizeof(char*) * argc);
-    if (!objectFileNames) {
-        fprintf(stderr, "Memory allocation failed for object file names.\n");
-        exit(1);
-    }
-
+int traverseCompilerArgs(int argc, char** argv, char** finalExecutableName, int* outputSpecified, char** objectFileNames,
+    int* isCFlagPresent, IdentifierArray* libraries)
+{
+    int countObject = 0;
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--lex") == 0 || strcmp(argv[i], "--parse") == 0
                 || strcmp(argv[i], "--validate") == 0) continue; // Skipping the flags for now 
@@ -151,14 +161,15 @@ void startProcess(int argc, char* argv[]) {
             isCFlagPresent = 1;
             continue;
         }
-
         else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
-            finalExecutableName = argv[i + 1];  
+            *finalExecutableName = argv[i + 1];  
             outputSpecified = 1;
             i++; 
             continue;
         }
-
+        else if (strncmp(argv[i], "-l", sizeof("-l")) == 0) {
+            IdentifierArray_append(libraries, argv[i]);
+        }
         else if (strcmp(argv[i], finalExecutableName) == 0) continue;
     
         char* objectFileName = compileFile(argv[i]);
@@ -169,6 +180,24 @@ void startProcess(int argc, char* argv[]) {
         objectFileNames[countObject++] = objectFileName;
     }
 
+    return countObject; 
+}
+
+void startProcess(int argc, char* argv[]) {
+    char* finalExecutableName = "a.out";
+    int isCFlagPresent = 0, outputSpecified = 0;
+    IdentifierArray* libraries = IdentifierArray_create();
+    char** objectFileNames = malloc(sizeof(char*) * argc);
+    if (!objectFileNames) {
+        fprintf(stderr, "Memory allocation failed for object file names.\n");
+        exit(1);
+    }
+    int countObject = traverseCompilerArgs(argc, argv, &finalExecutableName, &outputSpecified, objectFileNames,
+        &isCFlagPresent, libraries);
+
+    /* Semantic-only mode: stop after symbol table printing for now.
+     * The linking phase stays here for later restoration.
+     *
     if (!isCFlagPresent) {
         char* derivedExecutableName = NULL;
         char* executableNameToUse = finalExecutableName;
@@ -187,9 +216,10 @@ void startProcess(int argc, char* argv[]) {
             executableNameToUse = derivedExecutableName;
         }
 
-        generateExecutableCommand(objectFileNames, countObject, executableNameToUse); // Generating executable file name if -c was not present
+        generateExecutableCommand(objectFileNames, countObject, executableNameToUse, generateLibraryStrings(libraries)); // Generating executable file name if -c was not present
         free(derivedExecutableName);
     }
+    */
     freeObjectFileNames(objectFileNames, countObject);
 }
 
@@ -208,12 +238,11 @@ void freeObjectFileNames(char** objectFileNames, int count) {
     free(objectFileNames);
 }
 
-void generateExecutableCommand(char** objectFileNames, int count, char* finalExecutableName) {
-    size_t commandLength = strlen("gcc ") + strlen("-o ") + strlen(finalExecutableName) + 1;
+void generateExecutableCommand(char** objectFileNames, int count, char* finalExecutableName, char* libraryStrings) {
+    size_t commandLength = strlen("gcc ") + strlen("-o ") + strlen(finalExecutableName) + strlen(libraryStrings) + 1;
     for (int i = 0; i < count; i++) {
         commandLength += strlen(objectFileNames[i]) + 1; // Adding space for each object file name in array
     }
-
     char* command = malloc(commandLength);
     if (!command) {
         fprintf(stderr, "Memory allocation failed for executable command.\n");
@@ -228,6 +257,8 @@ void generateExecutableCommand(char** objectFileNames, int count, char* finalExe
     }
     strcat(command, "-o ");
     strcat(command, finalExecutableName); // Adding the exec file name. If not given will be 'a.out'
+    strcat(command, " ");
+    strcat(command, libraryStrings); // Adding the library strings
 
     runExecutableCommand(command); // Running the exec command
     free(command);

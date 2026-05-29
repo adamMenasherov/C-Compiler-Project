@@ -7,7 +7,13 @@
 
 static int isConstantType(TokenType type) {
     return type == CONSTANT || type == LONG_CONSTANT ||
-        type == UNSIGNED_CONSTANT || type == UNSIGNED_LONG_CONSTANT;
+        type == UNSIGNED_CONSTANT || type == UNSIGNED_LONG_CONSTANT ||
+        type == FLOATING_POINT_CONSTANT;
+}
+
+static int isSpecifierType(TokenType type) {
+    return type == INT_KEYWORD || type == LONG_KEYWORD || type == STATIC_KEYWORD || type == DOUBLE_KEYWORD ||
+           type == EXTERN_KEYWORD || type == UNSIGNED || type == SIGNED;
 }
 
 static int getConstantType(TokenType type) {
@@ -16,6 +22,7 @@ static int getConstantType(TokenType type) {
         case LONG_CONSTANT: return CONST_LONG;
         case UNSIGNED_CONSTANT: return CONST_UNSIGNED_INT;
         case UNSIGNED_LONG_CONSTANT: return CONST_UNSIGNED_LONG;
+        case FLOATING_POINT_CONSTANT: return CONST_FLOATING_POINT;
         default:
             fprintf(stderr, "Parser Error: Expected constant token but got %s\n",
                     tokenTypeToToken(type));
@@ -25,6 +32,12 @@ static int getConstantType(TokenType type) {
 
 int tokensLeft(TokenList* tokens) {
     return TokenArray_getCursor(tokens->array) < TokenArray_size(tokens->array);
+}
+
+int checkConstant(TokenList* tokens) {
+    if (!tokensLeft(tokens)) return 0;
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
+    return tok ? isConstantType(tok->type) : 0;
 }
 
 int check(TokenList* tokens, TokenType type) {
@@ -43,7 +56,7 @@ int lookAheadOneType(TokenList* tokens) {
     if (TokenArray_getCursor(tokens->array) + 1 >= TokenArray_size(tokens->array)) return 0;
     Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array) + 1);
     if (!tok) return 0;
-    return tok->type == INT_KEYWORD || tok->type == LONG_KEYWORD ||
+    return tok->type == INT_KEYWORD || tok->type == LONG_KEYWORD || tok->type == DOUBLE_KEYWORD ||
            tok->type == UNSIGNED || tok->type == SIGNED;
 }
 
@@ -73,15 +86,11 @@ int checkIncrementDecrement(TokenList* tokens) {
 
 int checkSpecifier(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
-    return check(tokens, INT_KEYWORD)
-        || check(tokens, STATIC_KEYWORD)
-        || check(tokens, EXTERN_KEYWORD) 
-        || check(tokens, LONG_KEYWORD)
-        || check(tokens, UNSIGNED)
-        || check(tokens, SIGNED);
+    Token* tok = TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array));
+    return tok ? isSpecifierType(tok->type) : 0;
 }
     
-uint64_t expectConstant(TokenList* tokens, int* type) {
+void expectConstant(TokenList* tokens, int* type, uint64_t* intValue, double* floatValue) {
     if (!tokensLeft(tokens)) {
         fprintf(stderr, "Parser Error: Expected constant value but got end of file\n");
         exit(1);
@@ -97,7 +106,12 @@ uint64_t expectConstant(TokenList* tokens, int* type) {
     TokenArray_setCursor(tokens->array, cursor + 1);
     *type = getConstantType(tok->type);
 
-    return strtoull(tok->value, NULL, 10);
+    if (*type == CONST_FLOATING_POINT) {
+        *floatValue = strtod(tok->value, NULL);
+    }
+    else {
+        *intValue = strtoull(tok->value, NULL, 10);
+    }
 }
 
 constantType determineConstantType(uint64_t val, constantType type) {
@@ -450,7 +464,7 @@ int isIncrementDecrementOpIncludingFix(unaryType type) {
 
 int checkFactorStart(TokenList* tokens) {
     if (!tokensLeft(tokens)) return 0;
-    return check(tokens, CONSTANT) || check(tokens, IDENTIFIER) || checkUnaryOp(tokens) 
+    return checkConstant(tokens) || check(tokens, IDENTIFIER) || checkUnaryOp(tokens) 
     || checkBinaryOp(tokens) 
     || check(tokens, OPEN_PAREN);
 }

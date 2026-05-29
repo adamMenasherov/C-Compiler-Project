@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "TACKYProgram_FREE.h"
+#include "../../Common/SharedTypeRank.h"
 
 TACKYInstruction* createLabelInstruction(char* label) {
     TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
@@ -60,6 +61,15 @@ TACKYInstruction* createCopyInstruction(TACKYValue* src, TACKYValue* dest) {
     return inst;
 }
 
+TACKYInstruction* createDoubleIntCastInstruction(TACKYValue* src, TACKYValue* dest, TACKYInstructionType instType) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = instType;
+    inst->instValue.doubleIntCast.src = src;
+    inst->instValue.doubleIntCast.dest = dest;
+    return inst;
+}
+
 TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest) {
     TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
     if (!inst) return NULL;
@@ -107,11 +117,15 @@ void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruct
     }
 }
 
-TACKYConstant* CreateTackyConstantNode(uint64_t val, constantType type) {
+TACKYConstant* CreateTackyConstantNode(uint64_t intValue, double doubleValue, constantType type) {
     TACKYConstant* constantNode = malloc(sizeof(TACKYConstant));
     if (!constantNode) return NULL;
 
-    constantNode->value = val;
+    if (type == CONST_FLOATING_POINT) {
+        constantNode->val.doubleValue = doubleValue;
+    } else {
+        constantNode->val.intValue = intValue;
+    }
     constantNode->type = type;
     return constantNode;
 }
@@ -121,17 +135,33 @@ TACKYValue* createTackyValueFromConstantNode(CConstant* const_node) {
     if (!tackyVal) return NULL;
 
     tackyVal->type = TACKY_CONSTANT;
-    tackyVal->constant = CreateTackyConstantNode(const_node->val, const_node->type);
+    tackyVal->constant = CreateTackyConstantNode(const_node->value.intValue, const_node->value.doubleValue, const_node->type);
 
     return tackyVal;
 }
 
-TACKYValue* createTackyValueFromConstant(uint64_t val, constantType type) {
+TACKYInstruction* generateTACKYDoubleIntCast(TACKYValue* src, TACKYValue* dst, specifierType srcType, specifierType dstType, SymbolTable* symTable) {
+    if (!dst) return NULL;
+    if (srcType == SPEC_DOUBLE && (dstType == SPEC_INT || dstType == SPEC_LONG)){
+        return createDoubleIntCastInstruction(src, dst, TACKY_DOUBLE_TO_INT);
+    } else if (srcType == SPEC_DOUBLE && (dstType == SPEC_UNSIGNED_INT || dstType == SPEC_UNSIGNED_LONG)) {
+        return createDoubleIntCastInstruction(src, dst, TACKY_DOUBLE_TO_UINT);
+    } else if ((srcType == SPEC_INT || srcType == SPEC_LONG) && dstType == SPEC_DOUBLE) {
+        return createDoubleIntCastInstruction(src, dst, TACKY_INT_TO_DOUBLE);
+    } else if ((srcType == SPEC_UNSIGNED_INT || srcType == SPEC_UNSIGNED_LONG) && dstType == SPEC_DOUBLE) {
+        return createDoubleIntCastInstruction(src, dst, TACKY_UINT_TO_DOUBLE);
+    }
+    
+    (void)symTable;
+    return createCopyInstruction(src, dst);
+}
+
+TACKYValue* createTackyValueFromConstant(uint64_t intValue, double doubleValue, constantType type) {
     TACKYValue* tackyVal = calloc(1, sizeof(TACKYValue));
     if (!tackyVal) return NULL;
 
     tackyVal->type = TACKY_CONSTANT;
-    tackyVal->constant = CreateTackyConstantNode(val, type);
+    tackyVal->constant = CreateTackyConstantNode(intValue, doubleValue, type);
 
     return tackyVal;
 }
@@ -164,7 +194,7 @@ TACKYValue* copyTackyValue(TACKYValue* original) {
             free(copy);
             return NULL;
         }
-        copy->constant->value = original->constant->value;
+        copy->constant->val = original->constant->val;
         copy->constant->type = original->constant->type;
         copy->identifier = NULL;
     } else if (original->type == TACKY_VAR) {
@@ -253,7 +283,8 @@ TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar) {
     topLevel->topLevel.staticVar = staticVar;
     return topLevel;
 }
-TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, long val, initialValueStaticInitType staticInitType) {
+
+TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, uint64_t intVal, double doubleVal, initialValueStaticInitType staticInitType) {
     TACKYStaticVar* staticVar = malloc(sizeof(TACKYStaticVar));
     if (!staticVar) return NULL;
 
@@ -264,8 +295,12 @@ TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, long val, ini
     }
 
     staticVar->global = global;
-    staticVar->type = (staticInitType == STATIC_INIT_LONG) ? TACKY_LONG : TACKY_INT;
-    staticVar->initVal.val = val;
+    staticVar->type = initialStaticTypeToTACKYStaticVarType(staticInitType);
+    if (staticVar->type == TACKY_DOUBLE) {
+        staticVar->initVal.val.doubleVal = doubleVal;
+    } else {
+        staticVar->initVal.val.intVal = intVal;
+    }
     staticVar->initVal.staticInitType = staticInitType;
     return staticVar;
 }

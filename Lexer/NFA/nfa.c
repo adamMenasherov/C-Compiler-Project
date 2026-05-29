@@ -26,7 +26,9 @@ int mapToCharClass(char c, CharClass cc, char exactC) {
     switch (cc) {
         case CC_ALPHA_UNDER: return isalpha(c) || c == '_'; break;
         case CC_DIGIT: return isdigit(c); break;
-        case CC_SIGNED_SUFFIX: return c == 'u' || c == 'U'; break;
+        case CC_UNSIGNED_SUFFIX: return c == 'u' || c == 'U'; break;
+        case CC_FLOAT_EXP: return c == 'E' || c == 'e'; break;
+        case CC_FLOAT_SIGN: return c == '+' || c == '-'; break;
         case CC_ALPHA_DIGIT: return isalnum(c) || c == '_'; break;
         case CC_LONG_SUFFIX: return c == 'l' || c == 'L'; break;
         case CC_EXACT: return c == exactC; break;
@@ -64,6 +66,69 @@ static NFA* nfaForIdentifiers() {
     return nfa;
 }
 
+static NFA* nfaForFloat() {
+    NFA* nfa = calloc(1, sizeof(NFA));
+    if (!nfa) return NULL;
+
+    int q0 = addStateToNFA(nfa, NOT_ACCEPTING);
+
+    // ── Path 1: mantissa? [Ee] [+-]? [0-9]+ ─────────────────────────
+    int p1_pre   = addStateToNFA(nfa, NOT_ACCEPTING); // [0-9]* (left mantissa branch)
+    int p1_dot_a = addStateToNFA(nfa, NOT_ACCEPTING); // \.
+    int p1_post  = addStateToNFA(nfa, NOT_ACCEPTING); // [0-9]+ after dot
+    int p1_int   = addStateToNFA(nfa, NOT_ACCEPTING); // [0-9]+ (right mantissa branch)
+    int p1_dot_b = addStateToNFA(nfa, NOT_ACCEPTING); // optional \.
+    int p1_e     = addStateToNFA(nfa, NOT_ACCEPTING); // [Ee]
+    int p1_sign  = addStateToNFA(nfa, NOT_ACCEPTING); // optional [+-]
+    int p1_exp   = addStateToNFA(nfa, FLOATING_POINT_CONSTANT); // [0-9]+ after [Ee]
+
+    // mantissa optional: q0 can skip straight to [Ee]
+    addEpsiltonTransitionToState(&nfa->states[q0], p1_pre);
+    addEpsiltonTransitionToState(&nfa->states[q0], p1_int);
+    addEpsiltonTransitionToState(&nfa->states[q0], p1_e);
+
+    // left branch: [0-9]*\.[0-9]+
+    addTransitionToNFA(nfa, p1_pre,  p1_pre,   CC_DIGIT, '\0');
+    addTransitionToNFA(nfa, p1_pre,  p1_dot_a, CC_EXACT, '.');
+    addTransitionToNFA(nfa, p1_dot_a, p1_post, CC_DIGIT, '\0');
+    addTransitionToNFA(nfa, p1_post, p1_post,  CC_DIGIT, '\0');
+    addEpsiltonTransitionToState(&nfa->states[p1_post], p1_e);
+
+    // right branch: [0-9]+\.?
+    addTransitionToNFA(nfa, p1_int, p1_int,   CC_DIGIT, '\0');
+    addTransitionToNFA(nfa, p1_int, p1_dot_b, CC_EXACT, '.');
+    addEpsiltonTransitionToState(&nfa->states[p1_int],   p1_e); // dot optional
+    addEpsiltonTransitionToState(&nfa->states[p1_dot_b], p1_e);
+
+    // exponent: [Ee][+-]?[0-9]+
+    addTransitionToNFA(nfa, p1_e,    p1_sign, CC_FLOAT_EXP,  '\0');
+    addTransitionToNFA(nfa, p1_sign, p1_exp,  CC_FLOAT_SIGN, '\0');
+    addTransitionToNFA(nfa, p1_exp,  p1_exp,  CC_DIGIT,      '\0');
+    addEpsiltonTransitionToState(&nfa->states[p1_sign], p1_exp); // sign optional
+
+    // ── Path 2: [0-9]*\.[0-9]+ ───────────────────────────────────────
+    int p2_pre  = addStateToNFA(nfa, NOT_ACCEPTING);
+    int p2_dot  = addStateToNFA(nfa, NOT_ACCEPTING);
+    int p2_post = addStateToNFA(nfa, FLOATING_POINT_CONSTANT);
+
+    addEpsiltonTransitionToState(&nfa->states[q0], p2_pre);
+    addTransitionToNFA(nfa, p2_pre,  p2_pre,  CC_DIGIT, '\0');
+    addTransitionToNFA(nfa, p2_pre,  p2_dot,  CC_EXACT, '.');
+    addTransitionToNFA(nfa, p2_dot,  p2_post, CC_DIGIT, '\0');
+    addTransitionToNFA(nfa, p2_post, p2_post, CC_DIGIT, '\0');
+
+    // ── Path 3: [0-9]+\. ─────────────────────────────────────────────
+    int p3_digits = addStateToNFA(nfa, NOT_ACCEPTING);
+    int p3_dot    = addStateToNFA(nfa, FLOATING_POINT_CONSTANT);
+
+    addEpsiltonTransitionToState(&nfa->states[q0], p3_digits);
+    addTransitionToNFA(nfa, p3_digits, p3_digits, CC_DIGIT, '\0');
+    addTransitionToNFA(nfa, p3_digits, p3_dot,    CC_EXACT, '.');
+
+    return nfa;
+}
+
+
 static NFA* nfaForConstants() {
     NFA* nfa = calloc(1, sizeof(NFA));
     if (!nfa) return NULL;
@@ -80,9 +145,9 @@ static NFA* nfaForConstants() {
     //If reaching the long suffix, then it is a long constant
     addTransitionToNFA(nfa, q1, q2, CC_LONG_SUFFIX, '\0');
     //If reaching the unsigned suffix, then it is an unsigned constant
-    addTransitionToNFA(nfa, q1, q3, CC_SIGNED_SUFFIX, '\0');
+    addTransitionToNFA(nfa, q1, q3, CC_UNSIGNED_SUFFIX, '\0');
     //If reaching both the unsigned and long suffix, then it is an unsigned long constant
-    addTransitionToNFA(nfa, q2, q4, CC_SIGNED_SUFFIX, '\0');
+    addTransitionToNFA(nfa, q2, q4, CC_UNSIGNED_SUFFIX, '\0');
     addTransitionToNFA(nfa, q3, q4, CC_LONG_SUFFIX, '\0');
 
     return nfa;
@@ -192,6 +257,7 @@ NFA* createFinalNFA() {
 
     mergeAndConnect(master, nfaForIdentifiers(), masterStart);
     mergeAndConnect(master, nfaForConstants(), masterStart);
+    mergeAndConnect(master, nfaForFloat(), masterStart);
 
     return master;
 }

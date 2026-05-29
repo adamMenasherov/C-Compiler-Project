@@ -42,7 +42,7 @@ static void handleTypeCheckFuncCall(CFactor* expr, SymbolTable* symbolTable) {
         specifierType paramType = info->funcInfo.funcType->func.params[i]->type;
         args->data[i] = convertTo(arg, paramType);
     }
-    setType(expr, info->funcInfo.funcType->func.ret->type);
+    setType(expr, info->funcInfo.funcType->type);
 }
 
 static void handleTypeCheckVar(CFactor* expr, SymbolTable* symbolTable) {
@@ -60,6 +60,10 @@ static void handleTypeCheckVar(CFactor* expr, SymbolTable* symbolTable) {
 
 static void handleTypeCheckUnary(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.unary->exp, symbolTable);
+    if (expr->exp.unary->exp->valueType == SPEC_DOUBLE && (expr->exp.unary->type == UNARY_NEGATE || expr->exp.unary->type == UNARY_COMPLEMENT)) {
+        fprintf(stderr, "Semantic Error: /%, ~ not supported on double type\n");
+        exit(1);
+    }
     if (expr->exp.unary->type == UNARY_NOT) 
         setType(expr, SPEC_INT); // Evaluates to an int (0 or 1)
     else 

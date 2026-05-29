@@ -1,1 +1,3 @@
-static unsigned long int a;
+static unsigned int foo() {
+    int f = (double) 5 / 2;
+}

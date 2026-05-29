@@ -4,11 +4,16 @@
 #include <stdio.h>
 
 
-CConstant* C_CreateConstant(uint64_t val, constantType type) {
+CConstant* C_CreateConstant(uint64_t intVal, double floatVal, constantType type) {
     CConstant* constant = malloc(sizeof(CConstant));
     if  (!constant) return NULL;
 
-    constant->val = val;
+    if (type == CONST_FLOATING_POINT) {
+        constant->value.doubleValue = floatVal;
+    }
+    else {
+        constant->value.intValue = intVal;
+    }
     constant->type = type;
     return constant;
 }
@@ -94,7 +99,7 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
             
         case FACTOR_CONSTANT: {
             new_exp->type = FACTOR_CONSTANT;
-            new_exp->exp.cnst = C_CreateConstant(((CConstant*)expVal)->val, ((CConstant*)expVal)->type);
+            new_exp->exp.cnst = C_CreateConstant(((CConstant*)expVal)->value.intValue, ((CConstant*)expVal)->value.doubleValue, ((CConstant*)expVal)->type);
             break;
         }
         case FACTOR_BINARY: {

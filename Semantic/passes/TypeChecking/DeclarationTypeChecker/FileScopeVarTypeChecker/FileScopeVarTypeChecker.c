@@ -13,6 +13,8 @@ static initialValueStaticInitType getDeclStaticInitType(CDeclaration* decl) {
             return STATIC_INIT_UNSIGNED_INT;
         case SPEC_UNSIGNED_LONG:
             return STATIC_INIT_UNSIGNED_LONG;
+        case SPEC_DOUBLE:
+            return STATIC_INIT_DOUBLE;
         default:
             fprintf(stderr, "Semantic Error: Unsupported file-scope declaration type for variable '%s'\n",
                 decl->decl.variableDecl.identifier);
@@ -38,14 +40,19 @@ static initialValue* resolveFileScopeInitValue(CDeclaration* decl) {
     initialValueStaticInitType staticInitType = getDeclStaticInitType(decl);
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
-        uint64_t val = decl->decl.variableDecl.exp->exp.cnst->val;
-        convertValFromType(&val, decl->decl.variableDecl.varType);
-        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val);
+        if (staticInitType == STATIC_INIT_DOUBLE) {
+            double val = decl->decl.variableDecl.exp->exp.cnst->value.doubleValue;
+            return createDoubleInitialValue(INITIAL_WITH_VALUE, val);
+        } else {
+            uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;
+            convertValFromType(&val, decl->decl.variableDecl.varType);
+            return createIntInitialValue(INITIAL_WITH_VALUE, val);
+        }
     }
         
     if (decl->decl.variableDecl.storageClass == SPEC_EXTERN)
-        return createInitialValue(staticInitType, INITIAL_NO_VALUE, 0);
-    return createInitialValue(staticInitType, INITIAL_TENTATIVE, 0);
+        return createInitialValue(staticInitType, INITIAL_NO_VALUE, 0, 0.0);
+    return createInitialValue(staticInitType, INITIAL_TENTATIVE, 0, 0.0);
 }
 
 static int resolveFileScopeLinkage(CDeclaration* decl, IdentifierTypeInfo* existing, int requestedGlobal) {

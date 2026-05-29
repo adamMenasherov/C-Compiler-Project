@@ -50,7 +50,7 @@ void parseSwitchStatementInstructions(CSwitch* switch_stmt, TACKYInstructionList
     int isWithDefault = switch_stmt->defaultCase != NULL;
 
     for (int i = 0; i < switch_stmt->caseCount; i++) {
-        caseLabels[i] = generateCaseLabel(switch_stmt->cases[i]->matchVal->val);
+        caseLabels[i] = generateCaseLabel(switch_stmt->cases[i]->matchVal->value.intValue);
         TACKYValue* tmpVar = makeTACKYVariable(SPEC_INT, symTable);
         TACKYValue* caseExp = createTackyValueFromConstantNode(switch_stmt->cases[i]->matchVal);
         addInstructionToList(instructionList,

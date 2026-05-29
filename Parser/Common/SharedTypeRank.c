@@ -43,8 +43,26 @@ specifierType constantTypeToSpecifierType(constantType type) {
             return SPEC_UNSIGNED_INT;
         case CONST_UNSIGNED_LONG:
             return SPEC_UNSIGNED_LONG;
+        case CONST_FLOATING_POINT:
+            return SPEC_DOUBLE;
         default:
             fprintf(stderr, "Invalid constant type in constantTypeToSpecifierType function\n");
+            exit(1);
+    }
+}
+
+TACKYStaticVarType initialStaticTypeToTACKYStaticVarType(initialValueStaticInitType type) {
+    switch (type) {
+        case STATIC_INIT_INT:
+        case STATIC_INIT_UNSIGNED_INT:
+            return TACKY_INT;
+        case STATIC_INIT_LONG:
+        case STATIC_INIT_UNSIGNED_LONG:
+            return TACKY_LONG;
+        case STATIC_INIT_DOUBLE:
+            return TACKY_DOUBLE;
+        default:
+            fprintf(stderr, "Invalid initial value static init type in initialStaticTypeToTACKYStaticVarType function\n");
             exit(1);
     }
 }

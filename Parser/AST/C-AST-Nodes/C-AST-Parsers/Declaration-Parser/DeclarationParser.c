@@ -86,7 +86,7 @@ CDeclaration* C_parseFunction(TokenList* tokens, char* identifier, specifierType
         expect(tokens, SEMICOLON);
     }
 
-    funcType->func.ret = C_CreateType(retType);
+    funcType->type = retType;
     return C_CreateFunction(type, identifier, parameters, body, funcType, storageClass);
 }
 
@@ -122,15 +122,18 @@ CDeclaration* C_parseDeclaration(TokenList* tokens) {
 
 void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifierType* storageClass) {
     TypeFlags typeFound = {0}, storageClassFound = {0};
+    unsigned int typeResult = 0;
 
     while (tokensLeft(tokens) && checkSpecifier(tokens)) {
         PARSE_SPECIFIER(INT_KEYWORD,    typeFound.isInt,          "int")
         else PARSE_SPECIFIER(LONG_KEYWORD,   typeFound.isLong,    "long")
+        else PARSE_SPECIFIER(DOUBLE_KEYWORD, typeFound.isDouble,  "double")
         else PARSE_SPECIFIER(STATIC_KEYWORD, storageClassFound.isStatic, "static")
         else PARSE_SPECIFIER(EXTERN_KEYWORD, storageClassFound.isExtern, "extern")
         else PARSE_SPECIFIER(UNSIGNED, typeFound.isUnsigned, "unsigned")
         else PARSE_SPECIFIER(SIGNED, typeFound.isSigned, "signed");
     }
+    memcpy(&typeResult, &typeFound, sizeof(TypeFlags));
 
     if ((storageClassFound.isStatic + storageClassFound.isExtern) > 1) {
         fprintf(stderr, "Parser Error: Expected at most one storage class specifier\n");
@@ -138,6 +141,11 @@ void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifie
     }
     if (typeFound.isSigned && typeFound.isUnsigned) {
         fprintf(stderr, "Parser Error: Cannot combine 'signed' and 'unsigned' specifiers\n");
+        exit(1);
+    }
+
+    if (typeFound.isDouble && (typeResult & (typeResult - 1))) {
+        fprintf(stderr, "Parser Error: 'double' cannot be combined with other type specifiers\n");
         exit(1);
     }
 
@@ -150,6 +158,7 @@ void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifie
 specifierType C_parseType(TypeFlags typeFound) {
     specifierType res = SPEC_NULL;
     int signedUnsigned = typeFound.isUnsigned ? 1 : (typeFound.isSigned ? -1 : 0);
+    if (typeFound.isDouble) return SPEC_DOUBLE;
     if (typeFound.isLong) return signedUnsigned == 1 ? SPEC_UNSIGNED_LONG : SPEC_LONG;
     else if (typeFound.isInt) return signedUnsigned == 1 ? SPEC_UNSIGNED_INT : SPEC_INT;
     else res = signedUnsigned == 1 ? SPEC_UNSIGNED_INT : (signedUnsigned == -1 ? SPEC_INT : SPEC_NULL);

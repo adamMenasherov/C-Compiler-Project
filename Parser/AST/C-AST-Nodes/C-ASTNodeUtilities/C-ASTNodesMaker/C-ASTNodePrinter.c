@@ -15,6 +15,7 @@ static const char* getConstantTypeName(constantType type) {
         case CONST_LONG: return "long";
         case CONST_UNSIGNED_INT: return "unsigned int";
         case CONST_UNSIGNED_LONG: return "unsigned long";
+        case CONST_FLOATING_POINT: return "double";
         default: return "unknown";
     }
 }
@@ -263,7 +264,12 @@ void C_printUnary(CUnary* unary) {
 
 void C_printConstant(CConstant* constant) {
     if (!constant) return;
-    printf("Constant(%s:%lu)", getConstantTypeName(constant->type), constant->val);
+    char* type = getConstantTypeName(constant->type);
+    if (constant->type == CONST_FLOATING_POINT) {
+        printf("Constant(%s:%f)", type, constant->value.doubleValue);
+    } else {
+        printf("Constant(%s:%lu)", type, constant->value.intValue);
+    }
 }
 
 void C_printBlockItem(CBlockItem* blockItem) {

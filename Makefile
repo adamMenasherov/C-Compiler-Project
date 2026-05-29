@@ -2,7 +2,7 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -g -Wall -Wextra 
+CFLAGS = -g -Wall -Wextra -DPARSER_ONLY
 LDFLAGS =
 
 # Build directory structure
@@ -13,9 +13,18 @@ OBJ_DIR = $(BUILD_DIR)/obj
 TARGET = compiler
 
 # Source files
-# Keep this dynamic so newly added parser/semantic files are compiled automatically.
-SOURCE_DIRS = ASM-File-Generation DataStructures EntryPoint Lexer Parser Semantic
-SOURCES = $(shell find $(SOURCE_DIRS) -type f -name '*.c' | sort)
+# Semantic-only build for now: stop after symbol-table printing and exclude TACKY/ASM generation.
+DATA_STRUCTURE_SOURCES = \
+	DataStructures/HashTable/HashTable.c \
+	DataStructures/HashTable/Wrappers/SymbolTableWrapper.c \
+	DataStructures/Map/map.c \
+	DataStructures/Map/Wrappers/CharIntMap.c \
+	DataStructures/Map/Wrappers/SemanticIdentifierMap.c
+ENTRYPOINT_SOURCES = EntryPoint/FileHandling.c EntryPoint/main.c
+LEXER_SOURCES = $(shell find Lexer -type f -name '*.c' | sort)
+PARSER_SOURCES = Parser/Parser.c Parser/generateUtils.c $(shell find Parser/AST Parser/Common Parser/TACKY -type f -name '*.c' | sort)
+SEMANTIC_SOURCES = $(shell find Semantic -type f -name '*.c' | sort)
+SOURCES = $(DATA_STRUCTURE_SOURCES) $(ENTRYPOINT_SOURCES) $(LEXER_SOURCES) $(PARSER_SOURCES) $(SEMANTIC_SOURCES)
 
 
 

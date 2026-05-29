@@ -8,9 +8,11 @@ typedef enum {
     CC_ALPHA_UNDER, // [a-zA-Z_]
     CC_ALPHA_DIGIT, // [a-zA-Z0-9_]
     CC_DIGIT, // [0-9]
+    CC_FLOAT_EXP, // [Ee]
+    CC_FLOAT_SIGN, // [+-] for floating point exponent
     CC_EXACT, // an exact character
     CC_LONG_SUFFIX, // [lL]
-    CC_SIGNED_SUFFIX, // [uU]
+    CC_UNSIGNED_SUFFIX, // [uU]
     CC_NO_CHARS // For epsilon transitions
 } CharClass;
 

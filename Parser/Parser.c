@@ -3,10 +3,12 @@
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeFree.h"
 #include "AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
 #include <stdio.h>
-#include "ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsFree.h"
 #include "TACKY/TACKYUtils/TACKYProgram_FREE.h"
 #include "TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
+#ifndef PARSER_ONLY
+#include "ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsFree.h"
 #include "ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
+#endif
 
 
 AST* parse(TokenList* tokens) {
@@ -43,7 +45,7 @@ void printTACKY_AST(TACKY* tacky_ast) {
     }
 }
 
-
+#ifndef PARSER_ONLY
 ASM* tackyAstToASM_AST(TACKY* ast, SymbolTable* symTable) {
     ASM* asm_ast = malloc(sizeof(ASM));
     if (!asm_ast) return NULL;
@@ -62,6 +64,12 @@ void freeASM_AST(ASM* asm_ast) {
     }
 }
 
+void printASM_AST(ASM* asm_ast) {
+    printASMProgram(asm_ast->prog);
+}
+
+#endif
+
 void freeAST(AST* ast) {
     if (ast) {
         C_freeProgram(ast->prog);
@@ -71,8 +79,4 @@ void freeAST(AST* ast) {
 
 void printAST(AST* ast) {
     C_printProgram(ast->prog);
-}
-
-void printASM_AST(ASM* asm_ast) {
-    printASMProgram(asm_ast->prog);
 }

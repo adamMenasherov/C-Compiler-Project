@@ -21,7 +21,13 @@ void printTACKYValue(const TACKYValue* val) {
     switch (val->type) {
         case TACKY_CONSTANT:
             if (val->constant) {
-                printf("Constant(%lu)", val->constant->value);
+                if (val->constant->type == CONST_INT) {
+                    printf("Constant(%lu)", val->constant->val.intValue);
+                } else if (val->constant->type == CONST_FLOATING_POINT) {
+                    printf("Constant(%f)", val->constant->val.doubleValue);
+                } else {
+                    printf("Constant(<unknown type>)");
+                }
             } else {
                 printf("Constant(<null>)");
             }
@@ -87,6 +93,38 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printTACKYValue(inst->instValue.zeroExtend.dest);
             printf(")");
             break;
+        case TACKY_INT_TO_DOUBLE: {
+            printf("IntToDouble(");
+            printTACKYValue(inst->instValue.doubleIntCast.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.doubleIntCast.dest);
+            printf(")");
+            break;
+        }
+        case TACKY_DOUBLE_TO_INT: {
+            printf("DoubleToInt(");
+            printTACKYValue(inst->instValue.doubleIntCast.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.doubleIntCast.dest);
+            printf(")");
+            break;
+        }
+        case TACKY_UINT_TO_DOUBLE: {
+            printf("UIntToDouble(");
+            printTACKYValue(inst->instValue.doubleIntCast.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.doubleIntCast.dest);   
+            printf(")");
+            break;
+        }
+        case TACKY_DOUBLE_TO_UINT: {
+            printf("DoubleToUInt(");
+            printTACKYValue(inst->instValue.doubleIntCast.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.doubleIntCast.dest);
+            printf(")");
+            break;
+        }
         case TACKY_JUMP:
             printf("Jump(\"%s\")", inst->instValue.jump.label);
             break;
