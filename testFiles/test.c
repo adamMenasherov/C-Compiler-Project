@@ -1,3 +1,6 @@
-static unsigned int foo() {
-    int f = (double) 5 / 2;
+#include <stdio.h>
+
+int main() {
+    double a = 'A';
+    printf("%c\n", a);
 }

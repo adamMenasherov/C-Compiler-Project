@@ -15,6 +15,7 @@ typedef struct {
         struct {
             ASMType assemblyType;
             int isStatic;
+            int isConstant;
         } objEntry;
         struct {
             int defined;
@@ -26,7 +27,8 @@ typedef HashTable ASMSymbolTable;
 typedef void (*AsmSymbolTableForEachFn)(ASMSymTabEntry* entry, void* userData);
 
 ASMSymbolTable* createAsmSymbolTable();
-int asmSymbolTableInsert(ASMSymbolTable* table, const char* identifier, ASMSymTabEntryType entryType, ASMType assemblyType, int isStatic, int defined);
+int asmSymbolTableInsert(ASMSymbolTable* table, const char* identifier, ASMSymTabEntryType entryType, ASMType assemblyType, int isStatic,
+     int isConstant, int defined);
 ASMSymTabEntry* asmSymbolTableLookup(ASMSymbolTable* table, const char* identifier);
 int asmSymbolTableContains(ASMSymbolTable* table, const char* identifier);
 int asmSymbolTableRemove(ASMSymbolTable* table, const char* identifier);

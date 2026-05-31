@@ -1,5 +1,6 @@
 #pragma once
 #include "ASMInstructionsGeneralUtils.h"
+#include "../../../DataStructures/Map/Wrappers/DoubleStringMap.h"
 
 /* ============================================================
  * Instruction List Management
@@ -61,6 +62,15 @@ ASMOperand* createStackOperand(int offset);
  * @return ASMOperand* pointer to the created ASMOperand
  */
 ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable);
+
+/**
+ * @brief Create a Asm Constant Operand object 
+ * 
+ * @param val The double value for the constant operand
+ * @param symTable The symbol table to check for existing constants and manage the constant cache
+ * @return ASMOperand* pointer to the created constant operand
+ */
+ASMOperand* createAsmConstantOperand(double val, SymbolTable* symTable);
 
 
 /* ============================================================
@@ -152,12 +162,24 @@ ASMInstruction* createASMCDQInstruction(ASMType asmType);
 
 /**
  * @brief Create a MOVSX Instruction object
- * 
+ *
  * @param src The source operand for the MOVSX instruction
  * @param dest The destination operand for the MOVSX instruction
  * @return ASMInstruction* pointer to the created MOVSX instruction
  */
 ASMInstruction* createASMMovsxInstruction(ASMOperand* src, ASMOperand* dest);
+
+/**
+ * @brief Create a CVTSI2SD instruction (integer → double).
+ * @param src_type  The ASMType of the integer source (LONGWORD or QUADWORD)
+ */
+ASMInstruction* createCvtsi2sdInstruction(ASMType src_type, ASMOperand* src, ASMOperand* dest);
+
+/**
+ * @brief Create a CVTTSD2SI instruction (double → integer, truncating).
+ * @param dst_type  The ASMType of the integer destination (LONGWORD or QUADWORD)
+ */
+ASMInstruction* createCvttsd2siInstruction(ASMType dst_type, ASMOperand* src, ASMOperand* dest);
 
 
 /**
@@ -193,6 +215,16 @@ ASMInstruction* createASMSetCCInstruction(ASMCondCode cond, ASMOperand* op);
  * @return ASMInstruction* pointer to the created LABEL instruction
  */
 ASMInstruction* createASMLabelInstruction(char* label);
+
+/**
+ * @brief Create a Asm Static Const object
+ * 
+ * @param identifier The identifier for the static constant
+ * @param alignment The alignment requirement for the static constant
+ * @param initVal The initial value for the static constant
+ * @return ASMStaticConst* 
+ */
+ASMStaticConst* createAsmStaticConst(char* identifier, int alignment, double initVal);
 
 /**
  * @brief Create a Push Instruction object
@@ -236,12 +268,31 @@ ASMInstruction* createASMDeallocateStackInstruction(int size);
  */
 ASMInstruction* createASMCallInstruction(char* functionName);
 
+
+/**
+ * @brief Create a Static Constant From TACKYValue, returning the label for the constant in the assembly program
+ * 
+ * @param val The TACKYValue representing the constant to be created
+ * @param symTable The symbol table to check for existing constants and manage the constant cache
+ * @return char* pointer to the label of the created static constant, or NULL if the TACKYValue is not a floating-point constant
+ */
+char* createStaticConstantFromTACKYValue(TACKYValue* val, SymbolTable* symTable);
+
 /**
  * @brief Create a Return Instruction object
  * 
  * @return ASMInstruction* pointer to the created RETURN instruction
  */
 ASMInstruction* createASMReturnInstruction();
+
+char* createStaticConstant(double dval, SymbolTable* symTable);
+
+/* Lifecycle for the per-program double-constant deduplication cache.
+ * Call initConstantCache() before parseASMprogram and
+ * destroyConstantCache() after addConstantsAsTopLevels(). */
+void initConstantCache(void);
+void destroyConstantCache(void);
+DoubleStringMap* getConstantCache();
 
 /**
  * @brief Create a Top Level object

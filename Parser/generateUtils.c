@@ -95,3 +95,11 @@ char* generateCaseLabel(int caseValue) {
     sprintf(label, "case_%d_%d", caseValue, currGlobalInt++);
     return label;
 }
+
+char* generateDoubleTempName() {
+    static int doubleTempCount = 0;
+    char* temp_name = malloc(strlen(".LC") + 10);
+    if (!temp_name) return NULL;
+    sprintf(temp_name, ".LC%d", doubleTempCount++);
+    return temp_name;
+}

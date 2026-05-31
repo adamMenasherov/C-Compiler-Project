@@ -1,5 +1,12 @@
 #pragma once
 
+/**
+ * @file TACKYEmitters.h
+ * @brief This file handles the emission of TACKY instruction for CFactors.
+ * It deals with the various types of CFactor, having emit_TACKY as the entry point and routing from it to the 
+ * appropriate function. 
+ */
+
 #include "../TACKYProgram.h"
 
 TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable);

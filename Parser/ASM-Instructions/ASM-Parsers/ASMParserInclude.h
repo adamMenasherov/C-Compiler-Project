@@ -1,0 +1,9 @@
+#pragma once
+#include "Unary-Parser/UnaryParser.h"
+#include "Binary-Parser/BinaryParser.h"
+#include "CondJump-Parser/CondJumpParser.h"
+#include "FuncCall-Parser/FuncCallParser.h"
+#include "Cast-Parser/CastParser.h"
+#include "FloatCast-Parser/FloatCastParser.h"
+#include "Function-Parser/FunctionParser.h"
+#include "StaticVar-Parser/StaticVarParser.h"

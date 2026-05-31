@@ -3,6 +3,7 @@
 #include "../../AST/C-AST-Nodes/C-ASTNodes.h"
 #include "../../TACKY/TACKYProgram.h"
 #include "../../../DataStructures/Map/Wrappers/CharIntMap.h"
+#include "../../../DataStructures/Map/Wrappers/DoubleStringMap.h"
 #include "../../../DataStructures/DynamicArray/Wrappers/ASMTopLevelArrayWrapper.h"
 
 /* ============================================================
@@ -22,6 +23,8 @@ typedef enum {
     ASM_DIV,
     ASM_LABEL,
     ASM_SETCC,
+    ASM_CVTTSD2SI,
+    ASM_CVTSI2SD,
     ASM_JUMP,
     ASM_CMP,
     ASM_PUSH,
@@ -35,7 +38,8 @@ typedef enum {
     ASM_UNARY_NEG,
     ASM_UNARY_NOT,
     ASM_UNARY_DEC,
-    ASM_UNARY_INC
+    ASM_UNARY_INC,
+    ASM_UNARY_SHR
 } ASMUnaryOperator;
 
 typedef enum {
@@ -46,7 +50,8 @@ typedef enum {
     ASM_BINARY_AND,
     ASM_BINARY_OR,
     ASM_BINARY_SHIFT_LEFT,
-    ASM_BINARY_SHIFT_RIGHT
+    ASM_BINARY_SHIFT_RIGHT,
+    ASM_BINARY_DIVDOUBLE,
 } ASMBinaryOperator;
 
 typedef enum {
@@ -72,12 +77,14 @@ typedef enum {
 
 typedef enum {
     ASM_LONGWORD,
-    ASM_QUADWORD
+    ASM_QUADWORD,
+    ASM_DOUBLE
 } ASMType;
 
 typedef enum {
     ASM_TOP_LEVEL_FUNCTION,
-    ASM_TOP_LEVEL_STATIC_VAR
+    ASM_TOP_LEVEL_STATIC_VAR,
+    ASM_TOP_LEVEL_STATIC_CONST
 } ASMTopLevelType;
 
 typedef enum {
@@ -90,10 +97,21 @@ typedef enum {
     R8,
     R9,
     R10,
-    R11
+    R11,
+    XMM0,
+    XMM1,
+    XMM2,
+    XMM3,
+    XMM4,
+    XMM5,
+    XMM6,
+    XMM7,
+    XMM14,
+    XMM15
 } Register;
 
 extern const int argResigters[];
+extern const int doubleArgRegisters[];
 
 typedef struct {
     OperandType type;
@@ -177,6 +195,16 @@ typedef struct ASMInstruction {
         struct {
             char* functionName;
         } call;
+        struct {
+            ASMType dst_type;
+            ASMOperand* src;
+            ASMOperand* dest;
+        } cvttsd2si;
+        struct {
+            ASMType src_type;
+            ASMOperand* src;
+            ASMOperand* dest;
+        } cvtsi2sd;
     } instValue;
     struct ASMInstruction* next;
 } ASMInstruction;
@@ -200,11 +228,18 @@ typedef struct {
     staticInitialVal initVal;   
 } ASMStaticVar;
 
+typedef struct {
+    char* identifier;
+    int alignment;
+    staticInitialVal initVal;
+} ASMStaticConst;
+
 typedef struct ASMTopLevel {
     ASMTopLevelType type;
     union {
         ASMStaticVar* staticVar;
         ASMFunction* function;
+        ASMStaticConst* staticConst;
     } topLevel;
 } ASMTopLevel;
 
@@ -232,5 +267,7 @@ ASMCondCode getCondCodeForRelationalOp(binType type, int isSigned);
 ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable);
 ASMType convertSpecifierTypeToASMType(specifierType type);
 ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info);
+void addConstantsAsTopLevels(ASMProgram* asmProgram, DoubleStringMap* cache);
 int signedOrUnsigned(TACKYInstruction* instruction, SymbolTable* symTable);
 int isSignedTACKYValue(TACKYValue* val, SymbolTable* symTable);
+int isDoubleOperand(TACKYValue* val, SymbolTable* symTable);

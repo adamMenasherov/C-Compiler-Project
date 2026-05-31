@@ -36,7 +36,7 @@ static int equalAsmEntry(void* lhs, void* rhs) {
     return strcmp(left->identifier, right->identifier) == 0;
 }
 
-static ASMSymTabEntry* createAsmSymTabEntry(const char* identifier, ASMSymTabEntryType entryType, ASMType assemblyType, int isStatic, int defined) {
+static ASMSymTabEntry* createAsmSymTabEntry(const char* identifier, ASMSymTabEntryType entryType, ASMType assemblyType, int isStatic, int isConstant, int defined) {
     ASMSymTabEntry* entry = calloc(1, sizeof(ASMSymTabEntry));
     if (!entry) return NULL;
 
@@ -51,6 +51,7 @@ static ASMSymTabEntry* createAsmSymTabEntry(const char* identifier, ASMSymTabEnt
         case ASM_SYMTAB_OBJ_ENTRY:
             entry->objEntry.assemblyType = assemblyType;
             entry->objEntry.isStatic = isStatic;
+            entry->objEntry.isConstant = isConstant;
             break;
         case ASM_SYMTAB_FUN_ENTRY:
             entry->funEntry.defined = defined;
@@ -88,7 +89,9 @@ ASMSymbolTable* createAsmSymbolTable() {
     return createHashTable(hashAsmEntry, equalAsmEntry);
 }
 
-int asmSymbolTableInsert(ASMSymbolTable* table, const char* identifier, ASMSymTabEntryType entryType, ASMType assemblyType, int isStatic, int defined) {
+int asmSymbolTableInsert(ASMSymbolTable* table, const char* identifier, ASMSymTabEntryType entryType, ASMType assemblyType, int isStatic,
+     int isConstant, int defined) 
+{
     ASMSymTabEntry probe;    // For checking whether the key already exists
     ASMSymTabEntry* existing; // To hold the existing entry if found
     ASMSymTabEntry* stored;   // The new entry to be stored if the key doesn't already exist
@@ -103,6 +106,7 @@ int asmSymbolTableInsert(ASMSymbolTable* table, const char* identifier, ASMSymTa
             case ASM_SYMTAB_OBJ_ENTRY:
                 existing->objEntry.assemblyType = assemblyType;
                 existing->objEntry.isStatic = isStatic;
+                existing->objEntry.isConstant = isConstant;
                 return 1;
             case ASM_SYMTAB_FUN_ENTRY:
                 existing->funEntry.defined = defined;
@@ -110,7 +114,7 @@ int asmSymbolTableInsert(ASMSymbolTable* table, const char* identifier, ASMSymTa
         }
     }
 
-    stored = createAsmSymTabEntry(identifier, entryType, assemblyType, isStatic, defined);
+    stored = createAsmSymTabEntry(identifier, entryType, assemblyType, isStatic, isConstant, defined);
     if (!stored) return 0;
 
     if (!ht_insert(table, stored)) {
@@ -176,14 +180,19 @@ ASMSymbolTable* convertFrontEndSymTableToASMSymTable(SymbolTable* symTable) {
             int isStatic = info->attrs && info->attrs->global ? 0 : 1; // Treat global variables as non-static, local variables as static
             int isDefined = info->type == TYPE_FUNCTION ? info->funcInfo.isDefined : 0; // Only functions have a defined/undefined state
             ASMType asmType = convertIdentifierTypeToASMType(info);
+            char* identifier = strdup(info->identifier);
             if (info->type == TYPE_FUNCTION) {
-                asmSymbolTableInsert(asmSymTable, info->identifier, ASM_SYMTAB_FUN_ENTRY, 0, 0, isDefined);
+                asmSymbolTableInsert(asmSymTable, identifier, ASM_SYMTAB_FUN_ENTRY, 0, 0, 0, isDefined);
             } else {
-                asmSymbolTableInsert(asmSymTable, info->identifier, ASM_SYMTAB_OBJ_ENTRY, asmType, isStatic, 0);
+                int isConstant = info->type == TYPE_DOUBLE && isDoubleLabel(info->identifier);
+                asmSymbolTableInsert(asmSymTable, identifier, ASM_SYMTAB_OBJ_ENTRY, asmType, isStatic, isConstant, 0);
             }
             entry = entry->next;
         }
     }
 
+    /* Free the original symbol table without freeing keys 
+     * since we're reusing them in the ASM symbol table */
+    freeSymbolTable(symTable); 
     return asmSymTable;
 }

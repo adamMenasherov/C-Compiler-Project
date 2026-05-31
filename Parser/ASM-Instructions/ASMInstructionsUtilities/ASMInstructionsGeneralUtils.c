@@ -1,7 +1,10 @@
 #include "ASMInstructionsGeneralUtils.h"
 #include "../../Common/SharedTypeRank.h"
+#include "ASMInstructionsConstructors.h"
+#include "../../../DataStructures/Map/Wrappers/DoubleStringMap.h"
 
 const int argResigters[] = {DI, SI, DX, CX, R8, R9};
+const int doubleArgRegisters[] = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
 
 int isRelationalOp(binType type) {
     return type == BIN_LESS_THAN || type == BIN_LESS_EQUAL || 
@@ -45,10 +48,12 @@ ASMType convertSpecifierTypeToASMType(specifierType type) {
         case SPEC_INT:
         case SPEC_UNSIGNED_INT:
              return ASM_LONGWORD;
-        case SPEC_LONG: 
+        case SPEC_LONG:
         case SPEC_UNSIGNED_LONG:
              return ASM_QUADWORD;
-        default: return ASM_LONGWORD; // Default to longword for other types
+        case SPEC_DOUBLE:
+             return ASM_DOUBLE;
+        default: return ASM_LONGWORD;
     }
 }
 
@@ -61,6 +66,8 @@ ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info) {
         case TYPE_LONG:
         case TYPE_UNSIGNED_LONG:
             return ASM_QUADWORD;
+        case TYPE_DOUBLE:
+            return ASM_DOUBLE;
         default: return ASM_LONGWORD;
     }
 }
@@ -71,7 +78,10 @@ int signedOrUnsigned(TACKYInstruction* instruction, SymbolTable* symTable) {
     TACKYValue* src1 = instruction->instValue.binaryOp.src1;
     TACKYValue* src2 = instruction->instValue.binaryOp.src2;
     TACKYValue* dest = instruction->instValue.binaryOp.dest;
-    if (isSignedTACKYValue(src1, symTable) || isSignedTACKYValue(src2, symTable) || isSignedTACKYValue(dest, symTable)) return 1;
+    if (isSignedTACKYValue(src1, symTable) || isSignedTACKYValue(src2, symTable) || isSignedTACKYValue(dest, symTable)) 
+        return 1;
+    if (isDoubleOperand(src1, symTable) || isDoubleOperand(src2, symTable) || isDoubleOperand(dest, symTable))
+        return 1; 
     return 0;
 }
 
@@ -91,4 +101,33 @@ int isSignedTACKYValue(TACKYValue* val, SymbolTable* symTable) {
     }
 
     return 0; // Default to unsigned for other cases
+}
+
+void addConstantsAsTopLevels(ASMProgram* asmProgram, DoubleStringMap* cache) {
+    doubleStringMapForEach(cache, handleConstantEntry, asmProgram->topLevels);
+}
+
+void handleConstantEntry(double val, const char* label, void* userData) {
+    ASMTopLevelArray* topLevels = (ASMTopLevelArray*)userData;
+    ASMStaticConst* asmConst = createAsmStaticConst((char*)label, 8, val);
+    ASMTopLevel* topLevel = createTopLevel(ASM_TOP_LEVEL_STATIC_CONST, asmConst);
+    ASMTopLevelArray_add(topLevels, topLevel);
+}
+
+int isDoubleOperand(TACKYValue* val, SymbolTable* symTable) {
+    if (!val) return 0;
+
+    if (val->type == TACKY_CONSTANT && val->constant) {
+        return val->constant->type == CONST_FLOATING_POINT;
+    }
+
+    if ((val->type == TACKY_VAR || val->type == TACKY_STATIC) && val->identifier) {
+        IdentifierTypeInfo* info = symbolTableLookup(symTable, val->identifier);
+        if (info) {
+            ASMType asmType = convertIdentifierTypeToASMType(info);
+            return asmType == ASM_DOUBLE; 
+        }
+    }
+
+    return 0;
 }

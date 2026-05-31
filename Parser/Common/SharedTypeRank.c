@@ -18,6 +18,9 @@ int size(specifierType type) {
     }
 }
 
+int isDoubleLabel(const char* identifier) {
+    return identifier && strncmp(identifier, ".LC", 3) == 0;
+}
 
 int isSignedIdentifierType(IdentifierType type) {
     switch (type) {

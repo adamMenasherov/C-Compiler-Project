@@ -14,3 +14,4 @@ char* generateElseLabel();
 char* generateDefaultLabel();
 char* generateCaseLabel(int caseValue);
 char* generateResultVarName();
+char* generateDoubleTempName();

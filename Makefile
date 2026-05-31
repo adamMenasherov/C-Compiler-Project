@@ -19,7 +19,8 @@ DATA_STRUCTURE_SOURCES = \
 	DataStructures/HashTable/Wrappers/SymbolTableWrapper.c \
 	DataStructures/Map/map.c \
 	DataStructures/Map/Wrappers/CharIntMap.c \
-	DataStructures/Map/Wrappers/SemanticIdentifierMap.c
+	DataStructures/Map/Wrappers/SemanticIdentifierMap.c \
+	DataStructures/Map/Wrappers/DoubleStringMap.c
 ENTRYPOINT_SOURCES = EntryPoint/FileHandling.c EntryPoint/main.c
 LEXER_SOURCES = $(shell find Lexer -type f -name '*.c' | sort)
 PARSER_SOURCES = Parser/Parser.c Parser/generateUtils.c $(shell find Parser/AST Parser/Common Parser/TACKY -type f -name '*.c' | sort)

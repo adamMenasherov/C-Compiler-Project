@@ -1,6 +1,24 @@
 #include "ASMInstructionsConstructors.h"
+#include "../../generateUtils.h"
 #include <stdlib.h>
 #include <string.h>
+
+/* Module-static cache: double bit-pattern → label string.
+ * Lifetime is one ASM program pass (init/destroy called by parseASMprogram). */
+DoubleStringMap* g_constCache = NULL;
+
+void initConstantCache() {
+    g_constCache = createDoubleStringMap();
+}
+
+void destroyConstantCache() {
+    freeDoubleStringMap(g_constCache);
+    g_constCache = NULL;
+}
+
+DoubleStringMap* getConstantCache() {
+    return g_constCache;
+}
 
 /* ============================================================
  * Instruction List Management Implementation
@@ -34,6 +52,22 @@ void addASMInstructionAtBeginning(ASMInstructionList* list, ASMInstruction* inst
         instruction->next = list->head;
         list->head = instruction;
     }
+}
+
+ASMStaticConst* createAsmStaticConst(char* identifier, int alignment, double initVal) {
+    ASMStaticConst* asmStaticConst = malloc(sizeof(ASMStaticConst));
+    if (!asmStaticConst) return NULL;
+
+    asmStaticConst->identifier = strdup(identifier);
+    if (!asmStaticConst->identifier) {
+        free(asmStaticConst);
+        return NULL;
+    }
+    asmStaticConst->alignment = initVal == -0.0 ? 16 : alignment;
+    asmStaticConst->initVal.val.doubleVal = initVal;
+    asmStaticConst->initVal.staticInitType = STATIC_INIT_DOUBLE;
+
+    return asmStaticConst;
 }
 
 
@@ -86,6 +120,15 @@ ASMInstruction* createDivInstruction(ASMOperand* divisor, ASMType asmType) {
     return inst;
 }
 
+ASMOperand* createAsmConstantOperand(double val, SymbolTable* symTable) {
+    char* label = createStaticConstant(val, symTable);
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+    operand->type = ASM_OP_DATA;
+    operand->OperandValue.identifier = label;
+    return operand;
+}
+
 ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
     IdentifierTypeInfo* info;
     ASMOperand* operand = malloc(sizeof(ASMOperand));
@@ -93,9 +136,18 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
 
     switch(val->type) {
         case TACKY_CONSTANT: {
-            operand->type = ASM_OP_IMMEDIATE;
-            operand->OperandValue.immediate = val->constant->value;
-            return operand;
+            if (val->constant->type == CONST_FLOATING_POINT) {
+                char* label = createStaticConstantFromTACKYValue(val, symTable);
+                operand->OperandValue.identifier = label;
+                operand->type = ASM_OP_DATA;
+                return operand;
+            }
+            else {
+                operand->type = ASM_OP_IMMEDIATE;
+                operand->OperandValue.immediate = val->constant->val.intValue;
+                return operand;
+            }
+            
         }
         case TACKY_VAR: {
             if ((info = symbolTableLookup(symTable, val->identifier)) &&
@@ -118,6 +170,28 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
     }
 }
 
+char* createStaticConstantFromTACKYValue(TACKYValue* val, SymbolTable* symTable) {
+    if (val->type != TACKY_CONSTANT || val->constant->type != CONST_FLOATING_POINT) {
+        return NULL; // Not a floating-point constant
+    }
+    return createStaticConstant(val->constant->val.doubleValue, symTable);
+}
+
+char* createStaticConstant(double dval, SymbolTable* symTable) {
+    if (g_constCache) {
+        const char* existing = doubleStringMapGet(g_constCache, dval);
+        if (existing) return strdup(existing);
+    }
+
+    char* temp = generateDoubleTempName();
+    initialValue* initVal = createInitialValue(STATIC_INIT_DOUBLE, INITIAL_WITH_VALUE, 0, dval);
+    identifierAttrs* attrs = createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, 0, initVal, 1);
+    symbolTableInsert(symTable, temp, TYPE_DOUBLE, NULL, 1, attrs);
+
+    if (g_constCache) doubleStringMapPut(g_constCache, dval, temp);
+
+    return strdup(temp);
+}
 
 /* ============================================================
  * Instruction Creation Implementation
@@ -221,6 +295,26 @@ ASMInstruction* createASMMovsxInstruction(ASMOperand* src, ASMOperand* dest) {
     inst->type = ASM_MOVSX;
     inst->instValue.movsx.operand1 = src;
     inst->instValue.movsx.operand2 = dest;
+    return inst;
+}
+
+ASMInstruction* createCvtsi2sdInstruction(ASMType src_type, ASMOperand* src, ASMOperand* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_CVTSI2SD;
+    inst->instValue.cvtsi2sd.src_type = src_type;
+    inst->instValue.cvtsi2sd.src = src;
+    inst->instValue.cvtsi2sd.dest = dest;
+    return inst;
+}
+
+ASMInstruction* createCvttsd2siInstruction(ASMType dst_type, ASMOperand* src, ASMOperand* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_CVTTSD2SI;
+    inst->instValue.cvttsd2si.dst_type = dst_type;
+    inst->instValue.cvttsd2si.src = src;
+    inst->instValue.cvttsd2si.dest = dest;
     return inst;
 }
 

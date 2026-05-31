@@ -6,5 +6,6 @@
 /* Returns storage size in bytes for scalar C specifier types. */
 int size(specifierType type);
 int isSignedIdentifierType(IdentifierType type);
+int isDoubleLabel(const char* identifier);
 specifierType constantTypeToSpecifierType(constantType type);
 TACKYStaticVarType initialStaticTypeToTACKYStaticVarType(initialValueStaticInitType type);

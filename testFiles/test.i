@@ -1,3 +1,5 @@
 static unsigned int foo() {
-    int f = (double) 5 / 2;
+    int a = 3;
+    a <<= 2;
+    return a << 2;
 }
