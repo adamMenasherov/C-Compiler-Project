@@ -250,14 +250,6 @@ typedef struct {
 
 
 /**
- * @brief Checks if the given binary operation type is a relational operator (e.g. <, <=, >, >=, ==, !=).
- * 
- * @param type The binary operation type to check 
- * @return int Returns 1 if the type is a relational operator, 0 otherwise
- */
-int isRelationalOp(binType type);
-
-/**
  * @brief Get the Cond Code For Relational Op object
  * 
  * @param type The binary operation type for which to get the corresponding condition code

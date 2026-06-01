@@ -22,6 +22,12 @@ int isDoubleLabel(const char* identifier) {
     return identifier && strncmp(identifier, ".LC", 3) == 0;
 }
 
+int isRelationBinaryOp(binType type) {
+    return type == BIN_LESS_THAN || type == BIN_LESS_EQUAL ||
+           type == BIN_GREATER_THAN || type == BIN_GREATER_EQUAL ||
+           type == BIN_EQUALS || type == BIN_NOT_EQUALS;
+}
+
 int isSignedIdentifierType(IdentifierType type) {
     switch (type) {
         case TYPE_INT:
@@ -29,6 +35,7 @@ int isSignedIdentifierType(IdentifierType type) {
             return 1;
         case TYPE_UNSIGNED_INT:
         case TYPE_UNSIGNED_LONG:
+        case TYPE_DOUBLE:
             return 0;
         default:
             fprintf(stderr, "Invalid identifier type in isSignedIdentifierType function\n");

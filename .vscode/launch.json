@@ -29,7 +29,8 @@
       "program": "${workspaceFolder}/compiler",
       "preLaunchTask": "build compiler",
       "args": [
-        "${workspaceFolder}/testFiles/test.c"
+        "/home/adammenasherov/CompilerProject/writing-a-c-compiler-tests/tests/chapter_13/valid/function_calls/standard_library_call.c",
+        "-lm"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

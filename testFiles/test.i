@@ -1,5 +1,6 @@
-static unsigned int foo() {
-    int a = 3;
-    a <<= 2;
-    return a << 2;
+long foo(int a) {
+    return a + 53;
+}
+unsigned long main() {
+    return (unsigned long)(5.0 + 2);
 }

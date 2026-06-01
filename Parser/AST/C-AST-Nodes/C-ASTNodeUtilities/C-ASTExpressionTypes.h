@@ -20,7 +20,8 @@ typedef enum {
     FACTOR_ASSIGNMENT,
     FACTOR_CONDITIONAL,
     FACTOR_FUNCTION_CALL,
-    FACTOR_CAST
+    FACTOR_CAST,
+    FACTOR_POINTER_OP
 } factorType;
 
 typedef enum {
@@ -31,6 +32,7 @@ typedef enum {
     SPEC_DOUBLE,
     SPEC_STATIC,
     SPEC_EXTERN,
+    SPEC_POINTER,
     SPEC_NULL
 } specifierType;
 
@@ -89,6 +91,11 @@ typedef enum {
     FOR_INIT_EXP,
     FOR_INIT_WITHOUT
 } forInitType;
+
+typedef enum {
+    POINTER_DEREFERENCE,
+    POINTER_ADDRESS_OF
+} pointerOp;
 
 typedef struct CBinary CBinary;
 typedef struct CUnary CUnary;
@@ -149,6 +156,11 @@ typedef struct {
     CFactor* exp;
 } CCast;
 
+typedef struct {
+    pointerOp type;
+    CFactor* exp;
+} CPointerOp;
+
 typedef struct CFactor {
     factorType type;
     specifierType valueType; // For type checking in semantic analysis
@@ -161,6 +173,7 @@ typedef struct CFactor {
         CConditional * conditional;
         CFunctionCall* funcCall;
         CCast* cast;
+        CPointerOp* pointerOp;
     } exp;
 } CFactor; 
 
@@ -258,6 +271,9 @@ typedef struct CDeclaration {
             IdentifierArray* parameters;
             CBlock* body;
         } functionDecl;
+        struct {
+            CDeclaration* referenced;
+        } pointerDecl;
     } decl;
 } CDeclaration;
     

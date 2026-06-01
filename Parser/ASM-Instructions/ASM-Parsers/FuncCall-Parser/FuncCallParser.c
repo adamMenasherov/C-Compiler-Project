@@ -2,14 +2,6 @@
 #include "Parser/TACKY/TACKYUtils/TACKYConstructors.h"
 #include <stdlib.h>
 
-typedef struct {
-    int intRegIdxs[6];
-    int intRegCount;
-    int doubleRegIdxs[8];
-    int doubleRegCount;
-    int* stackIdxs;
-    int stackCount;
-} CallArgClassification;
 
 static CallArgClassification classifyCallArgs(TACKYValueArray* args, SymbolTable* symTable) {
     CallArgClassification cls = {0};
@@ -29,6 +21,7 @@ static CallArgClassification classifyCallArgs(TACKYValueArray* args, SymbolTable
                 cls.stackIdxs[cls.stackCount++] = i;
         }
     }
+    cls.stackIdxs = realloc(cls.stackIdxs, cls.stackCount * sizeof(int));
     return cls;
 }
 
@@ -99,6 +92,5 @@ void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionL
     Register retReg = (retAsmType == ASM_DOUBLE) ? XMM0 : AX;
     addASMInstructionAtEnd(asmInstructionList,
         createMovInstruction(retAsmType, createRegisterOperand(retReg), retDest));
-
     free(cls.stackIdxs);
 }

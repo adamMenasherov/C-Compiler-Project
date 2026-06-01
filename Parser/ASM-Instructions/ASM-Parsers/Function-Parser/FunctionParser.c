@@ -8,11 +8,7 @@
 #include "../FloatCast-Parser/FloatCastParser.h"
 #include "Parser/TACKY/TACKYUtils/TACKYConstructors.h"
 
-
-/* ============================================================
- * Dispatch table
- * ============================================================ */
-
+typedef CallArgClassification ParamClassification;
 typedef void (*ASMInstructionHandler)(TACKYInstruction*, ASMInstructionList*, SymbolTable*);
 
 static void handleDispatchCopy(TACKYInstruction* inst, ASMInstructionList* list, SymbolTable* symTable) {
@@ -62,19 +58,6 @@ void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList
 }
 
 
-/* ============================================================
- * Function argument setup
- * ============================================================ */
-
-typedef struct {
-    int intRegIdxs[6];
-    int intRegCount;
-    int doubleRegIdxs[8];
-    int doubleRegCount;
-    int* stackIdxs;
-    int stackCount;
-} ParamClassification;
-
 static ParamClassification classifyFuncParams(CFuncType* funcType, int paramCount) {
     ParamClassification cls = {0};
     cls.stackIdxs = malloc(paramCount * sizeof(int));
@@ -97,6 +80,50 @@ static ParamClassification classifyFuncParams(CFuncType* funcType, int paramCoun
     return cls;
 }
 
+static void emitIntRegParams(IdentifierArray* params, CFuncType* funcType,
+                             ParamClassification* cls, ASMInstructionList* list, SymbolTable* symTable) {
+    for (int i = 0; i < cls->intRegCount; i++) {
+        int idx = cls->intRegIdxs[i];
+        char* arg = IdentifierArray_get(params, idx);
+        ASMType paramType = ASM_LONGWORD;
+        if (funcType && funcType->func.params[idx])
+            paramType = convertSpecifierTypeToASMType(funcType->func.params[idx]->type);
+        addASMInstructionAtEnd(list,
+            createMovInstruction(paramType,
+                createRegisterOperand(argResigters[i]),
+                tackyValueToASMOperand(createVarValue(arg), symTable)));
+    }
+}
+
+static void emitDoubleRegParams(IdentifierArray* params, ParamClassification* cls,
+                                ASMInstructionList* list, SymbolTable* symTable) {
+    for (int i = 0; i < cls->doubleRegCount; i++) {
+        int idx = cls->doubleRegIdxs[i];
+        char* arg = IdentifierArray_get(params, idx);
+        addASMInstructionAtEnd(list,
+            createMovInstruction(ASM_DOUBLE,
+                createRegisterOperand(doubleArgRegisters[i]),
+                tackyValueToASMOperand(createVarValue(arg), symTable)));
+    }
+}
+
+static void emitStackParams(IdentifierArray* params, CFuncType* funcType,
+                            ParamClassification* cls, ASMInstructionList* list, SymbolTable* symTable) {
+    int stackPos = 16;
+    for (int j = 0; j < cls->stackCount; j++) {
+        int idx = cls->stackIdxs[j];
+        char* arg = IdentifierArray_get(params, idx);
+        ASMType paramType = ASM_LONGWORD;
+        if (funcType && funcType->func.params[idx])
+            paramType = convertSpecifierTypeToASMType(funcType->func.params[idx]->type);
+        addASMInstructionAtEnd(list,
+            createMovInstruction(paramType,
+                createStackOperand(stackPos),
+                tackyValueToASMOperand(createVarValue(arg), symTable)));
+        stackPos += 8;
+    }
+}
+
 void addArgsAsInstructionsToFunc(TACKYFunction* tacky_func, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     IdentifierTypeInfo* function = symbolTableLookup(symTable, tacky_func->function_name);
     CFuncType* funcType = function->funcInfo.funcType;
@@ -104,41 +131,9 @@ void addArgsAsInstructionsToFunc(TACKYFunction* tacky_func, ASMInstructionList* 
     int lenArgs = IdentifierArray_size(params);
 
     ParamClassification cls = classifyFuncParams(funcType, lenArgs);
-
-    for (int i = 0; i < cls.intRegCount; i++) {
-        int idx = cls.intRegIdxs[i];
-        char* arg = IdentifierArray_get(params, idx);
-        ASMType paramType = ASM_LONGWORD;
-        if (funcType && funcType->func.params[idx])
-            paramType = convertSpecifierTypeToASMType(funcType->func.params[idx]->type);
-        addASMInstructionAtEnd(asmInstructionList,
-            createMovInstruction(paramType,
-                createRegisterOperand(argResigters[i]),
-                tackyValueToASMOperand(createVarValue(arg), symTable)));
-    }
-
-    for (int i = 0; i < cls.doubleRegCount; i++) {
-        int idx = cls.doubleRegIdxs[i];
-        char* arg = IdentifierArray_get(params, idx);
-        addASMInstructionAtEnd(asmInstructionList,
-            createMovInstruction(ASM_DOUBLE,
-                createRegisterOperand(doubleArgRegisters[i]),
-                tackyValueToASMOperand(createVarValue(arg), symTable)));
-    }
-
-    int stackPos = 16;
-    for (int j = 0; j < cls.stackCount; j++) {
-        int idx = cls.stackIdxs[j];
-        char* arg = IdentifierArray_get(params, idx);
-        ASMType paramType = ASM_LONGWORD;
-        if (funcType && funcType->func.params[idx])
-            paramType = convertSpecifierTypeToASMType(funcType->func.params[idx]->type);
-        addASMInstructionAtEnd(asmInstructionList,
-            createMovInstruction(paramType,
-                createStackOperand(stackPos),
-                tackyValueToASMOperand(createVarValue(arg), symTable)));
-        stackPos += 8;
-    }
+    emitIntRegParams(params, funcType, &cls, asmInstructionList, symTable);
+    emitDoubleRegParams(params, &cls, asmInstructionList, symTable);
+    emitStackParams(params, funcType, &cls, asmInstructionList, symTable);
 
     free(cls.stackIdxs);
 }

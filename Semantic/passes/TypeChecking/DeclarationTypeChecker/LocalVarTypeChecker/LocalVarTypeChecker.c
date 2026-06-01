@@ -43,8 +43,7 @@ static void handleExternLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
 }
 
 static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
-    initialValueStaticInitType staticInitType =
-        (decl->decl.variableDecl.varType == SPEC_LONG) ? STATIC_INIT_LONG : STATIC_INIT_INT;
+    initialValueStaticInitType staticInitType = convertSpecTypeToStaticInitType(decl->decl.variableDecl.varType);
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITHOUT_EXP)
         return createInitialValue(staticInitType, INITIAL_WITH_VALUE, 0, 0.0);
@@ -56,7 +55,7 @@ static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
         } else {
             uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;
             convertValFromType(&val, decl->decl.variableDecl.varType);
-            return createIntInitialValue(INITIAL_WITH_VALUE, val);
+            return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val, 0.0);
         }
     }
 

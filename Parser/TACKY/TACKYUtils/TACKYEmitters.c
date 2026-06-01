@@ -193,7 +193,7 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
         createLabelInstruction(shortCircuitLabel));
 
     addInstructionToList(instruction_list,
-        createCopyInstruction(createTackyValueFromConstant(1 - retVal, 0.0, CONST_INT), resultVar));
+        createCopyInstruction(createTackyValueFromConstant(1 - retVal, 0.0, CONST_INT), copyTackyValue(resultVar)));
 
     addInstructionToList(instruction_list,
         createLabelInstruction(endLabel));
@@ -216,26 +216,26 @@ TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list,
     }
     TACKYValue* dst = makeTACKYVariable(t, symTable);
     if (t == SPEC_DOUBLE || inner_type == SPEC_DOUBLE) {
-        addInstructionToList(instruction_list, 
+        addInstructionToList(instruction_list,
             generateTACKYDoubleIntCast(result, dst, inner_type, t, symTable));
-        return dst;
+        return copyTackyValue(dst);
     }
     if (size(t) == size(inner_type)) {
-        addInstructionToList(instruction_list, 
+        addInstructionToList(instruction_list,
             createCopyInstruction(result, dst));
     }
     else if (size(t) < size(inner_type)) {
-        addInstructionToList(instruction_list, 
+        addInstructionToList(instruction_list,
             createTruncateInstruction(result, dst));
     }
     else if (isSignedSpecifier(inner_type)) {
-        addInstructionToList(instruction_list, 
+        addInstructionToList(instruction_list,
             createSignExtendInstruction(result, dst));
     }
     else {
-        addInstructionToList(instruction_list, 
+        addInstructionToList(instruction_list,
             createZeroExtendInstruction(result, dst));
     }
-        
-    return dst;
+
+    return copyTackyValue(dst);
 }

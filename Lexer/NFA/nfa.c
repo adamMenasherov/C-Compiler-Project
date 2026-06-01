@@ -78,9 +78,10 @@ static NFA* nfaForFloat() {
     int p1_post  = addStateToNFA(nfa, NOT_ACCEPTING); // [0-9]+ after dot
     int p1_int   = addStateToNFA(nfa, NOT_ACCEPTING); // [0-9]+ (right mantissa branch)
     int p1_dot_b = addStateToNFA(nfa, NOT_ACCEPTING); // optional \.
-    int p1_e     = addStateToNFA(nfa, NOT_ACCEPTING); // [Ee]
-    int p1_sign  = addStateToNFA(nfa, NOT_ACCEPTING); // optional [+-]
-    int p1_exp   = addStateToNFA(nfa, FLOATING_POINT_CONSTANT); // [0-9]+ after [Ee]
+    int p1_e          = addStateToNFA(nfa, NOT_ACCEPTING); // [Ee]
+    int p1_exp_head   = addStateToNFA(nfa, NOT_ACCEPTING); // after [Ee]
+    int p1_after_sign = addStateToNFA(nfa, NOT_ACCEPTING); // after optional [+-]
+    int p1_exp        = addStateToNFA(nfa, FLOATING_POINT_CONSTANT); // [0-9]+
 
     // mantissa optional: q0 can skip straight to [Ee]
     addEpsiltonTransitionToState(&nfa->states[q0], p1_pre);
@@ -101,10 +102,11 @@ static NFA* nfaForFloat() {
     addEpsiltonTransitionToState(&nfa->states[p1_dot_b], p1_e);
 
     // exponent: [Ee][+-]?[0-9]+
-    addTransitionToNFA(nfa, p1_e,    p1_sign, CC_FLOAT_EXP,  '\0');
-    addTransitionToNFA(nfa, p1_sign, p1_exp,  CC_FLOAT_SIGN, '\0');
-    addTransitionToNFA(nfa, p1_exp,  p1_exp,  CC_DIGIT,      '\0');
-    addEpsiltonTransitionToState(&nfa->states[p1_sign], p1_exp); // sign optional
+    addTransitionToNFA(nfa, p1_e,          p1_exp_head,   CC_FLOAT_EXP,  '\0');
+    addTransitionToNFA(nfa, p1_exp_head,   p1_after_sign, CC_FLOAT_SIGN, '\0'); // optional sign
+    addTransitionToNFA(nfa, p1_exp_head,   p1_exp,        CC_DIGIT,      '\0');
+    addTransitionToNFA(nfa, p1_after_sign, p1_exp,        CC_DIGIT,      '\0');
+    addTransitionToNFA(nfa, p1_exp,        p1_exp,        CC_DIGIT,      '\0');
 
     // ── Path 2: [0-9]*\.[0-9]+ ───────────────────────────────────────
     int p2_pre  = addStateToNFA(nfa, NOT_ACCEPTING);

@@ -176,7 +176,7 @@ TACKYValue* createVarValue(char* identifier) {
     if (!tackyVal) return NULL;
 
     tackyVal->type = TACKY_VAR;
-    tackyVal->identifier = identifier;
+    tackyVal->identifier = strdup(identifier);
     return tackyVal;
 }
 

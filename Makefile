@@ -2,7 +2,7 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -g -Wall -Wextra -DPARSER_ONLY
+CFLAGS = -g -Wall -Wextra
 LDFLAGS =
 
 # Build directory structure
@@ -13,19 +13,21 @@ OBJ_DIR = $(BUILD_DIR)/obj
 TARGET = compiler
 
 # Source files
-# Semantic-only build for now: stop after symbol-table printing and exclude TACKY/ASM generation.
 DATA_STRUCTURE_SOURCES = \
 	DataStructures/HashTable/HashTable.c \
 	DataStructures/HashTable/Wrappers/SymbolTableWrapper.c \
+	DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.c \
 	DataStructures/Map/map.c \
 	DataStructures/Map/Wrappers/CharIntMap.c \
 	DataStructures/Map/Wrappers/SemanticIdentifierMap.c \
 	DataStructures/Map/Wrappers/DoubleStringMap.c
 ENTRYPOINT_SOURCES = EntryPoint/FileHandling.c EntryPoint/main.c
 LEXER_SOURCES = $(shell find Lexer -type f -name '*.c' | sort)
-PARSER_SOURCES = Parser/Parser.c Parser/generateUtils.c $(shell find Parser/AST Parser/Common Parser/TACKY -type f -name '*.c' | sort)
+PARSER_SOURCES = Parser/Parser.c Parser/generateUtils.c \
+	$(shell find Parser/AST Parser/Common Parser/TACKY Parser/ASM-Instructions -type f -name '*.c' | sort)
 SEMANTIC_SOURCES = $(shell find Semantic -type f -name '*.c' | sort)
-SOURCES = $(DATA_STRUCTURE_SOURCES) $(ENTRYPOINT_SOURCES) $(LEXER_SOURCES) $(PARSER_SOURCES) $(SEMANTIC_SOURCES)
+ASM_GEN_SOURCES = ASM-File-Generation/ASMGenerator.c ASM-File-Generation/ASMInstructionFix.c
+SOURCES = $(DATA_STRUCTURE_SOURCES) $(ENTRYPOINT_SOURCES) $(LEXER_SOURCES) $(PARSER_SOURCES) $(SEMANTIC_SOURCES) $(ASM_GEN_SOURCES)
 
 
 

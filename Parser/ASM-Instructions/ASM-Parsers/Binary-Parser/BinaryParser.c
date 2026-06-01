@@ -1,4 +1,5 @@
 #include "BinaryParser.h"
+#include "../../../Common/SharedTypeRank.h"
 
 typedef ASMInstruction* (*divisionInst)(ASMOperand*, ASMType);
 
@@ -55,17 +56,21 @@ static void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstruction
 }
 
 static void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
-    ASMType src1_type = convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable);
-    ASMType dest_type = convertTACKYTypeToASMType(instruction->instValue.binaryOp.dest, symTable);
-    ASMOperand* src1_op = tackyValueToASMOperand(instruction->instValue.binaryOp.src1, symTable);
-    ASMOperand* src2_op = tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable);
-    ASMOperand* dest_op = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
-    ASMCondCode cond = getCondCodeForRelationalOp(instruction->instValue.binaryOp.binaryOpType, 
+    TACKYValue* src1 = instruction->instValue.binaryOp.src1;
+    TACKYValue* src2 = instruction->instValue.binaryOp.src2;
+    TACKYValue* dest = instruction->instValue.binaryOp.dest;
+    ASMType src1_type = convertTACKYTypeToASMType(src1, symTable);
+    ASMCondCode cond = getCondCodeForRelationalOp(instruction->instValue.binaryOp.binaryOpType,
                     signedOrUnsigned(instruction, symTable));
 
-    addASMInstructionAtEnd(asmInstructionList, createASMCmpInstruction(src1_type, src2_op, src1_op));
-    addASMInstructionAtEnd(asmInstructionList, createMovInstruction(dest_type, createImmediateOperand(0), dest_op));
-    addASMInstructionAtEnd(asmInstructionList, createASMSetCCInstruction(cond, dest_op));
+    addASMInstructionAtEnd(asmInstructionList,
+        createASMCmpInstruction(src1_type,
+            tackyValueToASMOperand(src2, symTable),
+            tackyValueToASMOperand(src1, symTable)));
+    addASMInstructionAtEnd(asmInstructionList,
+        createMovInstruction(ASM_LONGWORD, createImmediateOperand(0), tackyValueToASMOperand(dest, symTable)));
+    addASMInstructionAtEnd(asmInstructionList,
+        createASMSetCCInstruction(cond, tackyValueToASMOperand(dest, symTable)));
 }
 
 void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
@@ -74,7 +79,7 @@ void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList
         handleDivideModuloCase(instruction, asmInstructionList, symTable);
         return;
     }
-    if (isRelationalOp(instruction->instValue.binaryOp.binaryOpType)) {
+    if (isRelationBinaryOp(instruction->instValue.binaryOp.binaryOpType)) {
         handleBinaryRelationalOp(instruction, asmInstructionList, symTable);
         return;
     }
@@ -82,11 +87,12 @@ void parseASMBinaryInstruction(TACKYInstruction* instruction, ASMInstructionList
     ASMType src1_type = convertTACKYTypeToASMType(instruction->instValue.binaryOp.src1, symTable);
     ASMOperand* src1_op = tackyValueToASMOperand(instruction->instValue.binaryOp.src1, symTable);
     ASMOperand* src2_op = tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable);
-    ASMOperand* dest_op = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
+    ASMOperand* dest_op_mov = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
+    ASMOperand* dest_op_bin = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
 
-    addASMInstructionAtEnd(asmInstructionList, createMovInstruction(src1_type, src1_op, dest_op));
+    addASMInstructionAtEnd(asmInstructionList, createMovInstruction(src1_type, src1_op, dest_op_mov));
     addASMInstructionAtEnd(asmInstructionList,
         createASMBinaryInstruction(
             binTypeToASMBinaryOperator(instruction->instValue.binaryOp.binaryOpType),
-            src1_type, src2_op, dest_op));
+            src1_type, src2_op, dest_op_bin));
 }

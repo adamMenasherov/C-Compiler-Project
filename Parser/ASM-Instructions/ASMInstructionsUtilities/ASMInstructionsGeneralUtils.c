@@ -3,14 +3,10 @@
 #include "ASMInstructionsConstructors.h"
 #include "../../../DataStructures/Map/Wrappers/DoubleStringMap.h"
 
+static void handleConstantEntry(double val, const char* label, void* userData);
+
 const int argResigters[] = {DI, SI, DX, CX, R8, R9};
 const int doubleArgRegisters[] = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
-
-int isRelationalOp(binType type) {
-    return type == BIN_LESS_THAN || type == BIN_LESS_EQUAL || 
-           type == BIN_GREATER_THAN || type == BIN_GREATER_EQUAL || 
-           type == BIN_EQUALS || type == BIN_NOT_EQUALS;
-}
 
 ASMCondCode getCondCodeForRelationalOp(binType type, int isSigned) {
     switch(type) {
@@ -29,6 +25,8 @@ ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable) {
     if (!val) return ASM_LONGWORD;
 
     if (val->type == TACKY_CONSTANT && val->constant) {
+        if (val->constant->type == CONST_FLOATING_POINT)
+            return ASM_DOUBLE;
         if (val->constant->type == CONST_INT || val->constant->type == CONST_UNSIGNED_INT)
             return ASM_LONGWORD;
         if (val->constant->type == CONST_LONG || val->constant->type == CONST_UNSIGNED_LONG)
@@ -107,11 +105,11 @@ void addConstantsAsTopLevels(ASMProgram* asmProgram, DoubleStringMap* cache) {
     doubleStringMapForEach(cache, handleConstantEntry, asmProgram->topLevels);
 }
 
-void handleConstantEntry(double val, const char* label, void* userData) {
+static void handleConstantEntry(double val, const char* label, void* userData) {
     ASMTopLevelArray* topLevels = (ASMTopLevelArray*)userData;
     ASMStaticConst* asmConst = createAsmStaticConst((char*)label, 8, val);
     ASMTopLevel* topLevel = createTopLevel(ASM_TOP_LEVEL_STATIC_CONST, asmConst);
-    ASMTopLevelArray_add(topLevels, topLevel);
+    ASMTopLevelArray_append(topLevels, topLevel);
 }
 
 int isDoubleOperand(TACKYValue* val, SymbolTable* symTable) {

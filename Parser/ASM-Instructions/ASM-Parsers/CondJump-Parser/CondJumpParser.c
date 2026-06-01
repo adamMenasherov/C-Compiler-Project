@@ -1,14 +1,13 @@
 #include "CondJumpParser.h"
 
-static void handleDoubleCondJump(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable, 
+static void handleDoubleCondJump(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable,
     ASMCondCode cond, ASMOperand* cond_op) {
-    ASMOperand* xmm0 = createRegisterOperand(XMM0);
-
-    addASMInstructionAtEnd(asmInstructionList, 
-        createASMBinaryInstruction(ASM_BINARY_XOR, ASM_DOUBLE, xmm0 , xmm0)); // zeroing out xmm0
     addASMInstructionAtEnd(asmInstructionList,
-        createASMCmpInstruction(ASM_DOUBLE, cond_op, xmm0));
-    addASMInstructionAtEnd(asmInstructionList, 
+        createASMBinaryInstruction(ASM_BINARY_XOR, ASM_DOUBLE,
+            createRegisterOperand(XMM0), createRegisterOperand(XMM0)));
+    addASMInstructionAtEnd(asmInstructionList,
+        createASMCmpInstruction(ASM_DOUBLE, cond_op, createRegisterOperand(XMM0)));
+    addASMInstructionAtEnd(asmInstructionList,
         createASMJumpCCInstruction(cond, instruction->instValue.condJump.label));
 }
 

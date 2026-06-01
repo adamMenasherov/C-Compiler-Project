@@ -2,25 +2,34 @@
 #include "Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/TokenExpect/C-ASTNodeExpect.h"
 
 static void handleUnaryNot(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
-    ASMType src_type  = convertTACKYTypeToASMType(instruction->instValue.unaryOp.src, symTable);
-    ASMType dest_type = convertTACKYTypeToASMType(instruction->instValue.unaryOp.dest, symTable);
-    ASMOperand* src_op  = tackyValueToASMOperand(instruction->instValue.unaryOp.src, symTable);
-    ASMOperand* dest_op = tackyValueToASMOperand(instruction->instValue.unaryOp.dest, symTable);
+    TACKYValue* src  = instruction->instValue.unaryOp.src;
+    TACKYValue* dest = instruction->instValue.unaryOp.dest;
+    ASMType src_type = convertTACKYTypeToASMType(src, symTable);
 
-    addASMInstructionAtEnd(asmInstructionList, createASMCmpInstruction(src_type, createImmediateOperand(0), src_op));
-    addASMInstructionAtEnd(asmInstructionList, createMovInstruction(dest_type, createImmediateOperand(0), dest_op));
-    addASMInstructionAtEnd(asmInstructionList, createASMSetCCInstruction(ASM_COND_CODE_E, dest_op));
+    ASMOperand* cmp_zero = (src_type == ASM_DOUBLE)
+        ? createAsmConstantOperand(0.0, symTable)
+        : createImmediateOperand(0);
+
+    addASMInstructionAtEnd(asmInstructionList,
+        createASMCmpInstruction(src_type, cmp_zero, tackyValueToASMOperand(src, symTable)));
+    addASMInstructionAtEnd(asmInstructionList,
+        createMovInstruction(ASM_LONGWORD, createImmediateOperand(0), tackyValueToASMOperand(dest, symTable)));
+    addASMInstructionAtEnd(asmInstructionList,
+        createASMSetCCInstruction(ASM_COND_CODE_E, tackyValueToASMOperand(dest, symTable)));
 }
 
 static void handleDoubleNegation(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
-    ASMOperand* src_op  = tackyValueToASMOperand(instruction->instValue.unaryOp.src, symTable);
-    ASMOperand* dest_op = tackyValueToASMOperand(instruction->instValue.unaryOp.dest, symTable);
-    ASMOperand* zero_op = createAsmConstantOperand(-0.0, symTable);
+    TACKYValue* src  = instruction->instValue.unaryOp.src;
+    TACKYValue* dest = instruction->instValue.unaryOp.dest;
 
-    addASMInstructionAtEnd(asmInstructionList, 
-        createMovInstruction(ASM_DOUBLE, src_op, dest_op));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_XOR, ASM_DOUBLE, zero_op, dest_op));
+        createMovInstruction(ASM_DOUBLE,
+            tackyValueToASMOperand(src, symTable),
+            tackyValueToASMOperand(dest, symTable)));
+    addASMInstructionAtEnd(asmInstructionList,
+        createASMBinaryInstruction(ASM_BINARY_XOR, ASM_DOUBLE,
+            createAsmConstantOperand(-0.0, symTable),
+            tackyValueToASMOperand(dest, symTable)));
 }
 
 

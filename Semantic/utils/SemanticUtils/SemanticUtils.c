@@ -25,6 +25,8 @@ specifierType identifierTypeToSpecifierType(IdentifierType type) {
             return SPEC_UNSIGNED_INT;
         case TYPE_UNSIGNED_LONG:
             return SPEC_UNSIGNED_LONG;
+        case TYPE_DOUBLE:
+            return SPEC_DOUBLE;
         case TYPE_FUNCTION:
             return SPEC_NULL; // Functions don't have a specifier type in this context
         default:
@@ -129,8 +131,23 @@ void convertValFromType(uint64_t* val, specifierType toType) {
         case SPEC_UNSIGNED_LONG:
             *val = (unsigned long)(*val);
             return;
+        case SPEC_DOUBLE:
+            return;
         default:
             fprintf(stderr, "Invalid specifier type in convertValFromType\n");
+            exit(1);
+    }
+}
+
+initialValueStaticInitType convertSpecTypeToStaticInitType(specifierType type) {
+    switch (type) {
+        case SPEC_INT: return STATIC_INIT_INT;
+        case SPEC_LONG: return STATIC_INIT_LONG;
+        case SPEC_UNSIGNED_INT: return STATIC_INIT_UNSIGNED_INT;
+        case SPEC_UNSIGNED_LONG: return STATIC_INIT_UNSIGNED_LONG;
+        case SPEC_DOUBLE: return STATIC_INIT_DOUBLE;
+        default:
+            fprintf(stderr, "Semantic Error: Unsupported variable type for static initialization\n");
             exit(1);
     }
 }

@@ -8,7 +8,7 @@
 static int areFunctionTypesCompatible(const CFuncType* left, const CFuncType* right) {
     int idx = 0;
     if (!left || !right) return 0;
-    if (!left->type || !right->type) return 0;
+    if (left->type == SPEC_NULL || right->type == SPEC_NULL) return 0;
     if (left->type != right->type) return 0;
 
     while (idx < MAX_PARAMS) {
@@ -60,8 +60,8 @@ void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) 
     if (!decl) return;
 
     int requestedGlobal = decl->decl.functionDecl.storageClass == SPEC_STATIC ? 0 : -1;
-    int global          = requestedGlobal == -1 ? 1 : requestedGlobal;
-    int alreadyDefined  = 0;
+    int global = requestedGlobal == -1 ? 1 : requestedGlobal;
+    int alreadyDefined = 0;
 
     if (symbolTableContains(symbolTable, decl->decl.functionDecl.identifier)) {
         IdentifierTypeInfo* existing = symbolTableLookup(symbolTable, decl->decl.functionDecl.identifier);

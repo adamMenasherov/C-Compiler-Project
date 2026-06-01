@@ -191,8 +191,5 @@ ASMSymbolTable* convertFrontEndSymTableToASMSymTable(SymbolTable* symTable) {
         }
     }
 
-    /* Free the original symbol table without freeing keys 
-     * since we're reusing them in the ASM symbol table */
-    freeSymbolTable(symTable); 
     return asmSymTable;
 }

@@ -60,8 +60,8 @@ static void handleTypeCheckVar(CFactor* expr, SymbolTable* symbolTable) {
 
 static void handleTypeCheckUnary(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.unary->exp, symbolTable);
-    if (expr->exp.unary->exp->valueType == SPEC_DOUBLE && (expr->exp.unary->type == UNARY_NEGATE || expr->exp.unary->type == UNARY_COMPLEMENT)) {
-        fprintf(stderr, "Semantic Error: /%, ~ not supported on double type\n");
+    if (expr->exp.unary->exp->valueType == SPEC_DOUBLE && expr->exp.unary->type == UNARY_COMPLEMENT) {
+        fprintf(stderr, "Semantic Error: ~ not supported on double type\n");
         exit(1);
     }
     if (expr->exp.unary->type == UNARY_NOT) 
@@ -74,15 +74,22 @@ static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.binary->left, symbolTable);
     typeCheckExpression(expr->exp.binary->right, symbolTable);
 
-    if (expr->exp.binary->type == BIN_AND || expr->exp.binary->type == BIN_OR) {
+    specifierType leftType = expr->exp.binary->left->valueType;
+    specifierType rightType = expr->exp.binary->right->valueType;
+    specifierType commonType = getCommonType(leftType, rightType);
+    expr->exp.binary->left = convertTo(expr->exp.binary->left, commonType);
+    expr->exp.binary->right = convertTo(expr->exp.binary->right, commonType);
+
+    if (isRelationBinaryOp(expr->exp.binary->type)) {
         setType(expr, SPEC_INT); 
     }
     else {
-        specifierType leftType = expr->exp.binary->left->valueType;
-        specifierType rightType = expr->exp.binary->right->valueType;
-        specifierType commonType = getCommonType(leftType, rightType);
-        expr->exp.binary->left = convertTo(expr->exp.binary->left, commonType);
-        expr->exp.binary->right = convertTo(expr->exp.binary->right, commonType);
+        binType op = expr->exp.binary->type;
+        if (op == BIN_REMAINDER && commonType == SPEC_DOUBLE) {
+            fprintf(stderr, "Semantic Error: Modulo operator not supported for double type\n");
+            exit(1);
+        }
+        
         setType(expr, commonType);
     }
 }

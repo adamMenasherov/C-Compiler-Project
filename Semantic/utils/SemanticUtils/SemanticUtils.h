@@ -15,3 +15,4 @@ initialValueStaticInitType convertExpTypeToStaticInitType(specifierType expType)
 specifierType getType(CFactor* factor);
 int isSignedSpecifier(specifierType type);
 void convertValFromType(uint64_t* val, specifierType toType);
+initialValueStaticInitType convertSpecTypeToStaticInitType(specifierType type);

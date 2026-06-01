@@ -46,7 +46,7 @@ static initialValue* resolveFileScopeInitValue(CDeclaration* decl) {
         } else {
             uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;
             convertValFromType(&val, decl->decl.variableDecl.varType);
-            return createIntInitialValue(INITIAL_WITH_VALUE, val);
+            return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val, 0.0);
         }
     }
         

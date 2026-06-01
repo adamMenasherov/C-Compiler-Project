@@ -1,6 +1,7 @@
-#include <stdio.h>
+long foo(int a) {
+    return a + 53;
+}
 
-int main() {
-    double a = 'A';
-    printf("%c\n", a);
+unsigned long main() {
+    return (unsigned long)(5.0 + 2);
 }

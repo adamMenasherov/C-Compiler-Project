@@ -11,16 +11,18 @@
 #include "Parser/TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
 #include "Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
 #include "ASM-File-Generation/ASMGenerator.h"
+#include "DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
 #include "DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
 
 
 char* generateLibraryStrings(IdentifierArray* libraries) {
-    int size = 0;
-    char* finalChar; 
+    size_t size = 1; // Keep space for trailing NUL.
+    char* finalChar = calloc(1, 1); 
     for (size_t i = 0; i < libraries->size; i++) {
         char* library = (char*)libraries->data[i];
         size += strlen(library);
         finalChar = realloc(finalChar, size);
+        if (!finalChar) exit(1);
         strcat(finalChar, library); 
     }
 
@@ -46,7 +48,7 @@ char* readSourceFile(char* fileName) {
 
 
 char* generateFileNames(char* originalFileName, char **objectFileName, char **asmFileName) {
-    char* fileNameCopy = strdup(originalFileName); // Copying the filename because of strtok
+    char* fileNameCopy = strdup(originalFileName); 
     if (!fileNameCopy) exit(1);
 
     char* newFileName = malloc(strlen(originalFileName) + 1);
@@ -63,13 +65,14 @@ char* generateFileNames(char* originalFileName, char **objectFileName, char **as
         free(fileNameCopy);
         free(newFileName);
         free(*objectFileName);
+        free(*asmFileName);
         exit(1);
     }
     
 
-    sprintf(*objectFileName, "%s.o", fileNameWithoutExtension); // Object file's name
-    sprintf(newFileName, "%s.i", fileNameWithoutExtension); // Preprocessed file's name
-    sprintf(*asmFileName, "%s.s", fileNameWithoutExtension); // ASM file's name
+    sprintf(*objectFileName, "%s.o", fileNameWithoutExtension);
+    sprintf(newFileName, "%s.i", fileNameWithoutExtension); 
+    sprintf(*asmFileName, "%s.s", fileNameWithoutExtension); 
     free(fileNameCopy);
     return newFileName;
 }
@@ -89,14 +92,27 @@ void commandForPreprocessing(char* originalFileName, char* preprocessedFileName)
 }
 
 void commandForObjectFile(char* asmFileName, char* objectFileName) {
-    size_t len = strlen("gcc") + strlen(" -c ") + strlen(asmFileName) + strlen(" -o ") + strlen(objectFileName) + 1;
+    size_t len = strlen("gcc -c ") + strlen(asmFileName) + strlen(" -o ") + strlen(objectFileName) + 1;
     char* command = malloc(len);
     if (!command) exit(1);
-    
-    sprintf(command,"gcc -c %s -o %s", asmFileName, objectFileName); // Command for generating object file with -c flag
+
+    sprintf(command,"gcc -c %s -o %s", asmFileName, objectFileName);
     int ret = system(command);
     if (ret != 0) {
         fprintf(stderr, "Error: generating executable failed with exit code %d\n", ret);
+    }
+    free(command);
+}
+
+static void commandForExecutable(char* asmFileName, char* executableName) {
+    size_t len = strlen("gcc  ") + strlen(asmFileName) + strlen(" -o ") + strlen(executableName) + 1;
+    char* command = malloc(len);
+    if (!command) exit(1);
+
+    sprintf(command, "gcc %s -o %s", asmFileName, executableName);
+    int ret = system(command);
+    if (ret != 0) {
+        fprintf(stderr, "Error: linking executable failed with exit code %d\n", ret);
     }
     free(command);
 }
@@ -130,17 +146,17 @@ char* compileFile(char* fileName) {
     printf("----- TACKY  -----\n");
     TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
-    /*printf("----- ASM  -----\n");
+    printf("----- ASM  -----\n");
     ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
-    generateASMFile(asm_ast, asmFileName, symTable);
+    ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
+    freeSymbolTable(symTable);
+    generateASMFile(asm_ast, asmFileName, asmSymTable);
     commandForObjectFile(asmFileName, objectFileName);
+
+    freeAsmSymbolTable(asmSymTable);
     freeASM_AST(asm_ast);
     freeTACKY_AST(tacky_ast);
-    */
-
-    freeSymbolTable(symTable);
-
     freeAST(ast);
     free(source); 
     free(asmFileName);
@@ -155,22 +171,24 @@ int traverseCompilerArgs(int argc, char** argv, char** finalExecutableName, int*
 {
     int countObject = 0;
     for (int i = 0; i < argc; i++) {
+        printf("Processing argument: %s\n", argv[i]);
         if (strcmp(argv[i], "--lex") == 0 || strcmp(argv[i], "--parse") == 0
                 || strcmp(argv[i], "--validate") == 0) continue; // Skipping the flags for now 
         if (strcmp(argv[i], "-c") == 0) {
-            isCFlagPresent = 1;
+            *isCFlagPresent = 1;
             continue;
         }
         else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
-            *finalExecutableName = argv[i + 1];  
-            outputSpecified = 1;
-            i++; 
+            *finalExecutableName = argv[i + 1];
+            *outputSpecified = 1;
+            i++;
             continue;
         }
-        else if (strncmp(argv[i], "-l", sizeof("-l")) == 0) {
+        else if (strncmp(argv[i], "-l", 2) == 0) {
             IdentifierArray_append(libraries, argv[i]);
+            continue;
         }
-        else if (strcmp(argv[i], finalExecutableName) == 0) continue;
+        else if (strcmp(argv[i], *finalExecutableName) == 0) continue;
     
         char* objectFileName = compileFile(argv[i]);
         if (objectFileName == NULL) {
@@ -195,9 +213,6 @@ void startProcess(int argc, char* argv[]) {
     int countObject = traverseCompilerArgs(argc, argv, &finalExecutableName, &outputSpecified, objectFileNames,
         &isCFlagPresent, libraries);
 
-    /* Semantic-only mode: stop after symbol table printing for now.
-     * The linking phase stays here for later restoration.
-     *
     if (!isCFlagPresent) {
         char* derivedExecutableName = NULL;
         char* executableNameToUse = finalExecutableName;
@@ -219,16 +234,19 @@ void startProcess(int argc, char* argv[]) {
         generateExecutableCommand(objectFileNames, countObject, executableNameToUse, generateLibraryStrings(libraries)); // Generating executable file name if -c was not present
         free(derivedExecutableName);
     }
-    */
     freeObjectFileNames(objectFileNames, countObject);
 }
 
 
-void runExecutableCommand(char* command) {
+int runExecutableCommand(char* command) {
     int ret = system(command);
     if (ret != 0) {
         fprintf(stderr, "Error: Running executable failed with exit code %d\n", ret);
     }
+    else {
+        printf("Executable ran successfully.\n");
+    }
+    return ret;
 }
 
 void freeObjectFileNames(char** objectFileNames, int count) {

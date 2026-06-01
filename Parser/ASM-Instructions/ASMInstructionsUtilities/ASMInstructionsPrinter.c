@@ -39,6 +39,16 @@ static const char* getRegisterNameForASM_AST(Register reg) {
         case R9: return "R9";
         case R10: return "R10";
         case R11: return "R11";
+        case XMM0: return "XMM0";
+        case XMM1: return "XMM1";
+        case XMM2: return "XMM2";
+        case XMM3: return "XMM3";
+        case XMM4: return "XMM4";
+        case XMM5: return "XMM5";
+        case XMM6: return "XMM6";
+        case XMM7: return "XMM7";
+        case XMM14: return "XMM14";
+        case XMM15: return "XMM15";
         default: return "Unknown";
     }
 }
@@ -212,7 +222,24 @@ void printASMInstruction(const ASMInstruction* inst) {
         case ASM_CALL:
             printf("Call(\"%s\")", inst->instValue.call.functionName);
             break;
-
+        case ASM_CVTTSD2SI:
+            printf("Cvttsd2si(");
+            printASMType(inst->instValue.cvttsd2si.dst_type);
+            printf(", ");
+            printASMOperand(inst->instValue.cvttsd2si.src);
+            printf(", ");
+            printASMOperand(inst->instValue.cvttsd2si.dest);
+            printf(")");
+            break;
+        case ASM_CVTSI2SD:
+            printf("Cvtsi2sd(");
+            printASMType(inst->instValue.cvtsi2sd.src_type);
+            printf(", ");
+            printASMOperand(inst->instValue.cvtsi2sd.src);
+            printf(", ");
+            printASMOperand(inst->instValue.cvtsi2sd.dest);
+            printf(")");
+            break;
         default:
             printf("<unknown instruction type>");
             break;
@@ -240,6 +267,9 @@ void printASMType(ASMType type) {
             break;
         case ASM_QUADWORD:
             printf("QuadWord");
+            break;
+        case ASM_DOUBLE:
+            printf("Double");
             break;
         default:
             printf("UnknownType");

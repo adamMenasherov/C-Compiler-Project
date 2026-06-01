@@ -7,5 +7,6 @@
 int size(specifierType type);
 int isSignedIdentifierType(IdentifierType type);
 int isDoubleLabel(const char* identifier);
+int isRelationBinaryOp(binType type);
 specifierType constantTypeToSpecifierType(constantType type);
 TACKYStaticVarType initialStaticTypeToTACKYStaticVarType(initialValueStaticInitType type);

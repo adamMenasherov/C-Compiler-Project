@@ -432,6 +432,9 @@ ASMTopLevel* createTopLevel(ASMTopLevelType type, void* value) {
         case ASM_TOP_LEVEL_STATIC_VAR:
             topLevel->topLevel.staticVar = (ASMStaticVar*)value;
             break;
+        case ASM_TOP_LEVEL_STATIC_CONST:
+            topLevel->topLevel.staticConst = (ASMStaticConst*)value;
+            break;
         default:
             free(topLevel);
             return NULL; 

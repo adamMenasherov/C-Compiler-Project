@@ -7,7 +7,7 @@ void commandForPreprocessing(char* originalFileName, char* preprocessedFileName)
 void commandForObjectFile(char* asmFileName, char* executableFileName);
 char* compileFile(char* fileName);
 void startProcess(int argc, char* argv[]);
-void runExecutableCommand(char* command);
+int runExecutableCommand(char* command);
 void freeObjectFileNames(char** objectFileNames, int count);
 void generateExecutableCommand(char** objectFileNames, int count, char* finalExecutableName, char* libraryStrings);
 int traverseCompilerArgs(int argc, char** argv, char** finalExecutableName, int* outputSpecified, char** objectFileNames,
