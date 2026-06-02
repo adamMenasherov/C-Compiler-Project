@@ -29,10 +29,10 @@ TACKYProgram* parseTACKYProgram(CProgram* program, SymbolTable* symTable) {
     return tackyProg;
 }
 
-TACKYValue* makeTACKYVariable(specifierType type, SymbolTable* symTable) {
+TACKYValue* makeTACKYVariable(CType* type, SymbolTable* symTable) {
     char* temp_name = generateTempName();
     identifierAttrs* attrs = createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 1);
-    symbolTableInsert(symTable, temp_name, specifierTypeToIdentifierType(type), NULL, 0, attrs);
+    symbolTableInsert(symTable, temp_name, type, 0, attrs);
     TACKYValue* val = createVarValue(temp_name);
     free(temp_name);
     return val;

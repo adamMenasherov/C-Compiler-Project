@@ -49,7 +49,8 @@ CStatement* C_parseLoopStatement(TokenList* tokens) {
 
 CForInit* C_parseForInit(TokenList* tokens) {
     if (checkSpecifier(tokens)) {
-        specifierType varType, storageClass;
+        CType* varType;
+        StorageClass storageClass;
         C_parseTypeAndStorageClass(tokens, &varType, &storageClass);
 
         char* identifier = expectIdentifier(tokens);

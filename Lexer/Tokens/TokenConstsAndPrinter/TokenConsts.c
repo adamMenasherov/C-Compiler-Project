@@ -299,6 +299,10 @@ unaryType tokenTypeToUnaryType(TokenType type) {
             return UNARY_INCREMENT_PREFIX;
         case TWO_HYPHENS:
             return UNARY_DECREMENT_PREFIX;
+        case AMPERSAND:
+            return UNARY_ADDRESS_OF;
+        case ASTERISK:
+            return UNARY_DEREFERENCE;
         default:
             fprintf(stderr, "Error: Invalid unary operator token type %s\n", tokenTypeToToken(type));
             exit(1);

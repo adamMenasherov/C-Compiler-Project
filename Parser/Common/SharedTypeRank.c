@@ -3,19 +3,27 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-int size(specifierType type) {
-    switch (type) {
-        case SPEC_INT:
-        case SPEC_UNSIGNED_INT:
+int size(CType* type) {
+    if (!type) { fprintf(stderr, "size: NULL type\n"); exit(1); }
+    switch (type->kind) {
+        case CTYPE_INT:
+        case CTYPE_UINT:
             return 4;
-        case SPEC_LONG:
-        case SPEC_UNSIGNED_LONG:
+        case CTYPE_LONG:
+        case CTYPE_ULONG:
+        case CTYPE_POINTER:
             return 8;
         default:
-            fprintf(stderr, "Invalid specifier type in size function\n");
+            fprintf(stderr, "Invalid CType kind in size function\n");
             exit(1);
     }
+}
+
+int isSignedType(CType* type) {
+    if (!type) return 0;
+    return type->kind == CTYPE_INT || type->kind == CTYPE_LONG;
 }
 
 int isDoubleLabel(const char* identifier) {
@@ -28,35 +36,15 @@ int isRelationBinaryOp(binType type) {
            type == BIN_EQUALS || type == BIN_NOT_EQUALS;
 }
 
-int isSignedIdentifierType(IdentifierType type) {
+CType* constantTypeToCType(constantType type) {
     switch (type) {
-        case TYPE_INT:
-        case TYPE_LONG:
-            return 1;
-        case TYPE_UNSIGNED_INT:
-        case TYPE_UNSIGNED_LONG:
-        case TYPE_DOUBLE:
-            return 0;
+        case CONST_INT:           return C_CreateType(CTYPE_INT);
+        case CONST_LONG:          return C_CreateType(CTYPE_LONG);
+        case CONST_UNSIGNED_INT:  return C_CreateType(CTYPE_UINT);
+        case CONST_UNSIGNED_LONG: return C_CreateType(CTYPE_ULONG);
+        case CONST_FLOATING_POINT: return C_CreateType(CTYPE_DOUBLE);
         default:
-            fprintf(stderr, "Invalid identifier type in isSignedIdentifierType function\n");
-            exit(1);
-    }
-}
-
-specifierType constantTypeToSpecifierType(constantType type) {
-    switch (type) {
-        case CONST_INT:
-            return SPEC_INT;
-        case CONST_LONG:
-            return SPEC_LONG;
-        case CONST_UNSIGNED_INT:
-            return SPEC_UNSIGNED_INT;
-        case CONST_UNSIGNED_LONG:
-            return SPEC_UNSIGNED_LONG;
-        case CONST_FLOATING_POINT:
-            return SPEC_DOUBLE;
-        default:
-            fprintf(stderr, "Invalid constant type in constantTypeToSpecifierType function\n");
+            fprintf(stderr, "Invalid constant type in constantTypeToCType\n");
             exit(1);
     }
 }

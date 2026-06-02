@@ -9,7 +9,7 @@
 
 
 static void handleForInitDecl(CForInit* init, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
-    if (init->decl->decl.variableDecl.storageClass != SPEC_NULL) {
+    if (init->decl->decl.variableDecl.storageClass != STORAGE_CLASS_NONE) {
         fprintf(stderr, "Semantic Error: A for-loop variable declaration cannot have a storage class\n");
         exit(1);
     }

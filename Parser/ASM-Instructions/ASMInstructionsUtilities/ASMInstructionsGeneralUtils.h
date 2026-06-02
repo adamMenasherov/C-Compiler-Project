@@ -257,7 +257,7 @@ typedef struct {
  */
 ASMCondCode getCondCodeForRelationalOp(binType type, int isSigned);
 ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable);
-ASMType convertSpecifierTypeToASMType(specifierType type);
+ASMType convertCTypeToASMType(CType* type);
 ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info);
 void addConstantsAsTopLevels(ASMProgram* asmProgram, DoubleStringMap* cache);
 int signedOrUnsigned(TACKYInstruction* instruction, SymbolTable* symTable);

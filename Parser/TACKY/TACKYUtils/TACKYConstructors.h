@@ -16,7 +16,7 @@ TACKYValue* createTackyValueFromConstant(uint64_t intValue, double doubleValue, 
 TACKYValue* createTackyValueFromVar(CVar* var);
 TACKYValue* createTackyValueFromConstantNode(CConstant* const_node);
 TACKYValue* createVarValue(char* identifier);
-TACKYInstruction* generateTACKYDoubleIntCast(TACKYValue* src, TACKYValue* dst, specifierType srcType, specifierType dstType, SymbolTable* symTable);
+TACKYInstruction* generateTACKYDoubleIntCast(TACKYValue* src, TACKYValue* dst, CType* srcType, CType* dstType, SymbolTable* symTable);
 TACKYInstruction* createFunCall(char* functionName, TACKYValueArray* args, TACKYValue* resultVar);
 TACKYInstructionList* createTACKYInstructionList();
 TACKYConstant* CreateTackyConstantNode(uint64_t intValue, double doubleValue, constantType type);

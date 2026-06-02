@@ -8,9 +8,7 @@ static int isIncrementDecrementOpIncludingFix(unaryType type) {
            type == UNARY_DECREMENT_PREFIX || type == UNARY_DECREMENT_POSTFIX;
 }
 
-static void handleFactorConstant(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
-    /* nothing to resolve */
-}
+static void handleFactorConstant(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {}
 
 static void handleFactorUnary(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
     if ((isIncrementDecrementOpIncludingFix(fact->exp.unary->type)) &&
@@ -38,10 +36,6 @@ static void handleFactorVar(CFactor* fact, SemanticIdentifierMap* varMap, Symbol
 }
 
 static void handleFactorAssignment(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
-    if (fact->exp.assignment->exp1->type != FACTOR_VAR) {
-        fprintf(stderr, "Semantic Error: Left-hand side of assignment must be a variable\n");
-        exit(1);
-    }
     resolveExpression(fact->exp.assignment->exp1, varMap, symbolTable);
     resolveExpression(fact->exp.assignment->exp2, varMap, symbolTable);
 }

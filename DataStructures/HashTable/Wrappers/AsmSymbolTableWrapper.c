@@ -178,13 +178,14 @@ ASMSymbolTable* convertFrontEndSymTableToASMSymTable(SymbolTable* symTable) {
         while (entry) {
             IdentifierTypeInfo* info = (IdentifierTypeInfo*)entry->key;
             int isStatic = info->attrs && info->attrs->global ? 0 : 1; // Treat global variables as non-static, local variables as static
-            int isDefined = info->type == TYPE_FUNCTION ? info->funcInfo.isDefined : 0; // Only functions have a defined/undefined state
+            int isFunc = info->type && info->type->kind == CTYPE_FUN;
+            int isDefined = isFunc ? info->funcInfo.isDefined : 0;
             ASMType asmType = convertIdentifierTypeToASMType(info);
             char* identifier = strdup(info->identifier);
-            if (info->type == TYPE_FUNCTION) {
+            if (isFunc) {
                 asmSymbolTableInsert(asmSymTable, identifier, ASM_SYMTAB_FUN_ENTRY, 0, 0, 0, isDefined);
             } else {
-                int isConstant = info->type == TYPE_DOUBLE && isDoubleLabel(info->identifier);
+                int isConstant = (info->type && info->type->kind == CTYPE_DOUBLE) && isDoubleLabel(info->identifier);
                 asmSymbolTableInsert(asmSymTable, identifier, ASM_SYMTAB_OBJ_ENTRY, asmType, isStatic, isConstant, 0);
             }
             entry = entry->next;

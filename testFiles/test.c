@@ -1,7 +1,7 @@
-long foo(int a) {
-    return a + 53;
+static int foo(int a, int b, double **c) {
+    return *a + (double)b + (int)**c;
 }
 
-unsigned long main() {
-    return (unsigned long)(5.0 + 2);
+int main() {
+    int (foo)(int * a, int b, double **c);
 }

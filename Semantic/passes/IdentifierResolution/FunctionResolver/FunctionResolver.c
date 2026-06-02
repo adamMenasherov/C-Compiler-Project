@@ -16,7 +16,7 @@ void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMa
         }
     }
 
-    if (declLevel == BLOCK_LEVEL && func->decl.functionDecl.storageClass == SPEC_STATIC) {
+    if (declLevel == BLOCK_LEVEL && func->decl.functionDecl.storageClass == STORAGE_CLASS_STATIC) {
         fprintf(stderr, "Semantic Error: Function '%s' with static storage class cannot be declared at block scope\n", func->decl.functionDecl.identifier);
         exit(1);
     }
@@ -28,11 +28,10 @@ void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMa
 
     semanticMapPut(varMap, func->decl.functionDecl.identifier, func->decl.functionDecl.identifier, 1, 1);
     if (!symbolTableContains(symbolTable, func->decl.functionDecl.identifier)) {
-        int global = (func->decl.functionDecl.storageClass == SPEC_STATIC) ? 0 : 1;
+        int global = (func->decl.functionDecl.storageClass == STORAGE_CLASS_STATIC) ? 0 : 1;
         symbolTableInsert(
             symbolTable,
             func->decl.functionDecl.identifier,
-            TYPE_FUNCTION,
             func->decl.functionDecl.funcType,
             0,
             createIdentifierAttrs(IDENTIFIER_FUN_ATTR, global, NULL, 0)
@@ -46,7 +45,7 @@ void resolveFunctionDeclaration(CDeclaration* func, SemanticIdentifierMap* varMa
     freeSemanticIdentifierMap(newVarMap);
 }
 
-void resolveParams(IdentifierArray* params, CFuncType* funcType, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
+void resolveParams(IdentifierArray* params, CType* funcType, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
     for (int i = 0; i < IdentifierArray_size(params); i++) {
         char* param = IdentifierArray_get(params, i);
         char* uniqueParamName = generateUniqueVariableName(param);
@@ -61,11 +60,11 @@ void resolveParams(IdentifierArray* params, CFuncType* funcType, SemanticIdentif
         }
         semanticMapPut(varMap, param, uniqueParamName, 1, 0);
         IdentifierArray_set(params, i, uniqueParamName);
-        specifierType paramSpecType = SPEC_INT;
-        if (funcType && funcType->func.params[i]) {
-            paramSpecType = funcType->func.params[i]->type;
+        CType* paramType = C_CreateType(CTYPE_INT);
+        if (funcType && funcType->kind == CTYPE_FUN && i < funcType->fun.paramCnt && funcType->fun.params[i]) {
+            paramType = funcType->fun.params[i];
         }
-        symbolTableInsert(symbolTable, uniqueParamName, specifierTypeToIdentifierType(paramSpecType), NULL, 1,
+        symbolTableInsert(symbolTable, uniqueParamName, paramType, 1,
             createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
     }
 }

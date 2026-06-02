@@ -1,6 +1,7 @@
 #pragma once
 
 #include "C-ASTExpressionTypes.h"
+#include <stdio.h>
 
 static inline const char* getUnaryOpName(unaryType type) {
     switch (type) {
@@ -39,19 +40,5 @@ static inline const char* getBinaryOpName(binType type) {
         case BIN_LEFT_SHIFT:    return "LeftShift";
         case BIN_RIGHT_SHIFT:   return "RightShift";
         default:                return "Unknown";
-    }
-}
-
-static inline const char* getSpecifierTypeName(specifierType type) {
-    switch (type) {
-        case SPEC_INT: return "int";
-        case SPEC_NULL: return "no spec";
-        case SPEC_LONG: return "long";
-        case SPEC_STATIC: return "static";
-        case SPEC_EXTERN: return "extern";
-        case SPEC_DOUBLE: return "double"; 
-        case SPEC_UNSIGNED_INT: return "unsigned int";
-        case SPEC_UNSIGNED_LONG: return "unsigned long";
-        default: return "Unknown";
     }
 }

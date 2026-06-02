@@ -4,15 +4,6 @@
 #include "Parser/AST/C-AST-Nodes/C-ASTNodes.h"
 
 typedef enum {
-    TYPE_INT,
-    TYPE_LONG,
-    TYPE_UNSIGNED_INT,
-    TYPE_UNSIGNED_LONG,
-    TYPE_DOUBLE,
-    TYPE_FUNCTION
-} IdentifierType;
-
-typedef enum {
     STATIC_INIT_INT,
     STATIC_INIT_LONG,
     STATIC_INIT_UNSIGNED_INT,
@@ -63,16 +54,15 @@ typedef struct {
 
 typedef struct {
     char* identifier;
-    IdentifierType type;
+    CType* type;
     identifierAttrs* attrs;
     union {
         struct {
-            char* uniqueName; // The unique name assigned to the variable
+            char* uniqueName;
         } varInfo;
         struct {
-            char* uniqueName; // The unique name assigned to the function
-            CFuncType* funcType; // Full function type metadata
-            int isDefined; // Whether the function has a body (is defined) or just declared
+            char* uniqueName;
+            int isDefined;
         } funcInfo;
     };
 } IdentifierTypeInfo;
@@ -81,7 +71,7 @@ typedef HashTable SymbolTable;
 typedef void (*SymbolTableForEachFn)(IdentifierTypeInfo* entry, void* userData);
 
 SymbolTable* createSymbolTable();
-int symbolTableInsert(SymbolTable* table, const char* identifier, IdentifierType type, CFuncType* funcType, int isDefined, identifierAttrs* attrs);
+int symbolTableInsert(SymbolTable* table, const char* identifier, CType* type, int isDefined, identifierAttrs* attrs);
 IdentifierTypeInfo* symbolTableLookup(SymbolTable* table, const char* identifier);
 identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global, initialValue* initValue, int defined);
 int symbolTableContains(SymbolTable* table, const char* identifier);

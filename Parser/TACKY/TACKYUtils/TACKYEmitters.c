@@ -6,17 +6,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static specifierType getCastSourceType(CFactor* sourceExpr, SymbolTable* symTable) {
-    if (!sourceExpr) return SPEC_NULL;
+static CType* getCastSourceType(CFactor* sourceExpr, SymbolTable* symTable) {
+    if (!sourceExpr) return NULL;
 
     switch (sourceExpr->type) {
         case FACTOR_VAR: {
             IdentifierTypeInfo* info = symbolTableLookup(symTable, sourceExpr->exp.var->identifier);
             if (!info) return sourceExpr->valueType;
-            return identifierTypeToSpecifierType(info->type);
+            return info->type;
         }
         case FACTOR_CONSTANT:
-            return constantTypeToSpecifierType(sourceExpr->exp.cnst->type);
+            return constantTypeToCType(sourceExpr->exp.cnst->type);
         case FACTOR_CAST:
             return sourceExpr->exp.cast->targetType;
         default:
@@ -209,13 +209,15 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
 
 TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     TACKYValue* result = emit_TACKY(exp->exp.cast->exp, instruction_list, NULL, symTable);
-    specifierType inner_type = getCastSourceType(exp->exp.cast->exp, symTable);
-    specifierType t = exp->exp.cast->targetType;
-    if (inner_type == t) {
-        return result; // No cast needed
+    CType* inner_type = getCastSourceType(exp->exp.cast->exp, symTable);
+    CType* t = exp->exp.cast->targetType;
+    if (ctypeEqual(inner_type, t)) {
+        return result;
     }
     TACKYValue* dst = makeTACKYVariable(t, symTable);
-    if (t == SPEC_DOUBLE || inner_type == SPEC_DOUBLE) {
+    int tIsDouble     = t && t->kind == CTYPE_DOUBLE;
+    int innerIsDouble = inner_type && inner_type->kind == CTYPE_DOUBLE;
+    if (tIsDouble || innerIsDouble) {
         addInstructionToList(instruction_list,
             generateTACKYDoubleIntCast(result, dst, inner_type, t, symTable));
         return copyTackyValue(dst);
@@ -228,7 +230,7 @@ TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list,
         addInstructionToList(instruction_list,
             createTruncateInstruction(result, dst));
     }
-    else if (isSignedSpecifier(inner_type)) {
+    else if (isSignedType(inner_type)) {
         addInstructionToList(instruction_list,
             createSignExtendInstruction(result, dst));
     }

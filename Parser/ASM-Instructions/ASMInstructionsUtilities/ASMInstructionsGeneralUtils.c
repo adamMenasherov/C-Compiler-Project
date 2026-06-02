@@ -41,33 +41,25 @@ ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable) {
     return ASM_LONGWORD;
 }
 
-ASMType convertSpecifierTypeToASMType(specifierType type) {
-    switch (type) {
-        case SPEC_INT:
-        case SPEC_UNSIGNED_INT:
+ASMType convertCTypeToASMType(CType* type) {
+    if (!type) return ASM_LONGWORD;
+    switch (type->kind) {
+        case CTYPE_INT:
+        case CTYPE_UINT:
              return ASM_LONGWORD;
-        case SPEC_LONG:
-        case SPEC_UNSIGNED_LONG:
+        case CTYPE_LONG:
+        case CTYPE_ULONG:
+        case CTYPE_POINTER:
              return ASM_QUADWORD;
-        case SPEC_DOUBLE:
+        case CTYPE_DOUBLE:
              return ASM_DOUBLE;
         default: return ASM_LONGWORD;
     }
 }
 
 ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info) {
-    if (!info) return ASM_LONGWORD;
-    switch (info->type) {
-        case TYPE_INT:
-        case TYPE_UNSIGNED_INT:
-            return ASM_LONGWORD;
-        case TYPE_LONG:
-        case TYPE_UNSIGNED_LONG:
-            return ASM_QUADWORD;
-        case TYPE_DOUBLE:
-            return ASM_DOUBLE;
-        default: return ASM_LONGWORD;
-    }
+    if (!info || !info->type) return ASM_LONGWORD;
+    return convertCTypeToASMType(info->type);
 }
 
 int signedOrUnsigned(TACKYInstruction* instruction, SymbolTable* symTable) {
@@ -94,7 +86,7 @@ int isSignedTACKYValue(TACKYValue* val, SymbolTable* symTable) {
     if ((val->type == TACKY_VAR || val->type == TACKY_STATIC) && val->identifier) {
         IdentifierTypeInfo* info = symbolTableLookup(symTable, val->identifier);
         if (info) {
-            return isSignedIdentifierType(info->type);
+            return isSignedType(info->type);
         }
     }
 

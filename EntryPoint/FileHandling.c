@@ -137,7 +137,7 @@ char* compileFile(char* fileName) {
     lex(&sourcePtr, tokenList); // TokensList is filled with tokens of the source file in the Lexer stage
     AST* ast = parse(tokenList); // Parsing the program to a AST structure
     printAST(ast);
-    SymbolTable* symTable = resolveAST(ast);
+    /*SymbolTable* symTable = resolveAST(ast);
     printf("----- Symbol Table -----\n");
     symbolTablePrint(symTable);
 
@@ -152,11 +152,8 @@ char* compileFile(char* fileName) {
     ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
     freeSymbolTable(symTable);
     generateASMFile(asm_ast, asmFileName, asmSymTable);
-    commandForObjectFile(asmFileName, objectFileName);
+    commandForObjectFile(asmFileName, objectFileName);*/
 
-    freeAsmSymbolTable(asmSymTable);
-    freeASM_AST(asm_ast);
-    freeTACKY_AST(tacky_ast);
     freeAST(ast);
     free(source); 
     free(asmFileName);
@@ -171,7 +168,6 @@ int traverseCompilerArgs(int argc, char** argv, char** finalExecutableName, int*
 {
     int countObject = 0;
     for (int i = 0; i < argc; i++) {
-        printf("Processing argument: %s\n", argv[i]);
         if (strcmp(argv[i], "--lex") == 0 || strcmp(argv[i], "--parse") == 0
                 || strcmp(argv[i], "--validate") == 0) continue; // Skipping the flags for now 
         if (strcmp(argv[i], "-c") == 0) {

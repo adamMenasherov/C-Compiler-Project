@@ -203,7 +203,9 @@ int isUnaryOp(Token* tok) {
         case EXCLAMATION:
         case TWO_PLUS:
         case TWO_HYPHENS:
-            break;
+        case AMPERSAND:
+        case ASTERISK:
+             break;
         default: return 0;
     }
 
@@ -486,6 +488,7 @@ int isCompoundAssignment(Token* tok) {
     }
 }
 
-specifierType getTypeFromCFuncType(CFuncType* type) {
-    return type->type;
+CType* getFuncReturnType(CType* funcType) {
+    if (!funcType || funcType->kind != CTYPE_FUN) return NULL;
+    return funcType->fun.ret;
 }

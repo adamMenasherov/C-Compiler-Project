@@ -85,8 +85,8 @@ void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionL
 
     ASMType retAsmType = ASM_LONGWORD;
     IdentifierTypeInfo* calledFunction = symbolTableLookup(symTable, instruction->instValue.funCall.functionName);
-    if (calledFunction && calledFunction->type == TYPE_FUNCTION && calledFunction->funcInfo.funcType && calledFunction->funcInfo.funcType->type) {
-        retAsmType = convertSpecifierTypeToASMType(calledFunction->funcInfo.funcType->type);
+    if (calledFunction && calledFunction->type && calledFunction->type->kind == CTYPE_FUN && calledFunction->type->fun.ret) {
+        retAsmType = convertCTypeToASMType(calledFunction->type->fun.ret);
     }
     ASMOperand* retDest = tackyValueToASMOperand(instruction->instValue.funCall.resultVar, symTable);
     Register retReg = (retAsmType == ASM_DOUBLE) ? XMM0 : AX;

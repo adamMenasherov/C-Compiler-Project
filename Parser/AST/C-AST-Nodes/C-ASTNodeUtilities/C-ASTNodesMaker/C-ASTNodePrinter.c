@@ -2,6 +2,7 @@
 #include "../C-ASTOperatorNames.h"
 #include <stdio.h>
 #include <stdlib.h>
+#define BUF_SIZE 256
 
 static int depth = 0;
 
@@ -18,6 +19,47 @@ static const char* getConstantTypeName(constantType type) {
         case CONST_FLOATING_POINT: return "double";
         default: return "unknown";
     }
+}
+
+char* C_getDeclaratorIdentifier(CDeclarator* decl) {
+    if (!decl) return NULL;
+
+    switch (decl->type) {
+        case DECLARATOR_IDENT:
+            return decl->decl.identifier;
+        case DECLARATOR_POINTER:
+            return C_getDeclaratorIdentifier(decl->decl.pointerDecl.pointed);
+        case DECLARATOR_FUNC:
+            return C_getDeclaratorIdentifier(decl->decl.func.funcDecl);
+        default:
+            return NULL;
+    }
+}
+
+char* getCTypeName(CType* type, char* buf, size_t size) {
+    if (!type) { snprintf(buf, size, "null"); return buf; }
+
+    switch (type->kind) {
+        case CTYPE_INT:   snprintf(buf, size, "int");           break;
+        case CTYPE_LONG:  snprintf(buf, size, "long");          break;
+        case CTYPE_UINT:  snprintf(buf, size, "unsigned int");  break;
+        case CTYPE_ULONG: snprintf(buf, size, "unsigned long"); break;
+        case CTYPE_DOUBLE: snprintf(buf, size, "double");       break;
+        case CTYPE_POINTER: {
+            char inner[BUF_SIZE];
+            getCTypeName(type->pointer.referenced, inner, sizeof(inner));
+            snprintf(buf, size, "Pointer(%s)", inner);
+            break;
+        }
+        case CTYPE_FUN: {
+            char ret[BUF_SIZE];
+            getCTypeName(type->fun.ret, ret, sizeof(ret));
+            snprintf(buf, size, "fn() -> %s", ret);
+            break;
+        }
+        default: snprintf(buf, size, "unknown"); break;
+    }
+    return buf;
 }
 
 void C_printProgram(CProgram* prog) {
@@ -43,8 +85,10 @@ void C_printFunction(CDeclaration* func) {
     }
 
     printf("Function(\"%s\",", func->decl.functionDecl.identifier);
-    printf("Type: %s, StorageClass: %s,\n", getSpecifierTypeName(func->decl.functionDecl.funcType->type), 
-                    getSpecifierTypeName(func->decl.functionDecl.storageClass));
+    char typeBuf[BUF_SIZE];
+    printf("Type: %s, StorageClass: %d,\n",
+        func->decl.functionDecl.funcType ? getCTypeName(func->decl.functionDecl.funcType->fun.ret, typeBuf, sizeof(typeBuf)) : "null",
+        (int)func->decl.functionDecl.storageClass);
     depth++;
 
     indent(); printf("Parameters([");
@@ -73,6 +117,26 @@ void C_printBlock(CBlock* block) {
     indent(); printf("])");
 }
 
+void C_printDereference(CFactor* exp) {
+    if (!exp) return;
+
+    printf("Dereference(");
+    depth++;
+    C_printFactor(exp);
+    depth--;
+    printf(")");
+}
+
+void C_printAddressOf(CFactor* exp) {
+    if (!exp) return;
+
+    printf("AddressOf(");
+    depth++;
+    C_printFactor(exp);
+    depth--;
+    printf(")");
+}
+
 void C_printReturn(CReturn* returnNode) {
     printf("Return(");
     depth++;
@@ -93,13 +157,16 @@ void C_printFactor(CFactor* exp) {
         case FACTOR_VAR:         C_printVar(exp->exp.var);                   break;
         case FACTOR_FUNCTION_CALL: C_printFunctionCall(exp->exp.funcCall);   break;
         case FACTOR_CAST:        C_printCast(exp->exp.cast);                 break;
+        case FACTOR_DEREFERENCE: C_printDereference(exp->exp.pointerOp);    break;
+        case FACTOR_ADDRESS_OF:  C_printAddressOf(exp->exp.pointerOp);       break;
     }
 }
 
 void C_printCast(CCast* cast) {
     if (!cast) return;
 
-    printf("Cast(%s, ", getSpecifierTypeName(cast->targetType));
+    char castBuf[BUF_SIZE];
+    printf("Cast(%s, ", getCTypeName(cast->targetType, castBuf, sizeof(castBuf)));
     depth++;
     C_printFactor(cast->exp);
     depth--;
@@ -241,8 +308,9 @@ void C_printVarDeclaration(CDeclaration* decl) {
     }
 
     printf("Declaration(\"%s\"", decl->decl.variableDecl.identifier);
-    printf(", Type: %s, StorageClass: %s", getSpecifierTypeName(decl->decl.variableDecl.varType), 
-                getSpecifierTypeName(decl->decl.variableDecl.storageClass));
+    char varTypeBuf[BUF_SIZE];
+    printf(", Type: %s, StorageClass: %d", getCTypeName(decl->decl.variableDecl.varType, varTypeBuf, sizeof(varTypeBuf)),
+                (int)decl->decl.variableDecl.storageClass);
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
         printf(", ");
         depth++;
@@ -254,8 +322,12 @@ void C_printVarDeclaration(CDeclaration* decl) {
 
 void C_printUnary(CUnary* unary) {
     if (!unary) return;
-
-    printf("Unary(%s, ", getUnaryOpName(unary->type));
+    if (unary->type == UNARY_ADDRESS_OF || unary->type == UNARY_DEREFERENCE) {
+        printf("%s(", (unary->type == UNARY_ADDRESS_OF) ? "AddressOf" : "Dereference");
+    } 
+    else {
+        printf("Unary(%s, ", getUnaryOpName(unary->type));
+    }
     depth++;
     C_printFactor(unary->exp);
     depth--;

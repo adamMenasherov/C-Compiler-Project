@@ -34,4 +34,4 @@ int isPostfixUnaryOp(unaryType type);
 int isIncrementDecrementOp(unaryType type);
 unaryType FromPostPreFixToRegular(unaryType type);
 int precedence(Token* tok);
-specifierType getTypeFromCFuncType(CFuncType* type);
+CType* getFuncReturnType(CType* funcType);

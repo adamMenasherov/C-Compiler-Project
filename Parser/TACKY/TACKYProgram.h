@@ -160,4 +160,4 @@ TACKYFunction* parseTACKYFunction(CDeclaration* func, SymbolTable* symTable);
  */
 TACKYProgram* parseTACKYProgram(CProgram* program, SymbolTable* symTable);
 
-TACKYValue* makeTACKYVariable(specifierType type, SymbolTable* symTable);
+TACKYValue* makeTACKYVariable(CType* type, SymbolTable* symTable);

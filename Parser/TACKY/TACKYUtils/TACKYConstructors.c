@@ -140,19 +140,19 @@ TACKYValue* createTackyValueFromConstantNode(CConstant* const_node) {
     return tackyVal;
 }
 
-TACKYInstruction* generateTACKYDoubleIntCast(TACKYValue* src, TACKYValue* dst, specifierType srcType, specifierType dstType, SymbolTable* symTable) {
+TACKYInstruction* generateTACKYDoubleIntCast(TACKYValue* src, TACKYValue* dst, CType* srcType, CType* dstType, SymbolTable* symTable) {
     if (!dst) return NULL;
-    if (srcType == SPEC_DOUBLE && (dstType == SPEC_INT || dstType == SPEC_LONG)){
-        return createDoubleIntCastInstruction(src, dst, TACKY_DOUBLE_TO_INT);
-    } else if (srcType == SPEC_DOUBLE && (dstType == SPEC_UNSIGNED_INT || dstType == SPEC_UNSIGNED_LONG)) {
-        return createDoubleIntCastInstruction(src, dst, TACKY_DOUBLE_TO_UINT);
-    } else if ((srcType == SPEC_INT || srcType == SPEC_LONG) && dstType == SPEC_DOUBLE) {
-        return createDoubleIntCastInstruction(src, dst, TACKY_INT_TO_DOUBLE);
-    } else if ((srcType == SPEC_UNSIGNED_INT || srcType == SPEC_UNSIGNED_LONG) && dstType == SPEC_DOUBLE) {
-        return createDoubleIntCastInstruction(src, dst, TACKY_UINT_TO_DOUBLE);
-    }
-    
     (void)symTable;
+    int srcIsDouble = srcType && srcType->kind == CTYPE_DOUBLE;
+    int dstIsDouble = dstType && dstType->kind == CTYPE_DOUBLE;
+    int srcIsSigned = srcType && (srcType->kind == CTYPE_INT || srcType->kind == CTYPE_LONG);
+    int dstIsSigned = dstType && (dstType->kind == CTYPE_INT || dstType->kind == CTYPE_LONG);
+
+    if (srcIsDouble && !dstIsDouble) {
+        return createDoubleIntCastInstruction(src, dst, dstIsSigned ? TACKY_DOUBLE_TO_INT : TACKY_DOUBLE_TO_UINT);
+    } else if (!srcIsDouble && dstIsDouble) {
+        return createDoubleIntCastInstruction(src, dst, srcIsSigned ? TACKY_INT_TO_DOUBLE : TACKY_UINT_TO_DOUBLE);
+    }
     return createCopyInstruction(src, dst);
 }
 

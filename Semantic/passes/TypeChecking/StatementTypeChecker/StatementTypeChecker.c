@@ -7,14 +7,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static specifierType currentFuncReturnType = SPEC_INT;
+static CType* currentFuncReturnType = NULL;
 
-void setCurrentFunctionReturnType(specifierType retType) {
+void setCurrentFunctionReturnType(CType* retType) {
     currentFuncReturnType = retType;
 }
 
-static CFactor* convertReturnExprToFuncType(CFactor* expr, specifierType targetType) {
-    if (!expr || expr->valueType == targetType) return expr;
+static CFactor* convertReturnExprToFuncType(CFactor* expr, CType* targetType) {
+    if (!expr || ctypeEqual(expr->valueType, targetType)) return expr;
     CCast* castNode = C_CreateCast(targetType, expr);
     CFactor* castExpr = C_CreateFactorFromCast(castNode);
     if (!castExpr) {

@@ -4,15 +4,14 @@
 
 char* generateUniqueVariableName(char* baseName);
 const char* fromTempToOrigin(char* identifier);
-specifierType identifierTypeToSpecifierType(IdentifierType type);
-void setTypeVar(CFactor* expr, IdentifierType type);
-void setType(CFactor* expr, specifierType type);
+void setTypeVar(CFactor* expr, CType* type);
+void setType(CFactor* expr, CType* type);
 void setTypeConst(CFactor* expr, constantType type);
-specifierType getCommonType(specifierType type1, specifierType type2);
-int isBasicType(specifierType type);
-IdentifierType specifierTypeToIdentifierType(specifierType type);
-initialValueStaticInitType convertExpTypeToStaticInitType(specifierType expType);
-specifierType getType(CFactor* factor);
-int isSignedSpecifier(specifierType type);
-void convertValFromType(uint64_t* val, specifierType toType);
-initialValueStaticInitType convertSpecTypeToStaticInitType(specifierType type);
+CType* getCommonType(CType* type1, CType* type2);
+int isBasicType(CType* type);
+initialValueStaticInitType convertExpTypeToStaticInitType(CType* expType);
+CType* getType(CFactor* factor);
+int isSignedCType(CType* type);
+void convertValFromType(uint64_t* val, CType* toType);
+initialValueStaticInitType convertSpecTypeToStaticInitType(CType* type);
+int ctypeEqual(CType* a, CType* b);

@@ -6,8 +6,8 @@ CConstant* C_CreateConstant(uint64_t intVal, double floatVal, constantType type)
 CVar* C_CreateVar(char* identifier);
 CReturn* C_CreateReturn(CFactor* exp);
 CLoopStmt* C_CreateLoopStmt();
-CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, 
-    CFuncType* funcType, specifierType storageClass);
+CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body,
+    CType* funcType, StorageClass storageClass);
 
 CSwitch* C_CreateSwitch(CFactor* exp);
 CCase* C_CreateCase(CConstant* caseConst, CStatement* caseStmt, int hasBreak);
@@ -31,11 +31,18 @@ CForInit* C_CreateForInit(forInitType type, void* initVal);
 CIf* C_CreateIf(ifType type, CFactor* condition, CStatement* then, CStatement* else_stmt);
 CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right);
 CStatement* C_CreateStatement(statementType type, void * stmtVal);
-CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign, 
-    specifierType varType, specifierType storageClass);
-CFuncType* C_CreateType(specifierType type);
-CFuncType* C_CreateEmptyType();
-CCast* C_CreateCast(specifierType castType, CFactor* exp);
+CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign,
+    CType* varType, StorageClass storageClass);
+CType* C_CreateType(CTypeKind kind);
+CType* C_CreateFunType(CParamInfo* params, int paramCnt, CType* ret);
+CType* C_CreateTypeFromParamInfo(CParamInfo param);
+CDeclarator* C_CreateIdentDeclarator(char* identifier);
+CDeclarator* C_CreatePointerDeclarator(CDeclarator* pointed);
+CDeclarator* C_CreateFunctionDeclarator(CDeclarator* funcDecl, CParamInfo* params, int paramCnt);
+CType* C_CreatePointerType(CType* referenced);
+CCast* C_CreateCast(CType* castType, CFactor* exp);
+CType* C_CreatePointerType(CType* referenced);
+CType* C_CreateTypeFromType(CType* original);
 CBlockItem* C_CreateBlockItem(blockItemType type, void * stmtVal);
 CAssignment* C_CreateAssignment(CFactor* fact1, CFactor* fact2);
 CFunctionCall* C_CreateFunctionCall(char* identifier, ExpressionFactorArray* arguments);

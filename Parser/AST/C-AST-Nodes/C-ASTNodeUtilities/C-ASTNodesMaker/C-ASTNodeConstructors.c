@@ -46,7 +46,7 @@ CCase* C_CreateCase(CConstant* caseConst, CStatement* caseStmt, int hasBreak) {
 }
 
 
-CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, CFuncType* funcType, specifierType storageClass) {
+CDeclaration* C_CreateFunction(funcDeclType type, char* identifier, IdentifierArray* parameters, CBlock* body, CType* funcType, StorageClass storageClass) {
     CDeclaration* func = calloc(1, sizeof(CDeclaration));
     if (!func) return NULL;
     func->type = DECL_FUNC;
@@ -65,10 +65,10 @@ CProgram* C_CreateProgram(CDeclarationArray* function_def) {
     if (!prog) return NULL;
     prog->function_def = function_def;
 
-    return prog; 
+    return prog;
 }
 
-CCast* C_CreateCast(specifierType castType, CFactor* exp) {
+CCast* C_CreateCast(CType* castType, CFactor* exp) {
     CCast* cast = malloc(sizeof(CCast));
     if (!cast) return NULL;
     cast->targetType = castType;
@@ -96,7 +96,7 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
             new_exp->exp.unary = C_CreateUnary(((CUnary*)expVal)->type, C_CreateCopyOfFactor(((CUnary*)expVal)->exp));
             break;
         }
-            
+
         case FACTOR_CONSTANT: {
             new_exp->type = FACTOR_CONSTANT;
             new_exp->exp.cnst = C_CreateConstant(((CConstant*)expVal)->value.intValue, ((CConstant*)expVal)->value.doubleValue, ((CConstant*)expVal)->type);
@@ -104,13 +104,13 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
         }
         case FACTOR_BINARY: {
             new_exp->type = FACTOR_BINARY;
-            new_exp->exp.binary = C_CreateBinary(((CBinary*)expVal)->type, 
+            new_exp->exp.binary = C_CreateBinary(((CBinary*)expVal)->type,
                                 C_CreateCopyOfFactor(((CBinary*)expVal)->left), C_CreateCopyOfFactor(((CBinary*)expVal)->right));
             break;
-        }       
+        }
         case FACTOR_ASSIGNMENT: {
             new_exp->type = FACTOR_ASSIGNMENT;
-            new_exp->exp.assignment = C_CreateAssignment(C_CreateCopyOfFactor(((CAssignment*)expVal)->exp1), 
+            new_exp->exp.assignment = C_CreateAssignment(C_CreateCopyOfFactor(((CAssignment*)expVal)->exp1),
                                     C_CreateCopyOfFactor(((CAssignment*)expVal)->exp2));
             break;
         }
@@ -121,8 +121,8 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
         }
         case FACTOR_CONDITIONAL: {
             new_exp->type = FACTOR_CONDITIONAL;
-            new_exp->exp.conditional = C_CreateConditional(C_CreateCopyOfFactor(((CConditional*)expVal)->condition), 
-                                        C_CreateCopyOfFactor(((CConditional*)expVal)->then), 
+            new_exp->exp.conditional = C_CreateConditional(C_CreateCopyOfFactor(((CConditional*)expVal)->condition),
+                                        C_CreateCopyOfFactor(((CConditional*)expVal)->then),
                                         C_CreateCopyOfFactor(((CConditional*)expVal)->else_stmt));
             break;
         }
@@ -134,6 +134,17 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
         case FACTOR_CAST: {
             new_exp->type = FACTOR_CAST;
             new_exp->exp.cast = C_CreateCast(((CCast*)expVal)->targetType, C_CreateCopyOfFactor(((CCast*)expVal)->exp));
+            break;
+        }
+        case FACTOR_DEREFERENCE:
+        {
+            new_exp->type = FACTOR_DEREFERENCE;
+            new_exp->exp.pointerOp = C_CreateCopyOfFactor((CFactor*)expVal);
+            break;
+        }
+        case FACTOR_ADDRESS_OF: {
+            new_exp->type = FACTOR_ADDRESS_OF;
+            new_exp->exp.pointerOp = C_CreateCopyOfFactor((CFactor*)expVal);
             break;
         }
         default: {
@@ -333,10 +344,57 @@ CVar* C_CreateVar(char* identifier) {
     return var;
 }
 
-CFuncType* C_CreateType(specifierType type) {
-    CFuncType* ctype = calloc(1, sizeof(CFuncType));
+CType* C_CreateTypeFromType(CType* original) {
+    if (!original) return NULL;
+    CType* copy = C_CreateType(original->kind);
+    if (!copy) return NULL;
+
+    switch (original->kind) {
+        case CTYPE_FUN:
+            copy->fun.paramCnt = original->fun.paramCnt;
+            copy->fun.ret = C_CreateTypeFromType(original->fun.ret);
+            for (int i = 0; i < original->fun.paramCnt && i < MAX_PARAMS; i++) {
+                copy->fun.params[i] = C_CreateTypeFromType(original->fun.params[i]);
+            }
+            break;
+        case CTYPE_POINTER:
+            copy->pointer.referenced = C_CreateTypeFromType(original->pointer.referenced);
+            break;
+        default:
+            break;
+    }
+    return copy;
+}
+
+CType* C_CreateType(CTypeKind kind) {
+    CType* ctype = calloc(1, sizeof(CType));
     if (!ctype) return NULL;
-    ctype->type = type;
+    ctype->kind = kind;
+    return ctype;
+}
+
+CType* C_CreatePointerType(CType* referenced) {
+    CType* ctype = calloc(1, sizeof(CType));
+    if (!ctype) return NULL;
+    ctype->kind = CTYPE_POINTER;
+    ctype->pointer.referenced = referenced;
+    return ctype;
+}
+
+CType* C_CreateFunType(CParamInfo* params, int paramCnt, CType* ret) {
+    CType* ctype = calloc(1, sizeof(CType));
+    if (!ctype) return NULL;
+    ctype->kind = CTYPE_FUN;
+    ctype->fun.paramCnt = paramCnt;
+    ctype->fun.ret = ret;
+    for (int i = 0; i < paramCnt && i < MAX_PARAMS; i++)
+        ctype->fun.params[i] = C_CreateTypeFromParamInfo(params[i]);
+    return ctype;
+}
+
+CType* C_CreateTypeFromParamInfo(CParamInfo param) {
+    CType* ctype = C_CreateTypeFromType(param.type);
+    if (!ctype) return NULL;
     return ctype;
 }
 
@@ -368,6 +426,12 @@ CFactor* C_CreateCopyOfFactor(CFactor* original) {
         case FACTOR_CAST:
             copy = C_CreateFactorFromCast(original->exp.cast);
             break;
+        case FACTOR_DEREFERENCE:
+            copy = C_CreateFactor(FACTOR_DEREFERENCE, original->exp.pointerOp);
+            break;
+        case FACTOR_ADDRESS_OF:
+            copy = C_CreateFactor(FACTOR_ADDRESS_OF, original->exp.pointerOp);
+            break;
         default:
             fprintf(stderr, "Invalid factor type in C_CreateCopyOfFactor\n");
             return NULL;
@@ -385,7 +449,7 @@ CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {
     return binary;
 }
 
-CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign, specifierType varType, specifierType storageClass) {
+CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign, CType* varType, StorageClass storageClass) {
     CDeclaration* decl = malloc(sizeof(CDeclaration));
     if (!decl) return NULL;
     decl->type = DECL_VAR;
@@ -446,17 +510,36 @@ CCompound* C_CreateCompound(CBlock* block) {
     return compound;
 }
 
-CFuncType* C_CreateEmptyType() {
-    CFuncType* ctype = calloc(1, sizeof(CFuncType));
-    if (!ctype) return NULL;
-    ctype->type = SPEC_NULL;
-    return ctype;
-}
-
 char* generateLoopStmtIdentifier() {
     static int loopStmtCounter = 0;
     char* identifier = malloc(20);
     if (!identifier) return NULL;
     sprintf(identifier, "loop_stmt_%d", loopStmtCounter++);
     return identifier;
+}
+
+CDeclarator* C_CreateIdentDeclarator(char* identifier) {
+    CDeclarator* decl = malloc(sizeof(CDeclarator));
+    if (!decl) return NULL;
+    decl->type = DECLARATOR_IDENT;
+    decl->decl.identifier = strdup(identifier);
+    return decl;
+}
+CDeclarator* C_CreatePointerDeclarator(CDeclarator* pointed) {
+    CDeclarator* decl = malloc(sizeof(CDeclarator));
+    if (!decl) return NULL;
+    decl->type = DECLARATOR_POINTER;
+    decl->decl.pointerDecl.pointed = pointed;
+    return decl;
+}
+CDeclarator* C_CreateFunctionDeclarator(CDeclarator* funcDecl, CParamInfo* params, int paramCnt) {
+    CDeclarator* decl = malloc(sizeof(CDeclarator));
+    if (!decl) return NULL;
+    decl->type = DECLARATOR_FUNC;
+    decl->decl.func.funcDecl = funcDecl;
+    decl->decl.func.paramCnt = paramCnt;
+    for (int i = 0; i < paramCnt && i < MAX_PARAMS; i++) {
+        decl->decl.func.params[i] = params[i];
+    }
+    return decl;
 }

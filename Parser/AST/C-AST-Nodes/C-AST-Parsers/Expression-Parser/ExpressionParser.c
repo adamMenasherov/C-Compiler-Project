@@ -5,6 +5,9 @@
 #include <limits.h>
 #include "../C-ParsersInclude.h"
 
+static CDeclarator* parseAbstractDeclarator(TokenList* tokens);
+static CDeclarator* parseDirectAbstractDeclarator(TokenList* tokens);
+
 static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
     while (checkIncrementDecrement(tokens)) {
         unaryType type = prefixToPostfix(expectUnaryOp(tokens));
@@ -43,6 +46,10 @@ CFactor* C_parseFactor(TokenList* tokens) {
     else if (checkUnaryOp(tokens)) {
         unaryType type = expectUnaryOp(tokens);
         CFactor* inner_exp = C_parseFactor(tokens);
+        if (type == UNARY_DEREFERENCE || type == UNARY_ADDRESS_OF) {
+            factorType factType = (type == UNARY_DEREFERENCE) ? FACTOR_DEREFERENCE : FACTOR_ADDRESS_OF;
+            return C_CreateFactor(factType, inner_exp);
+        }
         return parsePostfixOperators(C_CreateFactorFromUnary(C_CreateUnary(type, inner_exp)), tokens);
     }
 
@@ -147,10 +154,30 @@ ExpressionFactorArray* parseArgumentList(TokenList* tokens) {
 
 CCast* C_parseCast(TokenList* tokens) {
     expect(tokens, OPEN_PAREN);
-    specifierType type;
-    C_parseTypeAndStorageClass(tokens, &type, &(specifierType){0});
+    CType* type, *declType;
+    StorageClass dummySC;
+    C_parseTypeAndStorageClass(tokens, &type, &dummySC);
+    CDeclarator* decl = parseAbstractDeclarator(tokens);
     expect(tokens, CLOSE_PAREN);
     CFactor* exp = C_parseFactor(tokens);
     if (!exp) return NULL;
-    return C_CreateCast(type, exp);
+    processDeclarator(decl, type, &declType, NULL, NULL);
+    return C_CreateCast(declType, exp);
+}
+
+static CDeclarator* parseAbstractDeclarator(TokenList* tokens) {
+    if (check(tokens, ASTERISK)) {
+        expect(tokens, ASTERISK);
+        return C_CreatePointerDeclarator(parseAbstractDeclarator(tokens));
+    }
+    return parseDirectAbstractDeclarator(tokens);
+}
+
+static CDeclarator* parseDirectAbstractDeclarator(TokenList* tokens) {
+    if (check(tokens, OPEN_PAREN)) {
+        expect(tokens, OPEN_PAREN);
+        CDeclarator* decl = C_CreatePointerDeclarator(parseAbstractDeclarator(tokens));
+        expect(tokens, CLOSE_PAREN);
+    }
+    return NULL;
 }

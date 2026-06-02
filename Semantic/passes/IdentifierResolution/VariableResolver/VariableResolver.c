@@ -12,7 +12,7 @@ void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMa
     if (semanticMapContainsKey(varMap, decl->decl.variableDecl.identifier)) {
         MapEntry* entry = getSemanticMapEntry(varMap, decl->decl.variableDecl.identifier);
         if (entry->isInScope) {
-            if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) {
+            if (decl->decl.variableDecl.storageClass == STORAGE_CLASS_EXTERN) {
                 if (!entry->hasExternalLinkage) {
                     fprintf(stderr, "Semantic Error: Variable '%s' - conflicting local declaration\n",
                         decl->decl.variableDecl.identifier);
@@ -20,7 +20,7 @@ void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMa
                 }
                 return;
             }
-            if (!(entry->hasExternalLinkage && decl->decl.variableDecl.storageClass == SPEC_EXTERN)) {
+            if (!(entry->hasExternalLinkage && decl->decl.variableDecl.storageClass == STORAGE_CLASS_EXTERN)) {
                 fprintf(stderr, "Semantic Error: Variable '%s' - conflicting local declaration\n",
                     decl->decl.variableDecl.identifier);
                 exit(1);
@@ -28,7 +28,7 @@ void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMa
         }
     }
 
-    if (decl->decl.variableDecl.storageClass == SPEC_EXTERN) {
+    if (decl->decl.variableDecl.storageClass == STORAGE_CLASS_EXTERN) {
         semanticMapPut(varMap, decl->decl.variableDecl.identifier, decl->decl.variableDecl.identifier, 1, 1);
         return;
     }

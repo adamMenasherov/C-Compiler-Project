@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../C-ParsersInclude.h"
+#include "../../C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
 
 #define PARSE_SPECIFIER(token, flag, label) \
     if (check(tokens, token)) { \
@@ -13,48 +14,15 @@
         flag = 1; \
     }
 
+static CDeclarator* C_parseDirectDeclarator(TokenList* tokens);
+static CDeclarator* C_parseSimpleDeclarator(TokenList* tokens);
+static CParamInfo*  C_parseParamList(TokenList* tokens, int* outCount);
 
 
-IdentifierArray* C_parseFuncParameters(TokenList* tokens, CFuncType* funcType) {
-    int containsParam = 0, paramIdx = 0;
-    IdentifierArray* params = IdentifierArray_create();
-    specifierType paramType, storageClass;
-    while (!check(tokens, CLOSE_PAREN)) {
-        if (check(tokens, VOID_KEYWORD)) {
-            expect(tokens, VOID_KEYWORD);
-            if (!check(tokens, CLOSE_PAREN) || containsParam) {
-                fprintf(stderr, "Parser Error: 'void' must be the only parameter if present\n");
-                exit(1);
-            }
-            break;
-        }
-
-        C_parseTypeAndStorageClass(tokens, &paramType, &storageClass);
-        if (storageClass != SPEC_NULL) {
-            fprintf(stderr, "Parser Error: Function parameters cannot have storage class specifiers\n");
-            exit(1);
-        }
-        funcType->func.params[paramIdx] = C_CreateType(paramType);
-        char* identifier = expectIdentifier(tokens);
-        IdentifierArray_append(params, identifier);
-        if (!check(tokens, CLOSE_PAREN)) {
-            expect(tokens, COMMA);
-            if (check(tokens, CLOSE_PAREN)) {
-                fprintf(stderr, "Parser Error: Trailing comma in parameter list\n");
-                exit(1);
-            }
-        }
-        paramIdx++;
-        containsParam = 1;
-    }
-    funcType->func.paramCnt = paramIdx;
-    return params;
-}
-
-CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier, specifierType varType, specifierType storageClass) {
+CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier, CType* varType, StorageClass storageClass) {
     CFactor* fact = NULL;
     varDeclType type = VAR_DECL_WITHOUT_EXP;
-    
+
     if (check(tokens, ONE_EQUAL)) {
         type = VAR_DECL_WITH_EXP;
         expect(tokens, ONE_EQUAL);
@@ -64,18 +32,15 @@ CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier, specifi
     else {
         expect(tokens, SEMICOLON);
     }
-    
+
     return C_CreateVariableDeclaration(type, identifier, fact, varType, storageClass);
 }
 
 
-CDeclaration* C_parseFunction(TokenList* tokens, char* identifier, specifierType retType, specifierType storageClass) {
+CDeclaration* C_parseFunction(TokenList* tokens, char* identifier, CType* funcType,
+                              IdentifierArray* parameters, StorageClass storageClass) {
     funcDeclType type = FUNC_DEF;
     CBlock* body;
-    CFuncType* funcType = C_CreateEmptyType(); 
-    expect(tokens, OPEN_PAREN);
-    IdentifierArray* parameters = C_parseFuncParameters(tokens, funcType);
-    expect(tokens, CLOSE_PAREN);
     if (check(tokens, OPEN_BRACE)) {
         expect(tokens, OPEN_BRACE);
         body = C_parseBlock(tokens);
@@ -85,10 +50,9 @@ CDeclaration* C_parseFunction(TokenList* tokens, char* identifier, specifierType
         body = NULL;
         expect(tokens, SEMICOLON);
     }
-
-    funcType->type = retType;
     return C_CreateFunction(type, identifier, parameters, body, funcType, storageClass);
 }
+
 
 CDeclarationArray* C_parseDeclarations(TokenList* tokens) {
     CDeclarationArray* declArr = CDeclarationArray_create();
@@ -101,26 +65,23 @@ CDeclarationArray* C_parseDeclarations(TokenList* tokens) {
 }
 
 CDeclaration* C_parseDeclaration(TokenList* tokens) {
-    specifierType type, storageClass;
-    C_parseTypeAndStorageClass(tokens, &type, &storageClass);
+    CType *baseType, *declType;
+    StorageClass storageClass;
+    char* identifier = NULL;
+    IdentifierArray* funcParams = IdentifierArray_create();
 
-    char* identifier = expectIdentifier(tokens);
-    if (!identifier){
-        fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
-        exit(1);
-    }
+    C_parseTypeAndStorageClass(tokens, &baseType, &storageClass);
+    CDeclarator* decl = C_parseDeclarator(tokens);          // now includes (params)
+    processDeclarator(decl, baseType, &declType, &identifier, funcParams);
 
-    if (check(tokens, OPEN_PAREN)) {
-        return C_parseFunction(tokens, identifier, type, storageClass);
-    }
-    else {
-        return C_parseVarDeclaration(tokens, identifier, type, storageClass);
+    if (declType->kind == CTYPE_FUN) {
+        return C_parseFunction(tokens, identifier, declType, funcParams, storageClass);
+    } else {
+        return C_parseVarDeclaration(tokens, identifier, declType, storageClass);
     }
 }
 
-
-
-void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifierType* storageClass) {
+void C_parseTypeAndStorageClass(TokenList* tokens, CType** type, StorageClass* storageClass) {
     TypeFlags typeFound = {0}, storageClassFound = {0};
     unsigned int typeResult = 0;
 
@@ -150,17 +111,121 @@ void C_parseTypeAndStorageClass(TokenList* tokens, specifierType* type, specifie
     }
 
     *type = C_parseType(typeFound);
-    *storageClass = storageClassFound.isStatic ? SPEC_STATIC
-                  : storageClassFound.isExtern ? SPEC_EXTERN
-                  : SPEC_NULL;
+    *storageClass = storageClassFound.isStatic ? STORAGE_CLASS_STATIC
+                  : storageClassFound.isExtern ? STORAGE_CLASS_EXTERN
+                  : STORAGE_CLASS_NONE;
 }
 
-specifierType C_parseType(TypeFlags typeFound) {
-    specifierType res = SPEC_NULL;
+CType* C_parseType(TypeFlags typeFound) {
     int signedUnsigned = typeFound.isUnsigned ? 1 : (typeFound.isSigned ? -1 : 0);
-    if (typeFound.isDouble) return SPEC_DOUBLE;
-    if (typeFound.isLong) return signedUnsigned == 1 ? SPEC_UNSIGNED_LONG : SPEC_LONG;
-    else if (typeFound.isInt) return signedUnsigned == 1 ? SPEC_UNSIGNED_INT : SPEC_INT;
-    else res = signedUnsigned == 1 ? SPEC_UNSIGNED_INT : (signedUnsigned == -1 ? SPEC_INT : SPEC_NULL);
-    return res;
+    if (typeFound.isDouble) return C_CreateType(CTYPE_DOUBLE);
+    if (typeFound.isLong)   return C_CreateType(signedUnsigned == 1 ? CTYPE_ULONG : CTYPE_LONG);
+    if (typeFound.isInt)    return C_CreateType(signedUnsigned == 1 ? CTYPE_UINT  : CTYPE_INT);
+    /* bare unsigned/signed → int */
+    return C_CreateType(signedUnsigned == 1 ? CTYPE_UINT : CTYPE_INT);
+}
+
+
+void processDeclarator(CDeclarator* decl, CType* baseType, CType** declType, char** identifier,
+    IdentifierArray* funcParams) 
+{
+    if (!decl) {
+        *declType = C_CreateTypeFromType(baseType);
+        return;
+    }
+    switch (decl->type) {
+        case DECLARATOR_IDENT:
+            if (identifier) {
+                *identifier = decl->decl.identifier;
+            }
+            *declType = C_CreateTypeFromType(baseType);
+            return;
+        case DECLARATOR_POINTER:
+            baseType = C_CreatePointerType(baseType);
+            processDeclarator(decl->decl.pointerDecl.pointed, baseType, declType, identifier, funcParams);
+            return;
+        case DECLARATOR_FUNC:
+            if (decl->decl.func.funcDecl->type != DECLARATOR_IDENT) {
+                fprintf(stderr, "Parser Error: Can't apply additional type derivations to a function type\n");
+                exit(1);
+            }
+            for (int i = 0; i < decl->decl.func.paramCnt; i++) {
+                CType* param_t;
+                char* paramIdentifier;
+                processDeclarator(decl->decl.func.params[i].decl, decl->decl.func.params[i].type, &param_t, NULL, NULL);
+                if (param_t->kind == CTYPE_FUN) {
+                    fprintf(stderr, "Parser Error: Function parameters cannot have function types\n");
+                    exit(1);
+                }
+                paramIdentifier = C_getDeclaratorIdentifier(decl->decl.func.params[i].decl);
+                IdentifierArray_append(funcParams, paramIdentifier ? paramIdentifier : "");
+                decl->decl.func.params[i].type = param_t;
+            }
+            *declType = C_CreateFunType(decl->decl.func.params, decl->decl.func.paramCnt, baseType);
+            if (identifier) {
+                *identifier = C_getDeclaratorIdentifier(decl->decl.func.funcDecl);
+            }
+            return;
+    }
+}
+
+CDeclarator* C_parseDeclarator(TokenList* tokens) {
+    if (check(tokens, ASTERISK)) {                 
+        expect(tokens, ASTERISK);
+        return C_CreatePointerDeclarator(C_parseDeclarator(tokens));
+    }
+    return C_parseDirectDeclarator(tokens);
+}
+
+static CDeclarator* C_parseDirectDeclarator(TokenList* tokens) {
+    CDeclarator* base = C_parseSimpleDeclarator(tokens);
+    if (check(tokens, OPEN_PAREN)) {               
+        int count;
+        CParamInfo* params = C_parseParamList(tokens, &count);
+        return C_CreateFunctionDeclarator(base, params, count);
+    }
+    return base;
+}
+
+static CDeclarator* C_parseSimpleDeclarator(TokenList* tokens) {
+    if (check(tokens, OPEN_PAREN)) {               
+        expect(tokens, OPEN_PAREN);
+        CDeclarator* inner = C_parseDeclarator(tokens);
+        expect(tokens, CLOSE_PAREN);
+        return inner;                              
+    }
+    char* identifier = expectIdentifier(tokens);
+    return C_CreateIdentDeclarator(identifier);
+}
+
+static CParamInfo* C_parseParamList(TokenList* tokens, int* outCount) {
+    expect(tokens, OPEN_PAREN);
+    int count = 0;
+    CParamInfo* params = malloc(MAX_PARAMS * sizeof(CParamInfo));
+    if (!params) { fprintf(stderr, "OOM in C_parseParamList\n"); exit(1); }
+
+    while (!check(tokens, CLOSE_PAREN)) {
+        CType* paramBaseType; 
+        StorageClass sc;
+        C_parseTypeAndStorageClass(tokens, &paramBaseType, &sc);
+        if (sc != STORAGE_CLASS_NONE) {
+            fprintf(stderr, "Parser Error: Function parameters cannot have storage class specifiers\n");
+            exit(1);
+        }
+        CDeclarator* paramDecl = C_parseDeclarator(tokens);
+        params[count].type = paramBaseType;
+        params[count].decl = paramDecl;
+        count++;
+
+        if (check(tokens, COMMA)) {
+            expect(tokens, COMMA);
+            if (check(tokens, CLOSE_PAREN)) {
+                fprintf(stderr, "Parser Error: Trailing comma in parameter list\n");
+                exit(1);
+            }
+        }
+    }
+    expect(tokens, CLOSE_PAREN);
+    *outCount = count;
+    return params;
 }

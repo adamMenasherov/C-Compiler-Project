@@ -7,7 +7,7 @@ typedef void (*BlockItemHandler)(CBlockItem* blockItem, TACKYInstructionList* in
 
 static void handleBlockItemDecl(CBlockItem* blockItem, TACKYInstructionList* instructionList, SymbolTable* symTable) {
     if (blockItem->item.decl->type == DECL_FUNC) return;
-    if (blockItem->item.decl->decl.variableDecl.storageClass == SPEC_STATIC) return;
+    if (blockItem->item.decl->decl.variableDecl.storageClass == STORAGE_CLASS_STATIC) return;
     if (blockItem->item.decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
         char* varName = blockItem->item.decl->decl.variableDecl.identifier;
         int isPostfixUnary = 0;

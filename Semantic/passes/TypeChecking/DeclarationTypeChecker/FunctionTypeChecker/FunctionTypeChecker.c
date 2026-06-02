@@ -5,27 +5,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int areFunctionTypesCompatible(const CFuncType* left, const CFuncType* right) {
-    int idx = 0;
+static int areFunctionTypesCompatible(const CType* left, const CType* right) {
     if (!left || !right) return 0;
-    if (left->type == SPEC_NULL || right->type == SPEC_NULL) return 0;
-    if (left->type != right->type) return 0;
-
-    while (idx < MAX_PARAMS) {
-        CFuncType* leftParam  = left->func.params[idx];
-        CFuncType* rightParam = right->func.params[idx];
-        if (!leftParam && !rightParam) return 1;
-        if (!leftParam || !rightParam) return 0;
-        if (leftParam->type != rightParam->type) return 0;
-        idx++;
+    if (left->kind != CTYPE_FUN || right->kind != CTYPE_FUN) return 0;
+    if (!ctypeEqual(left->fun.ret, right->fun.ret)) return 0;
+    if (left->fun.paramCnt != right->fun.paramCnt) return 0;
+    for (int i = 0; i < left->fun.paramCnt; i++) {
+        if (!ctypeEqual(left->fun.params[i], right->fun.params[i])) return 0;
     }
     return 1;
 }
 
 static void validateFunctionRedeclaration(CDeclaration* decl, IdentifierTypeInfo* existing,
                                            int requestedGlobal, int* alreadyDefined, int* global) {
-    if (existing->type != TYPE_FUNCTION ||
-        !areFunctionTypesCompatible(existing->funcInfo.funcType, decl->decl.functionDecl.funcType)) {
+    if (!existing->type || existing->type->kind != CTYPE_FUN ||
+        !areFunctionTypesCompatible(existing->type, decl->decl.functionDecl.funcType)) {
         fprintf(stderr, "Semantic Error: Incompatible function declarations for '%s'\n",
             decl->decl.functionDecl.identifier);
         exit(1);
@@ -44,14 +38,11 @@ static void validateFunctionRedeclaration(CDeclaration* decl, IdentifierTypeInfo
     *global = (requestedGlobal == -1) ? existing->attrs->global : requestedGlobal;
 }
 
-static void insertFunctionParams(IdentifierArray* params, CFuncType* funcType, SymbolTable* symbolTable) {
+static void insertFunctionParams(IdentifierArray* params, CType* funcType, SymbolTable* symbolTable) {
     for (int i = 0; i < IdentifierArray_size(params); i++) {
         char* param = IdentifierArray_get(params, i);
-        specifierType paramSpecType = SPEC_INT;
-        if (funcType && funcType->func.params[i]) {
-            paramSpecType = funcType->func.params[i]->type;
-        }
-        symbolTableInsert(symbolTable, param, specifierTypeToIdentifierType(paramSpecType), NULL, 1,
+        CType* paramType = (funcType && i < funcType->fun.paramCnt) ? funcType->fun.params[i] : C_CreateType(CTYPE_INT);
+        symbolTableInsert(symbolTable, param, paramType, 1,
             createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
     }
 }
@@ -59,7 +50,7 @@ static void insertFunctionParams(IdentifierArray* params, CFuncType* funcType, S
 void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) {
     if (!decl) return;
 
-    int requestedGlobal = decl->decl.functionDecl.storageClass == SPEC_STATIC ? 0 : -1;
+    int requestedGlobal = decl->decl.functionDecl.storageClass == STORAGE_CLASS_STATIC ? 0 : -1;
     int global = requestedGlobal == -1 ? 1 : requestedGlobal;
     int alreadyDefined = 0;
 
@@ -69,12 +60,12 @@ void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) 
     }
 
     symbolTableInsert(symbolTable, decl->decl.functionDecl.identifier,
-        TYPE_FUNCTION, decl->decl.functionDecl.funcType,
+        decl->decl.functionDecl.funcType,
         alreadyDefined || decl->decl.functionDecl.body != NULL,
         createIdentifierAttrs(IDENTIFIER_FUN_ATTR, global, NULL, alreadyDefined));
 
     insertFunctionParams(decl->decl.functionDecl.parameters, decl->decl.functionDecl.funcType, symbolTable);
     if (decl->decl.functionDecl.funcType)
-        setCurrentFunctionReturnType(decl->decl.functionDecl.funcType->type);
+        setCurrentFunctionReturnType(decl->decl.functionDecl.funcType->fun.ret);
     typeCheckBlock(decl->decl.functionDecl.body, symbolTable);
 }

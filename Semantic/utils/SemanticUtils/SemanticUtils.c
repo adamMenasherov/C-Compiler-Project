@@ -15,137 +15,112 @@ char* generateUniqueVariableName(char* baseName) {
 const char* fromTempToOrigin(char* identifier) {
     return (const char*)strtok(identifier, ".");
 }
-specifierType identifierTypeToSpecifierType(IdentifierType type) {
-    switch (type) {
-        case TYPE_INT:
-            return SPEC_INT;
-        case TYPE_LONG:
-            return SPEC_LONG;
-        case TYPE_UNSIGNED_INT:
-            return SPEC_UNSIGNED_INT;
-        case TYPE_UNSIGNED_LONG:
-            return SPEC_UNSIGNED_LONG;
-        case TYPE_DOUBLE:
-            return SPEC_DOUBLE;
-        case TYPE_FUNCTION:
-            return SPEC_NULL; // Functions don't have a specifier type in this context
-        default:
-            fprintf(stderr, "Invalid IdentifierType in identifierTypeToSpecifierType\n");
-            exit(1);
-    }
+
+void setTypeVar(CFactor* expr, CType* type) {
+    expr->valueType = type;
 }
 
-void setTypeVar(CFactor* expr, IdentifierType type) {
-    expr->valueType = identifierTypeToSpecifierType(type);
-}
-
-void setType(CFactor* expr, specifierType type) {
+void setType(CFactor* expr, CType* type) {
     expr->valueType = type;
 }
 
 void setTypeConst(CFactor* expr, constantType type) {
-    switch (type) {
-        case CONST_INT:
-            expr->valueType = SPEC_INT;
-            break;
-        case CONST_LONG:
-            expr->valueType = SPEC_LONG;
-            break;
-        case CONST_UNSIGNED_INT:
-            expr->valueType = SPEC_UNSIGNED_INT;
-            break;
-        case CONST_UNSIGNED_LONG:
-            expr->valueType = SPEC_UNSIGNED_LONG;
-            break;
-        case CONST_FLOATING_POINT:
-            expr->valueType = SPEC_DOUBLE;
-            break;
+    expr->valueType = constantTypeToCType(type);
+}
+
+int ctypeEqual(CType* a, CType* b) {
+    if (!a || !b) return a == b;
+    if (a->kind != b->kind) return 0;
+    switch (a->kind) {
+        case CTYPE_INT:
+        case CTYPE_LONG:
+        case CTYPE_UINT:
+        case CTYPE_ULONG:
+        case CTYPE_DOUBLE:
+            return 1;
+        case CTYPE_POINTER:
+            return ctypeEqual(a->pointer.referenced, b->pointer.referenced);
+        case CTYPE_FUN: {
+            if (a->fun.paramCnt != b->fun.paramCnt) return 0;
+            if (!ctypeEqual(a->fun.ret, b->fun.ret)) return 0;
+            for (int i = 0; i < a->fun.paramCnt; i++) {
+                if (!ctypeEqual(a->fun.params[i], b->fun.params[i])) return 0;
+            }
+            return 1;
+        }
         default:
-            fprintf(stderr, "Invalid constant type in setTypeConst\n");
-            exit(1);
+            return 0;
     }
 }
 
-specifierType getCommonType(specifierType type1, specifierType type2) {
-    if (type1 == type2) return type1;
-    if (type1 == SPEC_DOUBLE || type2 == SPEC_DOUBLE) return SPEC_DOUBLE;
+CType* getCommonType(CType* type1, CType* type2) {
+    if (ctypeEqual(type1, type2)) return type1;
+    if (type1->kind == CTYPE_DOUBLE || type2->kind == CTYPE_DOUBLE) return C_CreateType(CTYPE_DOUBLE);
     if (size(type1) == size(type2)) {
-        if (isSignedSpecifier(type1)) return type2;
+        if (isSignedType(type1)) return type2;
         else return type1;
     }
     if (size(type1) > size(type2)) return type1;
     else return type2;
 }
 
-int isBasicType(specifierType type) {
-    return type == SPEC_INT || type == SPEC_LONG || type == SPEC_UNSIGNED_INT || type == SPEC_UNSIGNED_LONG;
+int isBasicType(CType* type) {
+    if (!type) return 0;
+    return type->kind == CTYPE_INT || type->kind == CTYPE_LONG ||
+           type->kind == CTYPE_UINT || type->kind == CTYPE_ULONG;
 }
 
-IdentifierType specifierTypeToIdentifierType(specifierType type) {
-    switch (type) {
-        case SPEC_INT:
-            return TYPE_INT;
-        case SPEC_LONG:
-            return TYPE_LONG;
-        case SPEC_UNSIGNED_INT:
-            return TYPE_UNSIGNED_INT;
-        case SPEC_UNSIGNED_LONG:
-            return TYPE_UNSIGNED_LONG;
-        case SPEC_DOUBLE:
-            return TYPE_DOUBLE;
-        default:
-            fprintf(stderr, "Invalid specifier type in specifierTypeToIdentifierType\n");
-            exit(1);
-    }
-}
-
-initialValueStaticInitType convertExpTypeToStaticInitType(specifierType expType) {
-    switch (expType) {
-        case SPEC_INT: return STATIC_INIT_INT;
-        case SPEC_LONG: return STATIC_INIT_LONG;
+initialValueStaticInitType convertExpTypeToStaticInitType(CType* expType) {
+    if (!expType) { fprintf(stderr, "Semantic Error: NULL type in convertExpTypeToStaticInitType\n"); exit(1); }
+    switch (expType->kind) {
+        case CTYPE_INT:  return STATIC_INIT_INT;
+        case CTYPE_LONG: return STATIC_INIT_LONG;
         default:
             fprintf(stderr, "Semantic Error: Unsupported initializer type for file scope variable\n");
             exit(1);
     }
 }
 
-specifierType getType(CFactor* factor) {
+CType* getType(CFactor* factor) {
     return factor->valueType;
 }
 
-int isSignedSpecifier(specifierType type) {
-    return type == SPEC_INT || type == SPEC_LONG;
+int isSignedCType(CType* type) {
+    if (!type) return 0;
+    return type->kind == CTYPE_INT || type->kind == CTYPE_LONG;
 }
 
-void convertValFromType(uint64_t* val, specifierType toType) {
-    switch (toType) {
-        case SPEC_INT:
+void convertValFromType(uint64_t* val, CType* toType) {
+    if (!toType) { fprintf(stderr, "Invalid type in convertValFromType\n"); exit(1); }
+    switch (toType->kind) {
+        case CTYPE_INT:
             *val = (int)(*val);
             return;
-        case SPEC_LONG:
+        case CTYPE_LONG:
             *val = (long)(*val);
             return;
-        case SPEC_UNSIGNED_INT:
+        case CTYPE_UINT:
             *val = (unsigned int)(*val);
             return;
-        case SPEC_UNSIGNED_LONG:
+        case CTYPE_ULONG:
             *val = (unsigned long)(*val);
             return;
-        case SPEC_DOUBLE:
+        case CTYPE_DOUBLE:
             return;
         default:
-            fprintf(stderr, "Invalid specifier type in convertValFromType\n");
+            fprintf(stderr, "Invalid CType kind in convertValFromType\n");
             exit(1);
     }
 }
 
-initialValueStaticInitType convertSpecTypeToStaticInitType(specifierType type) {
-    switch (type) {
-        case SPEC_INT: return STATIC_INIT_INT;
-        case SPEC_LONG: return STATIC_INIT_LONG;
-        case SPEC_UNSIGNED_INT: return STATIC_INIT_UNSIGNED_INT;
-        case SPEC_UNSIGNED_LONG: return STATIC_INIT_UNSIGNED_LONG;
-        case SPEC_DOUBLE: return STATIC_INIT_DOUBLE;
+initialValueStaticInitType convertSpecTypeToStaticInitType(CType* type) {
+    if (!type) { fprintf(stderr, "Semantic Error: NULL type in convertSpecTypeToStaticInitType\n"); exit(1); }
+    switch (type->kind) {
+        case CTYPE_INT:    return STATIC_INIT_INT;
+        case CTYPE_LONG:   return STATIC_INIT_LONG;
+        case CTYPE_UINT:   return STATIC_INIT_UNSIGNED_INT;
+        case CTYPE_ULONG:  return STATIC_INIT_UNSIGNED_LONG;
+        case CTYPE_DOUBLE: return STATIC_INIT_DOUBLE;
         default:
             fprintf(stderr, "Semantic Error: Unsupported variable type for static initialization\n");
             exit(1);

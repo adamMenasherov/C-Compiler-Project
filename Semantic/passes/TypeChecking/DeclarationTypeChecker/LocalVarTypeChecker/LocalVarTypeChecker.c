@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static CFactor* convertInitializerToDeclType(CFactor* expr, specifierType targetType) {
-    if (!expr || expr->valueType == targetType) return expr;
+static CFactor* convertInitializerToDeclType(CFactor* expr, CType* targetType) {
+    if (!expr || ctypeEqual(expr->valueType, targetType)) return expr;
 
     CCast* castNode = C_CreateCast(targetType, expr);
     CFactor* castExpr = C_CreateFactorFromCast(castNode);
@@ -26,19 +26,19 @@ static void handleExternLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
     }
     if (symbolTableContains(symbolTable, decl->decl.variableDecl.identifier)) {
         IdentifierTypeInfo* existing = symbolTableLookup(symbolTable, decl->decl.variableDecl.identifier);
-        if (existing->type == TYPE_FUNCTION) {
+        if (existing->type && existing->type->kind == CTYPE_FUN) {
             fprintf(stderr, "Semantic Error: Function '%s' redeclared as variable\n",
                 decl->decl.variableDecl.identifier);
             exit(1);
         }
-        if (existing->type != specifierTypeToIdentifierType(decl->decl.variableDecl.varType)) {
+        if (!ctypeEqual(existing->type, decl->decl.variableDecl.varType)) {
             fprintf(stderr, "Semantic Error: Conflicting variable types for variable '%s'\n",
                 decl->decl.variableDecl.identifier);
             exit(1);
         }
         return;
     }
-    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, specifierTypeToIdentifierType(decl->decl.variableDecl.varType), NULL, 1,
+    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, decl->decl.variableDecl.varType, 1,
         createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, 1, createIntInitialValue(INITIAL_NO_VALUE, 0), 0));
 }
 
@@ -49,7 +49,8 @@ static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
         return createInitialValue(staticInitType, INITIAL_WITH_VALUE, 0, 0.0);
 
     if (decl->decl.variableDecl.exp && decl->decl.variableDecl.exp->type == FACTOR_CONSTANT) {
-        if (decl->decl.variableDecl.exp->valueType == SPEC_DOUBLE) {
+        CType* expType = decl->decl.variableDecl.exp->valueType;
+        if (expType && expType->kind == CTYPE_DOUBLE) {
             double val = decl->decl.variableDecl.exp->exp.cnst->value.doubleValue;
             return createDoubleInitialValue(INITIAL_WITH_VALUE, val);
         } else {
@@ -66,12 +67,12 @@ static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
 
 static void handleStaticLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
     initialValue* initValue = resolveStaticLocalInitValue(decl);
-    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, specifierTypeToIdentifierType(decl->decl.variableDecl.varType), NULL, 0,
+    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, decl->decl.variableDecl.varType, 0,
         createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, 0, initValue, 0));
 }
 
 static void handleRegularLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
-    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, specifierTypeToIdentifierType(decl->decl.variableDecl.varType), NULL, 0,
+    symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, decl->decl.variableDecl.varType, 0,
         createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
@@ -86,9 +87,9 @@ static void handleRegularLocalVar(CDeclaration* decl, SymbolTable* symbolTable) 
 
 typedef void (*LocalVarHandler)(CDeclaration*, SymbolTable*);
 static const LocalVarHandler localVarHandlers[] = {
-    [SPEC_EXTERN] = handleExternLocalVar,
-    [SPEC_STATIC] = handleStaticLocalVar,
-    [SPEC_NULL] = handleRegularLocalVar,
+    [STORAGE_CLASS_EXTERN] = handleExternLocalVar,
+    [STORAGE_CLASS_STATIC] = handleStaticLocalVar,
+    [STORAGE_CLASS_NONE]   = handleRegularLocalVar,
 };
 
 void typeCheckLocalVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable) {

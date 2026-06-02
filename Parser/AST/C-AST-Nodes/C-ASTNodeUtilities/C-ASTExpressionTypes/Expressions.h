@@ -1,7 +1,5 @@
 #pragma once
 
-/* ── Enums ─────────────────────────────────────────────────────────── */
-
 typedef enum {
     FACTOR_CONSTANT,
     FACTOR_UNARY,
@@ -11,29 +9,21 @@ typedef enum {
     FACTOR_CONDITIONAL,
     FACTOR_FUNCTION_CALL,
     FACTOR_CAST,
-    FACTOR_POINTER_OP
+    FACTOR_DEREFERENCE,
+    FACTOR_ADDRESS_OF
 } factorType;
-
-typedef enum {
-    POINTER_DEREFERENCE,
-    POINTER_ADDRESS_OF
-} pointerOp;
-
-/* ── Leaf nodes ─────────────────────────────────────────────────────── */
 
 typedef struct {
     constantType type;
     union {
         int64_t intValue;
-        double  doubleValue;
+        double doubleValue;
     } value;
 } CConstant;
 
 typedef struct {
     char* identifier;
 } CVar;
-
-/* ── Compound expression nodes ──────────────────────────────────────── */
 
 typedef struct {
     CFactor* exp1;
@@ -49,51 +39,37 @@ typedef struct {
 typedef struct CBinary {
     CFactor* left;
     CFactor* right;
-    binType  type;
+    binType type;
 } CBinary;
 
 typedef struct {
-    char*                identifier;
+    char* identifier;
     ExpressionFactorArray* arguments;
 } CFunctionCall;
 
-typedef struct CFuncType {
-    specifierType type;
-    struct {
-        struct CFuncType* params[MAX_PARAMS];
-        int               paramCnt;
-    } func;
-} CFuncType;
-
 typedef struct {
-    specifierType targetType;
-    CFactor*      exp;
+    CType* targetType;
+    CFactor* exp;
 } CCast;
 
-typedef struct {
-    pointerOp type;
-    CFactor*  exp;
-} CPointerOp;
-
-/* ── CFactor (the polymorphic expression node) ─────────────────────── */
 
 typedef struct CFactor {
-    factorType    type;
-    specifierType valueType;
+    factorType type;
+    CType* valueType;
     union {
-        CConstant*     cnst;
-        CUnary*        unary;
-        CBinary*       binary;
-        CVar*          var;
-        CAssignment*   assignment;
-        CConditional*  conditional;
+        CConstant* cnst;
+        CUnary* unary;
+        CBinary* binary;
+        CVar* var;
+        CAssignment* assignment;
+        CConditional* conditional;
         CFunctionCall* funcCall;
-        CCast*         cast;
-        CPointerOp*    pointerOp;
+        CCast* cast;
+        CFactor* pointerOp;
     } exp;
 } CFactor;
 
 typedef struct CUnary {
-    CFactor*   exp;
-    unaryType  type;
+    CFactor* exp;
+    unaryType type;
 } CUnary;

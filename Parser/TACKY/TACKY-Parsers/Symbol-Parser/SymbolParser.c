@@ -3,18 +3,15 @@
 
 typedef void (*StaticVarHandler)(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels);
 
-static initialValueStaticInitType identifierTypeToStaticInitType(IdentifierType type) {
-    switch (type) {
-        case TYPE_INT:
-            return STATIC_INIT_INT;
-        case TYPE_LONG:
-            return STATIC_INIT_LONG;
-        case TYPE_UNSIGNED_INT:
-            return STATIC_INIT_UNSIGNED_INT;
-        case TYPE_UNSIGNED_LONG:
-            return STATIC_INIT_UNSIGNED_LONG;
-        default:
-            return STATIC_INIT_INT;
+static initialValueStaticInitType ctypeToStaticInitType(CType* type) {
+    if (!type) return STATIC_INIT_INT;
+    switch (type->kind) {
+        case CTYPE_INT:    return STATIC_INIT_INT;
+        case CTYPE_LONG:   return STATIC_INIT_LONG;
+        case CTYPE_UINT:   return STATIC_INIT_UNSIGNED_INT;
+        case CTYPE_ULONG:  return STATIC_INIT_UNSIGNED_LONG;
+        case CTYPE_DOUBLE: return STATIC_INIT_DOUBLE;
+        default:           return STATIC_INIT_INT;
     }
 }
 
@@ -36,7 +33,7 @@ static void handleInitialWithValue(IdentifierTypeInfo* symbol, TACKYTopLevelArra
 }
 
 static void handleInitialTentative(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
-    initialValueStaticInitType staticInitType = identifierTypeToStaticInitType(symbol->type);
+    initialValueStaticInitType staticInitType = ctypeToStaticInitType(symbol->type);
     TACKYTopLevelArray_append(
         topLevels,
         createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, 0, 0.0, staticInitType))

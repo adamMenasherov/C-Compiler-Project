@@ -186,7 +186,7 @@ char* createStaticConstant(double dval, SymbolTable* symTable) {
     char* temp = generateDoubleTempName();
     initialValue* initVal = createInitialValue(STATIC_INIT_DOUBLE, INITIAL_WITH_VALUE, 0, dval);
     identifierAttrs* attrs = createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, 0, initVal, 1);
-    symbolTableInsert(symTable, temp, TYPE_DOUBLE, NULL, 1, attrs);
+    symbolTableInsert(symTable, temp, C_CreateType(CTYPE_DOUBLE), 1, attrs);
 
     if (g_constCache) doubleStringMapPut(g_constCache, dval, temp);
 

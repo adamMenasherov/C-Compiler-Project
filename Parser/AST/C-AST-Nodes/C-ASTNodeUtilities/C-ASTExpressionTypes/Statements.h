@@ -1,6 +1,5 @@
 #pragma once
-
-/* ── Enums ─────────────────────────────────────────────────────────── */
+typedef struct CStatement CStatement;
 
 typedef enum {
     IF_WITHOUT_ELSE,
@@ -27,15 +26,13 @@ typedef enum {
     FOR_INIT_WITHOUT
 } forInitType;
 
-/* ── Simple statement wrappers ──────────────────────────────────────── */
-
 typedef struct {
     CFactor* exp;
 } CReturn;
 
 typedef struct {
-    ifType    type;
-    CFactor*  condition;
+    ifType type;
+    CFactor* condition;
     CStatement* then;
     CStatement* else_stmt;
 } CIf;
@@ -44,7 +41,7 @@ typedef struct {
     forInitType type;
     union {
         CDeclaration* decl;
-        CFactor*      exp;
+        CFactor* exp;
     };
 } CForInit;
 
@@ -52,51 +49,45 @@ typedef struct {
     char* identifier;
 } CLoopStmt;
 
-/* ── Switch / case ──────────────────────────────────────────────────── */
-
 typedef struct {
     CConstant*  matchVal;
     CStatement* body;
-    int         hasBreak;
+    int hasBreak;
 } CCase;
 
 typedef struct {
-    CFactor*    switchExp;
-    CCase*      cases[MAX_CASES];
-    int         caseCount;
+    CFactor* switchExp;
+    CCase* cases[MAX_CASES];
+    int caseCount;
     CStatement* defaultCase;
 } CSwitch;
 
-/* ── Loop bodies ────────────────────────────────────────────────────── */
-
 typedef struct {
-    CFactor*    condition;
+    CFactor* condition;
     CStatement* body;
-    char*       identifier;
+    char* identifier;
 } CLoop;
 
 typedef struct {
-    CForInit*   init;
-    CFactor*    condition;
-    CFactor*    post;
+    CForInit* init;
+    CFactor* condition;
+    CFactor* post;
     CStatement* body;
-    char*       identifier;
+    char* identifier;
 } CForLoop;
-
-/* ── CStatement (the polymorphic statement node) ───────────────────── */
 
 typedef struct CStatement {
     statementType type;
     union {
-        CReturn*    ret;
-        CFactor*    exp;
-        CIf*        if_stmt;
-        CSwitch*    switch_stmt;
-        CCompound*  compound_stmt;
-        CLoop*      while_stmt;
-        CLoop*      do_while_stmt;
-        CForLoop*   for_stmt;
-        CLoopStmt*  break_stmt;
-        CLoopStmt*  continue_stmt;
+        CReturn* ret;
+        CFactor* exp;
+        CIf* if_stmt;
+        CSwitch* switch_stmt;
+        CCompound* compound_stmt;
+        CLoop* while_stmt;
+        CLoop* do_while_stmt;
+        CForLoop* for_stmt;
+        CLoopStmt* break_stmt;
+        CLoopStmt* continue_stmt;
     } stmt;
-} CStatement;
+};
