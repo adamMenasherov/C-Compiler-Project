@@ -1,6 +1,7 @@
 #include "SymbolTableWrapper.h"
 #include "Parser/AST/C-AST-Nodes/C-ASTNodes.h"
 #include "Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTOperatorNames.h"
+#include "Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +35,16 @@ static const char* getInitialValueTypeString(initialValue* initValue) {
 }
 
 static void getInitialValueString(initialValue* initValue, char* dest, size_t destSize) {
+    if (!initValue) {
+        snprintf(dest, destSize, "null");
+        return;
+    }
+
+    if (initValue->type != INITIAL_WITH_VALUE) {
+        snprintf(dest, destSize, "n/a");
+        return;
+    }
+
     if (initValue->value.staticInitVal.staticInitType == STATIC_INIT_DOUBLE) {
         snprintf(dest, destSize, "%f", initValue->value.staticInitVal.val.doubleVal);
     } else {
@@ -127,8 +138,9 @@ identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global,
     identifierAttrs* attrs = malloc(sizeof(identifierAttrs));
     if (!attrs) return NULL;
 
-    if (!initValue) attrs->attrs.staticAttr.initValue = createInitialValue(STATIC_INIT_INT, INITIAL_NO_VALUE, 0, 0.0);
-    else attrs->attrs.staticAttr.initValue = initValue;
+    attrs->attrs.staticAttr.initValue = initValue
+        ? initValue
+        : createInitialValue(STATIC_INIT_INT, INITIAL_NO_VALUE, 0, 0.0);
 
     attrs->attrType = attrType;
     attrs->global = global;
@@ -137,7 +149,9 @@ identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global,
             attrs->attrs.funAttr.defined = defined;
             break;
         case IDENTIFIER_STATIC_ATTR:
-            attrs->attrs.staticAttr.initValue = initValue;
+            attrs->attrs.staticAttr.initValue = initValue
+                ? initValue
+                : attrs->attrs.staticAttr.initValue;
             break;
         case IDENTIFIER_LOCAL_ATTR:
             break;
@@ -171,12 +185,15 @@ void printIdentifierTypeInfo(void* data) {
             info->funcInfo.uniqueName ? info->funcInfo.uniqueName : "null",
             info->funcInfo.isDefined);
     } else {
-        getInitialValueString(info->attrs->attrs.staticAttr.initValue, initVal, sizeof(initVal));
+        initialValue* init = (info->attrs && info->attrs->attrType == IDENTIFIER_STATIC_ATTR)
+            ? info->attrs->attrs.staticAttr.initValue
+            : NULL;
+        getInitialValueString(init, initVal, sizeof(initVal));
         printf("{ Identifier: %s, Type: %s, UniqueName: %s, initValType: %s, initVal: %s }\n",
             info->identifier,
             info->type ? getCTypeName(info->type, typeBuf, sizeof(typeBuf)) : "null",
             info->varInfo.uniqueName ? info->varInfo.uniqueName : "null",
-            getInitialValueTypeString(info->attrs->attrs.staticAttr.initValue),
+            getInitialValueTypeString(init),
             initVal);
     }
 }

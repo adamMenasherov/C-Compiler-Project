@@ -4,22 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static inline int getFunctionParamCount(const CType* funcType) {
-    return funcType->fun.paramCnt;
-}
-
-static CFactor* convertTo(CFactor* expr, CType* targetType) {
-    if (ctypeEqual(expr->valueType, targetType)) return expr;
-    CCast* castNode = C_CreateCast(targetType, expr);
-    CFactor* castExpr = C_CreateFactorFromCast(castNode);
-    if (!castExpr) {
-        fprintf(stderr, "Semantic Error: Failed to create cast expression\n");
-        exit(1);
-    }
-    setType(castExpr, targetType);
-    return castExpr;
-}
-
 static void handleTypeCheckDereference(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.pointerOp, symbolTable);
     if (!expr->exp.pointerOp->valueType || expr->exp.pointerOp->valueType->kind != CTYPE_POINTER) {
@@ -29,9 +13,6 @@ static void handleTypeCheckDereference(CFactor* expr, SymbolTable* symbolTable) 
     setType(expr, expr->exp.pointerOp->valueType->pointer.referenced);
 }
 
-static int isLvalue(const CFactor* expr) {
-    return expr->type == FACTOR_VAR || expr->type == FACTOR_DEREFERENCE;
-}
 
 static void handleTypeCheckAddressOf(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.pointerOp, symbolTable);
@@ -83,9 +64,14 @@ static void handleTypeCheckVar(CFactor* expr, SymbolTable* symbolTable) {
 static void handleTypeCheckUnary(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.unary->exp, symbolTable);
     if (expr->exp.unary->exp->valueType &&
-        expr->exp.unary->exp->valueType->kind == CTYPE_DOUBLE &&
+        getType(expr->exp.unary->exp)->kind == CTYPE_DOUBLE &&
         expr->exp.unary->type == UNARY_COMPLEMENT) {
         fprintf(stderr, "Semantic Error: ~ not supported on double type\n");
+        exit(1);
+    }
+    if (getType(expr->exp.unary->exp)->kind == CTYPE_POINTER &&
+        (expr->exp.unary->type == UNARY_NEGATE || expr->exp.unary->type == UNARY_NOT)) {
+        fprintf(stderr, "Semantic Error: Unary - and ! not supported on pointer types\n");
         exit(1);
     }
     if (expr->exp.unary->type == UNARY_NOT)
@@ -98,9 +84,13 @@ static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.binary->left, symbolTable);
     typeCheckExpression(expr->exp.binary->right, symbolTable);
 
+    CType* commonType;
     CType* leftType  = expr->exp.binary->left->valueType;
     CType* rightType = expr->exp.binary->right->valueType;
-    CType* commonType = getCommonType(leftType, rightType);
+    if (leftType->kind == CTYPE_POINTER || rightType->kind == CTYPE_POINTER) 
+        commonType = getCommonPointerType(expr->exp.binary->left, expr->exp.binary->right);
+    else
+        commonType = getCommonType(leftType, rightType);
     expr->exp.binary->left  = convertTo(expr->exp.binary->left,  commonType);
     expr->exp.binary->right = convertTo(expr->exp.binary->right, commonType);
 
@@ -109,6 +99,10 @@ static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {
     }
     else {
         binType op = expr->exp.binary->type;
+        if ((op != BIN_ADD && op != BIN_SUBTRACT) && commonType && commonType->kind == CTYPE_POINTER) {
+            fprintf(stderr, "Semantic Error: Only + and - operators supported for pointer types\n");
+            exit(1);
+        }
         if (op == BIN_REMAINDER && commonType && commonType->kind == CTYPE_DOUBLE) {
             fprintf(stderr, "Semantic Error: Modulo operator not supported for double type\n");
             exit(1);
@@ -125,7 +119,7 @@ static void handleTypeCheckAssignment(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.assignment->exp1, symbolTable);
     typeCheckExpression(expr->exp.assignment->exp2, symbolTable);
     CType* varType = expr->exp.assignment->exp1->valueType;
-    expr->exp.assignment->exp2 = convertTo(expr->exp.assignment->exp2, varType);
+    expr->exp.assignment->exp2 = convertByAssignment(expr->exp.assignment->exp2, varType);
     setType(expr, varType);
 }
 

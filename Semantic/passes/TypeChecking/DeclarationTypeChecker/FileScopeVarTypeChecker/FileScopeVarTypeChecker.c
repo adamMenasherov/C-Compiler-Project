@@ -11,6 +11,7 @@ static initialValueStaticInitType getDeclStaticInitType(CDeclaration* decl) {
         case CTYPE_LONG:   return STATIC_INIT_LONG;
         case CTYPE_UINT:   return STATIC_INIT_UNSIGNED_INT;
         case CTYPE_ULONG:  return STATIC_INIT_UNSIGNED_LONG;
+        case CTYPE_POINTER:return STATIC_INIT_UNSIGNED_LONG;
         case CTYPE_DOUBLE: return STATIC_INIT_DOUBLE;
         default:
             fprintf(stderr, "Semantic Error: Unsupported file-scope declaration type for variable '%s'\n",
@@ -20,7 +21,7 @@ static initialValueStaticInitType getDeclStaticInitType(CDeclaration* decl) {
 }
 
 static void validateFileScopeType(CDeclaration* decl) {
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && !isBasicType(decl->decl.variableDecl.exp->valueType)) {
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && !isBasicType(decl->decl.variableDecl.varType)) {
         fprintf(stderr, "Semantic Error: Only constant variables can be initialized at file scope. Variable '%s' has invalid type\n",
             decl->decl.variableDecl.identifier);
         exit(1);
@@ -38,7 +39,10 @@ static initialValue* resolveFileScopeInitValue(CDeclaration* decl) {
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
         if (staticInitType == STATIC_INIT_DOUBLE) {
-            double val = decl->decl.variableDecl.exp->exp.cnst->value.doubleValue;
+            CConstant* cnst = decl->decl.variableDecl.exp->exp.cnst;
+            double val = (cnst->type == CONST_FLOATING_POINT)
+                ? cnst->value.doubleValue
+                : (double)cnst->value.intValue;
             return createDoubleInitialValue(INITIAL_WITH_VALUE, val);
         } else {
             uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;

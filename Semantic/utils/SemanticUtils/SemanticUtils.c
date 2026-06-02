@@ -28,6 +28,10 @@ void setTypeConst(CFactor* expr, constantType type) {
     expr->valueType = constantTypeToCType(type);
 }
 
+int isArithmeticType(CType* type) {
+    return type->kind != CTYPE_POINTER && type->kind != CTYPE_FUN;
+}
+
 int ctypeEqual(CType* a, CType* b) {
     if (!a || !b) return a == b;
     if (a->kind != b->kind) return 0;
@@ -64,10 +68,21 @@ CType* getCommonType(CType* type1, CType* type2) {
     else return type2;
 }
 
+CType* getCommonPointerType(CFactor* exp1, CFactor* exp2) {
+    CType* t1 = getType(exp1);
+    CType* t2 = getType(exp2);
+    if (ctypeEqual(t1, t2)) return t1;
+    else if (isNullPointerConstant(exp1)) return t2;
+    else if (isNullPointerConstant(exp2)) return t1;
+    else return NULL;
+}
+
+
 int isBasicType(CType* type) {
     if (!type) return 0;
     return type->kind == CTYPE_INT || type->kind == CTYPE_LONG ||
-           type->kind == CTYPE_UINT || type->kind == CTYPE_ULONG;
+           type->kind == CTYPE_UINT || type->kind == CTYPE_ULONG || type->kind == CTYPE_DOUBLE
+           || type->kind == CTYPE_POINTER;
 }
 
 initialValueStaticInitType convertExpTypeToStaticInitType(CType* expType) {
@@ -105,6 +120,13 @@ void convertValFromType(uint64_t* val, CType* toType) {
         case CTYPE_ULONG:
             *val = (unsigned long)(*val);
             return;
+        case CTYPE_POINTER:
+            if (*val != 0 && toType->kind == CTYPE_POINTER) {
+                fprintf(stderr, "Semantic Error: Cannot initialize pointer with non-zero integer (not null)\n");
+                exit(1);
+            }
+            *val = (unsigned long)(*val);
+            return;
         case CTYPE_DOUBLE:
             return;
         default:
@@ -124,5 +146,65 @@ initialValueStaticInitType convertSpecTypeToStaticInitType(CType* type) {
         default:
             fprintf(stderr, "Semantic Error: Unsupported variable type for static initialization\n");
             exit(1);
+    }
+}
+
+int isNullPointerConstant(CFactor* factor) {
+    switch(factor->type) {
+        case FACTOR_CONSTANT:
+            if (factor->exp.cnst->value.intValue != 0) return 0; 
+            switch (factor->exp.cnst->type) {
+                case CONST_INT: 
+                case CONST_LONG:
+                case CONST_UNSIGNED_INT:
+                case CONST_UNSIGNED_LONG:
+                    return 1;
+                case CONST_FLOATING_POINT: 
+                    return 0;
+                default: return 0;
+            }
+    }
+}
+
+
+int isLvalue(const CFactor* expr) {
+    return expr->type == FACTOR_VAR || expr->type == FACTOR_DEREFERENCE;
+}
+
+int getFunctionParamCount(const CType* funcType) {
+    return funcType->fun.paramCnt;
+}
+
+CFactor* convertTo(CFactor* expr, CType* targetType) {
+    if (ctypeEqual(expr->valueType, targetType)) return expr;
+    if (getType(expr)->kind == CTYPE_POINTER && targetType->kind == CTYPE_DOUBLE) {
+        fprintf(stderr, "Semantic Error: Cannot convert pointer type to double\n");
+        exit(1);
+    }
+    if (getType(expr)->kind == CTYPE_DOUBLE && targetType->kind == CTYPE_POINTER) {
+        fprintf(stderr, "Semantic Error: Cannot convert double type to pointer\n");
+        exit(1);
+    }
+    CCast* castNode = C_CreateCast(targetType, expr);
+    CFactor* castExpr = C_CreateFactorFromCast(castNode);
+    if (!castExpr) {
+        fprintf(stderr, "Semantic Error: Failed to create cast expression\n");
+        exit(1);
+    }
+    setType(castExpr, targetType);
+    return castExpr;
+}
+
+CFactor* convertByAssignment(CFactor* expr, CType* targetType) {
+    if (ctypeEqual(expr->valueType, targetType)) return expr;
+    if (isArithmeticType(expr->valueType) && isArithmeticType(targetType)) {
+        return convertTo(expr, targetType);
+    }
+    if (isNullPointerConstant(expr) && targetType->kind == CTYPE_POINTER) {
+        return convertTo(expr, targetType);
+    }
+    else {
+        fprintf(stderr, "Semantic Error: Cannot convert type for assignment\n");
+        exit(1);
     }
 }

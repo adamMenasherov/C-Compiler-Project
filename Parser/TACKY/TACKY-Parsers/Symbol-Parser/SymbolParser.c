@@ -10,6 +10,7 @@ static initialValueStaticInitType ctypeToStaticInitType(CType* type) {
         case CTYPE_LONG:   return STATIC_INIT_LONG;
         case CTYPE_UINT:   return STATIC_INIT_UNSIGNED_INT;
         case CTYPE_ULONG:  return STATIC_INIT_UNSIGNED_LONG;
+        case CTYPE_POINTER:return STATIC_INIT_UNSIGNED_LONG;
         case CTYPE_DOUBLE: return STATIC_INIT_DOUBLE;
         default:           return STATIC_INIT_INT;
     }
