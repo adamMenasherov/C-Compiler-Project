@@ -23,6 +23,9 @@ typedef enum {
     TACKY_DOUBLE_TO_UINT,
     TACKY_INT_TO_DOUBLE,
     TACKY_UINT_TO_DOUBLE,
+    TACKY_GET_ADDRESS,
+    TACKY_LOAD,
+    TACKY_STORE,
     TACKY_TRUNCATE
 } TACKYInstructionType;
 
@@ -109,6 +112,18 @@ typedef struct TACKYInstruction {
             TACKYValue* src;
             TACKYValue* dest;
         } doubleIntCast;
+        struct {
+            TACKYValue* src;
+            TACKYValue* dest;
+        } getAddress;
+        struct {
+            TACKYValue* src_ptr;
+            TACKYValue* dest;
+        } load;
+        struct {
+            TACKYValue* src;
+            TACKYValue* dst_ptr;
+        } store;
     } instValue;
 } TACKYInstruction;
 

@@ -7,9 +7,7 @@
 #include "../../../generateUtils.h"
 
 static void handleStmtExpression(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
-    int isPostfix = 0;
-    emit_TACKY(stmt->stmt.exp, list, &isPostfix, symTable);
-    if (isPostfix) addInstructionToList(list, emitUnaryPostfixInstruction(stmt->stmt.exp, symTable));
+    emit_TACKYAndConvert(stmt->stmt.exp, list, symTable);
 }
 
 static void handleStmtReturn(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
@@ -52,9 +50,7 @@ static void handleStmtFor(CStatement* stmt, TACKYInstructionList* list, SymbolTa
 
 static void handleSwitchStatement(CStatement* stmt, TACKYInstructionList* list, SymbolTable* symTable) {
     CSwitch* switch_stmt = stmt->stmt.switch_stmt;
-    int isPostfixUnary = 0;
-    TACKYValue* switchExp = emit_TACKY(switch_stmt->switchExp, list, &isPostfixUnary, symTable);
-    if (isPostfixUnary) addInstructionToList(list, emitUnaryPostfixInstruction(switch_stmt->switchExp, symTable));
+    TACKYValue* switchExp = emit_TACKYAndConvert(switch_stmt->switchExp, list, symTable);
     parseSwitchStatementInstructions(switch_stmt, list, switchExp, symTable);
 }
 
@@ -80,7 +76,7 @@ void parseStatementInstructions(CStatement* stmt, TACKYInstructionList* list, Sy
 
 
 void parseTACKYReturn(CReturn* returnNode, TACKYInstructionList* instructionList, SymbolTable* symTable) {
-    TACKYValue* ret_val = emit_TACKY(returnNode->exp, instructionList, NULL, symTable);
+    TACKYValue* ret_val = emit_TACKYAndConvert(returnNode->exp, instructionList, symTable);
     TACKYInstruction* ret_inst = createReturnInstruction(ret_val);
     addInstructionToList(instructionList, ret_inst);
 }

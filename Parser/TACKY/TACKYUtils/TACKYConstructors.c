@@ -304,3 +304,39 @@ TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, uint64_t intV
     staticVar->initVal.staticInitType = staticInitType;
     return staticVar;
 }
+
+TACKYInstruction* createGetAddressInstruction(TACKYValue* src, TACKYValue* dest) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_GET_ADDRESS;
+    inst->instValue.getAddress.src = src;
+    inst->instValue.getAddress.dest = dest;
+    return inst;
+}
+
+TACKYInstruction* createLoadInstruction(TACKYValue* src_ptr, TACKYValue* dest) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_LOAD;
+    inst->instValue.load.src_ptr = src_ptr;
+    inst->instValue.load.dest = dest;
+    return inst;
+}
+
+TACKYInstruction* createStoreInstruction(TACKYValue* src, TACKYValue* dst_ptr) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_STORE;
+    inst->instValue.store.src = src;
+    inst->instValue.store.dst_ptr = dst_ptr;
+    return inst;
+}
+
+ExpResult* createExpResult(expResultType type, TACKYValue* val) {
+    ExpResult* result = malloc(sizeof(ExpResult));
+    if (!result) return NULL;
+
+    result->type = type;
+    result->val = val;
+    return result;
+}

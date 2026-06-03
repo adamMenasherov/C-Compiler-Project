@@ -14,8 +14,7 @@ ParseIfStatementFunc ifStatementParsers[] = {
 
 
 void parseIfStatementInstructions(CIf* if_stmt, TACKYInstructionList* instructionList, SymbolTable* symTable) {
-    int isPostfixUnary = 0;
-    TACKYValue* cond = emit_TACKY(if_stmt->condition, instructionList, &isPostfixUnary, symTable);
+    TACKYValue* cond = emit_TACKYAndConvert(if_stmt->condition, instructionList, symTable);
     ifStatementParsers[if_stmt->type](if_stmt, instructionList, cond, symTable);
 }
 

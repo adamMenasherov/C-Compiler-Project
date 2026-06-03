@@ -10,14 +10,10 @@ static void handleBlockItemDecl(CBlockItem* blockItem, TACKYInstructionList* ins
     if (blockItem->item.decl->decl.variableDecl.storageClass == STORAGE_CLASS_STATIC) return;
     if (blockItem->item.decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
         char* varName = blockItem->item.decl->decl.variableDecl.identifier;
-        int isPostfixUnary = 0;
-        TACKYValue* src = emit_TACKY(blockItem->item.decl->decl.variableDecl.exp, instructionList, &isPostfixUnary, symTable);
+        TACKYValue* src = emit_TACKYAndConvert(blockItem->item.decl->decl.variableDecl.exp, instructionList, symTable);
         TACKYValue* dst = createVarValue(varName);
         addInstructionToList(instructionList,
             createCopyInstruction(src, dst));
-
-        if (isPostfixUnary) addInstructionToList(instructionList,
-            emitUnaryPostfixInstruction(blockItem->item.decl->decl.variableDecl.exp, symTable));
     }
 }
 

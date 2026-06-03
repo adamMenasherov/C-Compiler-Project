@@ -165,6 +165,27 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printTACKYValue(inst->instValue.funCall.resultVar);
             printf(")");
             break;
+        case TACKY_GET_ADDRESS:
+            printf("GetAddress(");
+            printTACKYValue(inst->instValue.getAddress.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.getAddress.dest);
+            printf(")");
+            break;
+        case TACKY_LOAD:
+            printf("Load(");
+            printTACKYValue(inst->instValue.load.src_ptr);
+            printf(", ");
+            printTACKYValue(inst->instValue.load.dest);
+            printf(")");
+            break;
+        case TACKY_STORE:
+            printf("Store(");
+            printTACKYValue(inst->instValue.store.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.store.dst_ptr);
+            printf(")");
+            break;
         default:
             printf("<unknown instruction type>");
             break;

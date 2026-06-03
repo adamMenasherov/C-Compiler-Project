@@ -87,12 +87,29 @@ static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {
     CType* commonType;
     CType* leftType  = expr->exp.binary->left->valueType;
     CType* rightType = expr->exp.binary->right->valueType;
-    if (leftType->kind == CTYPE_POINTER || rightType->kind == CTYPE_POINTER) 
+
+    int leftIsPtr  = leftType  && leftType->kind  == CTYPE_POINTER;
+    int rightIsPtr = rightType && rightType->kind == CTYPE_POINTER;
+    int leftIsInt  = leftType  && isArithmeticType(leftType) && leftType->kind != CTYPE_DOUBLE;
+    int rightIsInt = rightType && isArithmeticType(rightType) && rightType->kind != CTYPE_DOUBLE;
+
+    if (leftIsPtr && rightIsInt) {
+        commonType = leftType;
+    } else if (rightIsPtr && leftIsInt) {
+        commonType = rightType;
+    } else if (leftIsPtr || rightIsPtr) {
         commonType = getCommonPointerType(expr->exp.binary->left, expr->exp.binary->right);
-    else
+        if (!commonType) {
+            fprintf(stderr, "Semantic Error: Incompatible pointer types in binary expression\n");
+            exit(1);
+        }
+        expr->exp.binary->left  = convertTo(expr->exp.binary->left,  commonType);
+        expr->exp.binary->right = convertTo(expr->exp.binary->right, commonType);
+    } else {
         commonType = getCommonType(leftType, rightType);
-    expr->exp.binary->left  = convertTo(expr->exp.binary->left,  commonType);
-    expr->exp.binary->right = convertTo(expr->exp.binary->right, commonType);
+        expr->exp.binary->left  = convertTo(expr->exp.binary->left,  commonType);
+        expr->exp.binary->right = convertTo(expr->exp.binary->right, commonType);
+    }
 
     if (isRelationBinaryOp(expr->exp.binary->type)) {
         setType(expr, C_CreateType(CTYPE_INT));

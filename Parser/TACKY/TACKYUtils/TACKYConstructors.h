@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../TACKYProgram.h"
+#include "TACKYEmitters.h"
 
 TACKYInstruction* createUnaryInstruction(unaryType type, TACKYValue* src, TACKYValue* dest);
 TACKYInstruction* createBinaryInstruction(binType type, TACKYValue* src1, TACKYValue* src2, TACKYValue* dest);
@@ -22,8 +23,12 @@ TACKYInstructionList* createTACKYInstructionList();
 TACKYConstant* CreateTackyConstantNode(uint64_t intValue, double doubleValue, constantType type);
 void addInstructionToList(TACKYInstructionList* list, TACKYInstruction* instruction);
 TACKYValue* copyTackyValue(TACKYValue* original);
+TACKYInstruction* createGetAddressInstruction(TACKYValue* src, TACKYValue* dest);
+TACKYInstruction* createLoadInstruction(TACKYValue* src_ptr, TACKYValue* dest);
+TACKYInstruction* createStoreInstruction(TACKYValue* src, TACKYValue* dst_ptr);
 TACKYProgram* createTACKYProgram();
 TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* parameters, TACKYInstructionList* instruction_list, int global);
 TACKYTopLevel* createTACKYTopLevelFromFunction(TACKYFunction* tackyFunc, SymbolTable* symTable);
 TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar);
 TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, uint64_t intVal, double doubleVal, initialValueStaticInitType staticInitType);
+ExpResult* createExpResult(expResultType type, TACKYValue* val);

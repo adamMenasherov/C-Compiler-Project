@@ -1,4 +1,5 @@
-int main() {
-   int *a;
-   double b = a;
+int* main() {
+   int a = 5;
+   int *b = &a;
+   *(b + 2) = 10;
 }

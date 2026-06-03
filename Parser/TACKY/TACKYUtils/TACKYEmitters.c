@@ -24,13 +24,13 @@ static CType* getCastSourceType(CFactor* sourceExpr, SymbolTable* symTable) {
     }
 }
 
-TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable) {
+ExpResult* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable) {
     if (!exp) return NULL;
     switch(exp->type) {
         case FACTOR_CONSTANT:
-            return createTackyValueFromConstantNode(exp->exp.cnst);
+            return createExpResult(EXP_RESULT_PLAIN_OP, createTackyValueFromConstantNode(exp->exp.cnst));
         case FACTOR_VAR:
-            return createTackyValueFromVar(exp->exp.var);
+            return createExpResult(EXP_RESULT_PLAIN_OP, createTackyValueFromVar(exp->exp.var));
         case FACTOR_UNARY:
             return emit_TACKYUnary(exp, instruction_list, isPostfixUnary, symTable);
         case FACTOR_BINARY:
@@ -43,65 +43,69 @@ TACKYValue* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int
              return emit_TACKYFunctionCall(exp, instruction_list, symTable);
         case FACTOR_CAST:
              return emit_TACKYCast(exp, instruction_list, symTable);
+        case FACTOR_ADDRESS_OF: {
+            ExpResult* innerResult = emit_TACKY(exp->exp.pointerOp, instruction_list, NULL, symTable);
+            TACKYValue* dst = makeTACKYVariable(getType(exp), symTable);
+            addInstructionToList(instruction_list,
+                createGetAddressInstruction(innerResult->val, dst));
+            return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
+        }
+        case FACTOR_DEREFERENCE: {
+            TACKYValue* ptrVal = emit_TACKYAndConvert(exp->exp.pointerOp, instruction_list, symTable);
+            return createExpResult(EXP_RESULT_DEREF_POINTER_OP, ptrVal);
+        }
         default:
             return NULL;
     }
 }
 
-TACKYValue* emit_TACKYUnary(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable) {
+ExpResult* emit_TACKYUnary(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable) {
     if (isPostfixUnaryOp(exp->exp.unary->type)) {
         if (isPostfixUnary) *isPostfixUnary = 1;
-        return createTackyValueFromVar(exp->exp.unary->exp->exp.var);
+        return createExpResult(EXP_RESULT_PLAIN_OP, createTackyValueFromVar(exp->exp.unary->exp->exp.var));
     }
 
-    int isPostfix = 0;
-    TACKYValue* src = emit_TACKY(exp->exp.unary->exp, instruction_list, &isPostfix, symTable);
+    TACKYValue* src = emit_TACKYAndConvert(exp->exp.unary->exp, instruction_list, symTable);
     TACKYValue* dst = makeTACKYVariable(getType(exp), symTable);
     unaryType op = FromPostPreFixToRegular(exp->exp.unary->type);
     addInstructionToList(instruction_list,
         createUnaryInstruction(op, src, dst));
-    if (isPostfix) addInstructionToList(instruction_list,
-        emitUnaryPostfixInstruction(exp->exp.unary->exp, symTable));
 
-    return copyTackyValue(dst);
+    return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
 }
 
-TACKYValue* emit_TACKYBinary(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+ExpResult* emit_TACKYBinary(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     if (exp->exp.binary->type == BIN_AND || exp->exp.binary->type == BIN_OR) {
         return shortCircuitTACKYInstruction(exp, instruction_list, symTable);
     }
 
-    int isPostfixSrc1 = 0, isPostfixSrc2 = 0;
-    TACKYValue* src1 = emit_TACKY(exp->exp.binary->left, instruction_list, &isPostfixSrc1, symTable);
-    TACKYValue* src2 = emit_TACKY(exp->exp.binary->right, instruction_list, &isPostfixSrc2, symTable);
+    TACKYValue* src1 = emit_TACKYAndConvert(exp->exp.binary->left, instruction_list, symTable);
+    TACKYValue* src2 = emit_TACKYAndConvert(exp->exp.binary->right, instruction_list, symTable);
     TACKYValue* dst = makeTACKYVariable(getType(exp), symTable);
     binType op = exp->exp.binary->type;
     addInstructionToList(instruction_list,
         createBinaryInstruction(op, src1, src2, dst));
 
-    if (isPostfixSrc1) addInstructionToList(instruction_list,
-        emitUnaryPostfixInstruction(exp->exp.binary->left, symTable));
-    if (isPostfixSrc2) addInstructionToList(instruction_list,
-        emitUnaryPostfixInstruction(exp->exp.binary->right, symTable));
-
-    return copyTackyValue(dst);
+    return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
 }
 
-TACKYValue* emit_TACKYAssignment(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
-    char* varName = exp->exp.assignment->exp1->exp.var->identifier;
-    int isPostfixUnary = 0;
-    TACKYValue* src = emit_TACKY(exp->exp.assignment->exp2, instruction_list, &isPostfixUnary, symTable);
-    TACKYValue* dst = createVarValue(varName);
-    addInstructionToList(instruction_list,
-        createCopyInstruction(src, dst));
+ExpResult* emit_TACKYAssignment(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+    ExpResult* lhs = emit_TACKY(exp->exp.assignment->exp1, instruction_list, NULL, symTable);
+    TACKYValue* src = emit_TACKYAndConvert(exp->exp.assignment->exp2, instruction_list, symTable);
 
-    if (isPostfixUnary) addInstructionToList(instruction_list,
-        emitUnaryPostfixInstruction(exp->exp.assignment->exp2, symTable));
-    return copyTackyValue(dst);
+    if (lhs->type == EXP_RESULT_PLAIN_OP) {
+        addInstructionToList(instruction_list,
+            createCopyInstruction(src, lhs->val));
+        return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(src));
+    } else {
+        addInstructionToList(instruction_list,
+            createStoreInstruction(src, lhs->val));
+        return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(src));
+    }
 }
 
-TACKYValue* emit_TACKYConditional(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
-    TACKYValue* cond = emit_TACKY(exp->exp.conditional->condition, instruction_list, NULL, symTable);
+ExpResult* emit_TACKYConditional(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+    TACKYValue* cond = emit_TACKYAndConvert(exp->exp.conditional->condition, instruction_list, symTable);
     char* e2Label = generateE2Label();
     char* endLabel = generateEndLabel();
     TACKYValue* resultVar = makeTACKYVariable(getType(exp), symTable);
@@ -109,7 +113,7 @@ TACKYValue* emit_TACKYConditional(CFactor* exp, TACKYInstructionList* instructio
     addInstructionToList(instruction_list,
         createJumpInstruction(TACKY_JUMP_IF_ZERO, e2Label, cond));
 
-    TACKYValue* thenVal = emit_TACKY(exp->exp.conditional->then, instruction_list, NULL, symTable);
+    TACKYValue* thenVal = emit_TACKYAndConvert(exp->exp.conditional->then, instruction_list, symTable);
     addInstructionToList(instruction_list,
         createCopyInstruction(thenVal, copyTackyValue(resultVar)));
     addInstructionToList(instruction_list,
@@ -117,37 +121,36 @@ TACKYValue* emit_TACKYConditional(CFactor* exp, TACKYInstructionList* instructio
 
     addInstructionToList(instruction_list,
         createLabelInstruction(e2Label));
-    TACKYValue* elseVal = emit_TACKY(exp->exp.conditional->else_stmt, instruction_list, NULL, symTable);
+    TACKYValue* elseVal = emit_TACKYAndConvert(exp->exp.conditional->else_stmt, instruction_list, symTable);
     addInstructionToList(instruction_list,
         createCopyInstruction(elseVal, copyTackyValue(resultVar)));
 
     addInstructionToList(instruction_list,
         createLabelInstruction(endLabel));
 
-    return copyTackyValue(resultVar);
+    return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(resultVar));
 }
 
-TACKYValue* emit_TACKYFunctionCall(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+ExpResult* emit_TACKYFunctionCall(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     char* funcName = exp->exp.funcCall->identifier;
     ExpressionFactorArray* args = exp->exp.funcCall->arguments;
     TACKYValueArray* tackyArgs = TACKYValueArray_create();
     TACKYValue* resultVar = makeTACKYVariable(getType(exp), symTable);
 
-    // Emit instructions for arguments
     for (int i = 0; i < args->size; i++) {
         CFactor* arg = (CFactor*)args->data[i];
         TACKYValue* argTempVar = makeTACKYVariable(getType(arg), symTable);
-        TACKYValue* argVal = emit_TACKY(arg, instruction_list, NULL, symTable);
+        TACKYValue* argVal = emit_TACKYAndConvert(arg, instruction_list, symTable);
         addInstructionToList(instruction_list,
             createCopyInstruction(argVal, copyTackyValue(argTempVar)));
-        
+
         TACKYValueArray_append(tackyArgs, argTempVar);
     }
 
     addInstructionToList(instruction_list,
         createFunCall(funcName, tackyArgs, resultVar));
 
-    return copyTackyValue(resultVar);
+    return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(resultVar));
 }
 
 TACKYInstruction* emitUnaryPostfixInstruction(CFactor* exp, SymbolTable* symTable) {
@@ -163,14 +166,13 @@ TACKYInstruction* emitUnaryPostfixInstruction(CFactor* exp, SymbolTable* symTabl
     return createUnaryInstruction(op, src, dst);
 }
 
-TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+ExpResult* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     if (exp->type != FACTOR_BINARY) return NULL;
 
     binType op = exp->exp.binary->type;
     if (op != BIN_AND && op != BIN_OR) return NULL;
 
-    int isPostfixSrc1 = 0, isPostfixSrc2 = 0;
-    TACKYValue* leftVal = emit_TACKY(exp->exp.binary->left, instruction_list, &isPostfixSrc1, symTable);
+    TACKYValue* leftVal = emit_TACKYAndConvert(exp->exp.binary->left, instruction_list, symTable);
     char* endLabel = generateEndLabel();
     TACKYValue* resultVar = makeTACKYVariable(getType(exp), symTable);
     TACKYInstructionType jumpType = (op == BIN_AND) ? TACKY_JUMP_IF_ZERO : TACKY_JUMP_IF_NOT_ZERO;
@@ -179,7 +181,7 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
     addInstructionToList(instruction_list,
         createJumpInstruction(jumpType, shortCircuitLabel, leftVal));
 
-    TACKYValue* rightVal = emit_TACKY(exp->exp.binary->right, instruction_list, &isPostfixSrc2, symTable);
+    TACKYValue* rightVal = emit_TACKYAndConvert(exp->exp.binary->right, instruction_list, symTable);
     addInstructionToList(instruction_list,
         createJumpInstruction(jumpType, shortCircuitLabel, rightVal));
 
@@ -197,22 +199,17 @@ TACKYValue* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* ins
 
     addInstructionToList(instruction_list,
         createLabelInstruction(endLabel));
-    
-    if (isPostfixSrc1) addInstructionToList(instruction_list,
-        emitUnaryPostfixInstruction(exp->exp.binary->left, symTable));
-    if (isPostfixSrc2) addInstructionToList(instruction_list,
-        emitUnaryPostfixInstruction(exp->exp.binary->right, symTable));
 
-    return copyTackyValue(resultVar);
+    return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(resultVar));
 }
 
 
-TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
-    TACKYValue* result = emit_TACKY(exp->exp.cast->exp, instruction_list, NULL, symTable);
+ExpResult* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+    TACKYValue* result = emit_TACKYAndConvert(exp->exp.cast->exp, instruction_list, symTable);
     CType* inner_type = getCastSourceType(exp->exp.cast->exp, symTable);
     CType* t = exp->exp.cast->targetType;
     if (ctypeEqual(inner_type, t)) {
-        return result;
+        return createExpResult(EXP_RESULT_PLAIN_OP, result);
     }
     TACKYValue* dst = makeTACKYVariable(t, symTable);
     int tIsDouble     = t && t->kind == CTYPE_DOUBLE;
@@ -220,7 +217,7 @@ TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list,
     if (tIsDouble || innerIsDouble) {
         addInstructionToList(instruction_list,
             generateTACKYDoubleIntCast(result, dst, inner_type, t, symTable));
-        return copyTackyValue(dst);
+        return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
     }
     if (size(t) == size(inner_type)) {
         addInstructionToList(instruction_list,
@@ -239,5 +236,31 @@ TACKYValue* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list,
             createZeroExtendInstruction(result, dst));
     }
 
-    return copyTackyValue(dst);
+    return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
+}
+
+TACKYValue* emit_TACKYAndConvert(CFactor* val, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+    int isPostfixUnary = 0;
+    ExpResult* result = emit_TACKY(val, instruction_list, &isPostfixUnary, symTable);
+
+    TACKYValue* resolved;
+    switch(result->type) {
+        case EXP_RESULT_PLAIN_OP:
+            resolved = result->val;
+            break;
+        case EXP_RESULT_DEREF_POINTER_OP: {
+            TACKYValue* dst = makeTACKYVariable(getType(val), symTable);
+            addInstructionToList(instruction_list,
+                createLoadInstruction(result->val, dst));
+            resolved = dst;
+            break;
+        }
+        default:
+            resolved = result->val;
+    }
+
+    if (isPostfixUnary) addInstructionToList(instruction_list,
+        emitUnaryPostfixInstruction(val, symTable));
+
+    return resolved;
 }

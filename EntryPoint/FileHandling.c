@@ -142,10 +142,10 @@ char* compileFile(char* fileName) {
     symbolTablePrint(symTable);
     printAST(ast);
 
-    /*printf("----- TACKY  -----\n");
+    printf("----- TACKY  -----\n");
     TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
-    printf("----- ASM  -----\n");
+    /*printf("----- ASM  -----\n");
     ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
     ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
