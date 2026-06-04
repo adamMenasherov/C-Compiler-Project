@@ -92,7 +92,8 @@ void C_parseTypeAndStorageClass(TokenList* tokens, CType** type, StorageClass* s
         else PARSE_SPECIFIER(STATIC_KEYWORD, storageClassFound.isStatic, "static")
         else PARSE_SPECIFIER(EXTERN_KEYWORD, storageClassFound.isExtern, "extern")
         else PARSE_SPECIFIER(UNSIGNED, typeFound.isUnsigned, "unsigned")
-        else PARSE_SPECIFIER(SIGNED, typeFound.isSigned, "signed");
+        else PARSE_SPECIFIER(SIGNED, typeFound.isSigned, "signed")
+        else PARSE_SPECIFIER(VOID_KEYWORD, typeFound.isVoid, "void");
     }
     memcpy(&typeResult, &typeFound, sizeof(TypeFlags));
 
@@ -105,8 +106,8 @@ void C_parseTypeAndStorageClass(TokenList* tokens, CType** type, StorageClass* s
         exit(1);
     }
 
-    if (typeFound.isDouble && (typeResult & (typeResult - 1))) {
-        fprintf(stderr, "Parser Error: 'double' cannot be combined with other type specifiers\n");
+    if ((typeFound.isDouble || typeFound.isVoid) && (typeResult & (typeResult - 1))) {
+        fprintf(stderr, "Parser Error: 'double' or 'void' cannot be combined with other type specifiers\n");
         exit(1);
     }
 
@@ -119,8 +120,13 @@ void C_parseTypeAndStorageClass(TokenList* tokens, CType** type, StorageClass* s
 CType* C_parseType(TypeFlags typeFound) {
     int signedUnsigned = typeFound.isUnsigned ? 1 : (typeFound.isSigned ? -1 : 0);
     if (typeFound.isDouble) return C_CreateType(CTYPE_DOUBLE);
+    if (typeFound.isVoid)   return C_CreateType(CTYPE_VOID);
     if (typeFound.isLong)   return C_CreateType(signedUnsigned == 1 ? CTYPE_ULONG : CTYPE_LONG);
     if (typeFound.isInt)    return C_CreateType(signedUnsigned == 1 ? CTYPE_UINT  : CTYPE_INT);
+    if (!signedUnsigned) { 
+        fprintf(stderr, "Parser Error: Expected a type specifier\n"); 
+        exit(1); 
+    }
     /* bare unsigned/signed → int */
     return C_CreateType(signedUnsigned == 1 ? CTYPE_UINT : CTYPE_INT);
 }
@@ -200,7 +206,7 @@ static CDeclarator* C_parseSimpleDeclarator(TokenList* tokens) {
 
 static CParamInfo* C_parseParamList(TokenList* tokens, int* outCount) {
     expect(tokens, OPEN_PAREN);
-    int count = 0;
+    int count = 0, isVoidFound = 0;
     CParamInfo* params = malloc(MAX_PARAMS * sizeof(CParamInfo));
     if (!params) { fprintf(stderr, "OOM in C_parseParamList\n"); exit(1); }
 
@@ -212,10 +218,20 @@ static CParamInfo* C_parseParamList(TokenList* tokens, int* outCount) {
             fprintf(stderr, "Parser Error: Function parameters cannot have storage class specifiers\n");
             exit(1);
         }
-        CDeclarator* paramDecl = C_parseDeclarator(tokens);
-        params[count].type = paramBaseType;
-        params[count].decl = paramDecl;
-        count++;
+
+        if (paramBaseType->kind == CTYPE_VOID) {
+            if (isVoidFound || !check(tokens, CLOSE_PAREN)) {
+                fprintf(stderr, "Parser Error: 'void' must be the only parameter if present in parameter list\n");
+                exit(1);
+            }
+            isVoidFound = 1;
+        }
+        else {
+            CDeclarator* paramDecl = C_parseDeclarator(tokens);
+            params[count].type = paramBaseType;
+            params[count].decl = paramDecl;
+            count++;
+        }
 
         if (check(tokens, COMMA)) {
             expect(tokens, COMMA);

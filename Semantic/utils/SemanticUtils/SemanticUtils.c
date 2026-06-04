@@ -1,6 +1,7 @@
 #include "SemanticUtils.h"
 #include "Parser/generateUtils.h"
 #include "Parser/Common/SharedTypeRank.h"
+#include "Parser/AST/C-AST-Nodes/C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodeConstructors.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,6 +144,7 @@ initialValueStaticInitType convertSpecTypeToStaticInitType(CType* type) {
         case CTYPE_UINT:   return STATIC_INIT_UNSIGNED_INT;
         case CTYPE_ULONG:  return STATIC_INIT_UNSIGNED_LONG;
         case CTYPE_DOUBLE: return STATIC_INIT_DOUBLE;
+        case CTYPE_POINTER: return STATIC_INIT_UNSIGNED_LONG;
         default:
             fprintf(stderr, "Semantic Error: Unsupported variable type for static initialization\n");
             exit(1);
@@ -163,6 +165,8 @@ int isNullPointerConstant(CFactor* factor) {
                     return 0;
                 default: return 0;
             }
+        default:
+            return 0;
     }
 }
 

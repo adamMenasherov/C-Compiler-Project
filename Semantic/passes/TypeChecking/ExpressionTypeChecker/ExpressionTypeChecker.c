@@ -43,7 +43,7 @@ static void handleTypeCheckFuncCall(CFactor* expr, SymbolTable* symbolTable) {
         CFactor* arg = (CFactor*)args->data[i];
         typeCheckExpression(arg, symbolTable);
         CType* paramType = info->type->fun.params[i];
-        args->data[i] = convertTo(arg, paramType);
+        args->data[i] = convertByAssignment(arg, paramType);
     }
     setType(expr, info->type->fun.ret);
 }
@@ -70,8 +70,8 @@ static void handleTypeCheckUnary(CFactor* expr, SymbolTable* symbolTable) {
         exit(1);
     }
     if (getType(expr->exp.unary->exp)->kind == CTYPE_POINTER &&
-        (expr->exp.unary->type == UNARY_NEGATE || expr->exp.unary->type == UNARY_NOT)) {
-        fprintf(stderr, "Semantic Error: Unary - and ! not supported on pointer types\n");
+        (expr->exp.unary->type == UNARY_NEGATE || expr->exp.unary->type == UNARY_COMPLEMENT)) {
+        fprintf(stderr, "Semantic Error: Unary - and ~ not supported on pointer types\n");
         exit(1);
     }
     if (expr->exp.unary->type == UNARY_NOT)
@@ -84,6 +84,13 @@ static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.binary->left, symbolTable);
     typeCheckExpression(expr->exp.binary->right, symbolTable);
 
+    binType bop = expr->exp.binary->type;
+
+    if (bop == BIN_AND || bop == BIN_OR) {
+        setType(expr, C_CreateType(CTYPE_INT));
+        return;
+    }
+
     CType* commonType;
     CType* leftType  = expr->exp.binary->left->valueType;
     CType* rightType = expr->exp.binary->right->valueType;
@@ -94,8 +101,16 @@ static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {
     int rightIsInt = rightType && isArithmeticType(rightType) && rightType->kind != CTYPE_DOUBLE;
 
     if (leftIsPtr && rightIsInt) {
+        if (isRelationBinaryOp(bop) && !isNullPointerConstant(expr->exp.binary->right)) {
+            fprintf(stderr, "Semantic Error: Cannot compare pointer with non-null integer\n");
+            exit(1);
+        }
         commonType = leftType;
     } else if (rightIsPtr && leftIsInt) {
+        if (isRelationBinaryOp(bop) && !isNullPointerConstant(expr->exp.binary->left)) {
+            fprintf(stderr, "Semantic Error: Cannot compare pointer with non-null integer\n");
+            exit(1);
+        }
         commonType = rightType;
     } else if (leftIsPtr || rightIsPtr) {
         commonType = getCommonPointerType(expr->exp.binary->left, expr->exp.binary->right);
@@ -111,16 +126,15 @@ static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {
         expr->exp.binary->right = convertTo(expr->exp.binary->right, commonType);
     }
 
-    if (isRelationBinaryOp(expr->exp.binary->type)) {
+    if (isRelationBinaryOp(bop)) {
         setType(expr, C_CreateType(CTYPE_INT));
     }
     else {
-        binType op = expr->exp.binary->type;
-        if ((op != BIN_ADD && op != BIN_SUBTRACT) && commonType && commonType->kind == CTYPE_POINTER) {
+        if ((bop != BIN_ADD && bop != BIN_SUBTRACT) && commonType && commonType->kind == CTYPE_POINTER) {
             fprintf(stderr, "Semantic Error: Only + and - operators supported for pointer types\n");
             exit(1);
         }
-        if (op == BIN_REMAINDER && commonType && commonType->kind == CTYPE_DOUBLE) {
+        if (bop == BIN_REMAINDER && commonType && commonType->kind == CTYPE_DOUBLE) {
             fprintf(stderr, "Semantic Error: Modulo operator not supported for double type\n");
             exit(1);
         }
@@ -158,7 +172,19 @@ static void handleTypeCheckConstant(CFactor* expr, SymbolTable* symbolTable) {
 
 static void handleTypeCheckCast(CFactor* expr, SymbolTable* symbolTable) {
     typeCheckExpression(expr->exp.cast->exp, symbolTable);
-    setType(expr, expr->exp.cast->targetType);
+    CType* srcType = expr->exp.cast->exp->valueType;
+    CType* dstType = expr->exp.cast->targetType;
+    if (srcType && dstType) {
+        if (srcType->kind == CTYPE_POINTER && dstType->kind == CTYPE_DOUBLE) {
+            fprintf(stderr, "Semantic Error: Cannot cast pointer to double\n");
+            exit(1);
+        }
+        if (srcType->kind == CTYPE_DOUBLE && dstType->kind == CTYPE_POINTER) {
+            fprintf(stderr, "Semantic Error: Cannot cast double to pointer\n");
+            exit(1);
+        }
+    }
+    setType(expr, dstType);
 }
 
 typedef void (*ExprTypeChecker)(CFactor*, SymbolTable*);

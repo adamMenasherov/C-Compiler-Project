@@ -49,7 +49,7 @@ void parseUintToDoubleInstruction(TACKYInstruction* instruction, ASMInstructionL
     addASMInstructionAtEnd(asmInstructionList,
         createMovInstruction(ASM_QUADWORD, createRegisterOperand(DX), createRegisterOperand(AX)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_SHIFT_RIGHT, ASM_QUADWORD, createImmediateOperand(1), createRegisterOperand(AX)));
+        createASMBinaryInstruction(ASM_BINARY_SHIFT_RIGHT, ASM_DOUBLE, createImmediateOperand(1), createRegisterOperand(AX)));
     addASMInstructionAtEnd(asmInstructionList,
         createASMBinaryInstruction(ASM_BINARY_AND, ASM_QUADWORD, createImmediateOperand(1), createRegisterOperand(DX)));
     addASMInstructionAtEnd(asmInstructionList,

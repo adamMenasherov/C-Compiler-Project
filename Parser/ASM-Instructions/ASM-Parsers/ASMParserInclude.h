@@ -7,3 +7,4 @@
 #include "FloatCast-Parser/FloatCastParser.h"
 #include "Function-Parser/FunctionParser.h"
 #include "StaticVar-Parser/StaticVarParser.h"
+#include "Memory-Parser/MemoryParser.h"

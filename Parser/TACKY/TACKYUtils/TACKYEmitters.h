@@ -27,5 +27,7 @@ ExpResult* emit_TACKYConditional(CFactor* exp, TACKYInstructionList* instruction
 ExpResult* emit_TACKYFunctionCall(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 ExpResult* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 TACKYValue* emit_TACKYAndConvert(CFactor* val, TACKYInstructionList* instruction_list, SymbolTable* symTable);
+ExpResult* emit_TACKYDereference(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 TACKYInstruction* emitUnaryPostfixInstruction(CFactor* exp, SymbolTable* symTable);
+ExpResult* emit_TACKYAddressOf(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 ExpResult* shortCircuitTACKYInstruction(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);

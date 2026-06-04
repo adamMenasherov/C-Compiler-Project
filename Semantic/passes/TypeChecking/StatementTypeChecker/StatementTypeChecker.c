@@ -14,15 +14,8 @@ void setCurrentFunctionReturnType(CType* retType) {
 }
 
 static CFactor* convertReturnExprToFuncType(CFactor* expr, CType* targetType) {
-    if (!expr || ctypeEqual(expr->valueType, targetType)) return expr;
-    CCast* castNode = C_CreateCast(targetType, expr);
-    CFactor* castExpr = C_CreateFactorFromCast(castNode);
-    if (!castExpr) {
-        fprintf(stderr, "Semantic Error: Failed to create implicit cast for return expression\n");
-        exit(1);
-    }
-    setType(castExpr, targetType);
-    return castExpr;
+    if (!expr) return expr;
+    return convertByAssignment(expr, targetType);
 }
 
 static void handleTypeCheckReturn(CStatement* stmt, SymbolTable* symbolTable) {

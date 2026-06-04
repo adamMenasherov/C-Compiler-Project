@@ -40,9 +40,15 @@ static initialValue* resolveFileScopeInitValue(CDeclaration* decl) {
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
         if (staticInitType == STATIC_INIT_DOUBLE) {
             CConstant* cnst = decl->decl.variableDecl.exp->exp.cnst;
-            double val = (cnst->type == CONST_FLOATING_POINT)
-                ? cnst->value.doubleValue
-                : (double)cnst->value.intValue;
+            double val;
+            if (cnst->type == CONST_FLOATING_POINT)
+                val = cnst->value.doubleValue;
+            else if (cnst->type == CONST_UNSIGNED_LONG)
+                val = (double)(uint64_t)cnst->value.intValue;
+            else if (cnst->type == CONST_UNSIGNED_INT)
+                val = (double)(uint32_t)cnst->value.intValue;
+            else
+                val = (double)(int64_t)cnst->value.intValue;
             return createDoubleInitialValue(INITIAL_WITH_VALUE, val);
         } else {
             uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;

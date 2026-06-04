@@ -67,11 +67,10 @@ int signedOrUnsigned(TACKYInstruction* instruction, SymbolTable* symTable) {
 
     TACKYValue* src1 = instruction->instValue.binaryOp.src1;
     TACKYValue* src2 = instruction->instValue.binaryOp.src2;
-    TACKYValue* dest = instruction->instValue.binaryOp.dest;
-    if (isSignedTACKYValue(src1, symTable) || isSignedTACKYValue(src2, symTable) || isSignedTACKYValue(dest, symTable)) 
+    if (isDoubleOperand(src1, symTable) || isDoubleOperand(src2, symTable))
+        return 0;  // comisd sets CF/ZF, not SF/OF — use unsigned (AE/BE/A/B) conditions
+    if (isSignedTACKYValue(src1, symTable) || isSignedTACKYValue(src2, symTable))
         return 1;
-    if (isDoubleOperand(src1, symTable) || isDoubleOperand(src2, symTable) || isDoubleOperand(dest, symTable))
-        return 1; 
     return 0;
 }
 

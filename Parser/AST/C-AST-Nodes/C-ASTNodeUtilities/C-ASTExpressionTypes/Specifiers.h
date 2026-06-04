@@ -5,6 +5,7 @@ typedef enum {
     CTYPE_LONG,
     CTYPE_UINT,
     CTYPE_ULONG,
+    CTYPE_VOID,
     CTYPE_DOUBLE,
     CTYPE_FUN,
     CTYPE_POINTER
@@ -38,6 +39,7 @@ typedef struct {
     unsigned int isDouble : 1;
     unsigned int isSigned : 1;
     unsigned int isUnsigned : 1;
+    unsigned int isVoid : 1;
     unsigned int isStatic : 1;
     unsigned int isExtern : 1;
 } TypeFlags;

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "Parser/Common/SharedTypeRank.h"
+
 static const char* getAsmTypeString(ASMType type) {
     switch (type) {
         case ASM_LONGWORD: return "longword";

@@ -35,6 +35,7 @@ static const char* getRegisterNameForASM_AST(Register reg) {
         case DI: return "DI";
         case SI: return "SI";
         case SP: return "SP";
+        case BP: return "BP";
         case R8: return "R8";
         case R9: return "R9";
         case R10: return "R10";
@@ -92,8 +93,10 @@ void printASMOperand(const ASMOperand* operand) {
             }
             break;
 
-        case ASM_OP_STACK:
-                printf("Stack(%ld)", (long)operand->OperandValue.immediate);
+        case ASM_OP_MEMORY:
+            printf("Memory(");
+            printASMOperand(operand->OperandValue.memory.base);
+            printf(", %ld)", (long)operand->OperandValue.memory.offset);
             break;
         
         case ASM_OP_DATA:
@@ -229,6 +232,13 @@ void printASMInstruction(const ASMInstruction* inst) {
             printASMOperand(inst->instValue.cvttsd2si.src);
             printf(", ");
             printASMOperand(inst->instValue.cvttsd2si.dest);
+            printf(")");
+            break;
+        case ASM_LEA:
+            printf("Lea(");
+            printASMOperand(inst->instValue.lea.src);
+            printf(", ");
+            printASMOperand(inst->instValue.lea.dest);
             printf(")");
             break;
         case ASM_CVTSI2SD:

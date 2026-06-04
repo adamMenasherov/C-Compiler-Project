@@ -23,7 +23,7 @@ static void emit(Emitter* e, ASMInstruction* inst) {
 static ASMOperand* reg(int r) { return createRegisterOperand(r); }
 
 static int isMemoryOp(ASMOperand* op) {
-    return op && (op->type == ASM_OP_STACK || op->type == ASM_OP_DATA);
+    return op && (op->type == ASM_OP_MEMORY || op->type == ASM_OP_DATA);
 }
 
 static int isBothMemoryOps(ASMOperand* a, ASMOperand* b) {
@@ -85,10 +85,9 @@ static ASMOperand* resolvePseudo(ASMOperand* operand, CharIntMap* table,
     if (!operand || operand->type != ASM_OP_PSEUDO) return NULL;
 
     insertPseudoToTable(table, operand->OperandValue.identifier, offset, asmSymTable);
-    int storedOffset;
-    charIntMapGet(table, operand->OperandValue.identifier, &storedOffset);
-
-    ASMOperand* stackOp = createStackOperand(storedOffset);
+    int stackOffset;
+    charIntMapGet(table, operand->OperandValue.identifier, &stackOffset);
+    ASMOperand* stackOp = createStackOperand(stackOffset);
     freeASMOperand(operand);
     return stackOp;
 }
@@ -151,6 +150,17 @@ static void fixCVTSI2SD(Emitter* e, ASMInstruction* in) {
         emit(e, createMovInstruction(ASM_DOUBLE, reg(XMM15), dst));
     } else {
         emit(e, createCvtsi2sdInstruction(srcType, src, dst));
+    }
+}
+
+static void fixLea(Emitter* e, ASMInstruction* in) {
+    ASMOperand* src = in->instValue.lea.src;
+    ASMOperand* dst = in->instValue.lea.dest;
+    if (!isRegister(dst)) {
+        emit(e, createLeaInstruction(src, reg(R11)));
+        emit(e, createMovInstruction(ASM_QUADWORD, reg(R11), dst));
+    } else {
+        emit(e, createLeaInstruction(src, dst));
     }
 }
 
@@ -343,6 +353,11 @@ void pseudoToStackPositions(ASMInstructionList* instList, CharIntMap* table,
             case ASM_SETCC:
                 RESOLVE(in->instValue.setcc.op);
                 fixSetcc(&e, in);
+                break;
+            case ASM_LEA:
+                RESOLVE(in->instValue.lea.src);
+                RESOLVE(in->instValue.lea.dest);
+                fixLea(&e, in);  
                 break;
             case ASM_PUSH:
                 RESOLVE(in->instValue.push.op);

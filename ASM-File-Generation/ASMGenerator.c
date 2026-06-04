@@ -292,6 +292,14 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
             fputs("\tret\n\n", fp);
             break;
         }
+        case ASM_LEA: {
+            fprintf(fp, "\tleaq ");
+            printOperandToASMFile(inst->instValue.lea.src, fp, REGISTER_64_BIT);
+            fputs(", ", fp);
+            printOperandToASMFile(inst->instValue.lea.dest, fp, REGISTER_64_BIT);
+            fputc('\n', fp);
+            break;
+        }
         case ASM_CALL: {
             char* functionNameToCall = callingWithPLTOrNot((const char*)inst->instValue.call.functionName, symbolTable);
             fprintf(fp, "\tcall %s\n", functionNameToCall);
@@ -337,8 +345,14 @@ void printOperandToASMFile(ASMOperand* op, FILE *fp, REGISTER_SIZE size)
             break;
         }
 
-        case ASM_OP_STACK: {
-            fprintf(fp, "%ld(%%rbp)", (long)op->OperandValue.immediate);
+        case ASM_OP_MEMORY: {
+            ASMOperand* base = op->OperandValue.memory.base;
+            if (base && base->type == ASM_OP_REGISTER) {
+                fprintf(fp, "%ld(%%%s)", (long)op->OperandValue.memory.offset,
+                    getRegisterNameForCodeEmission(base->OperandValue.reg, REGISTER_64_BIT));
+            } else {
+                fprintf(fp, "%ld(%%rbp)", (long)op->OperandValue.memory.offset);
+            }
             break;
         }
         case ASM_OP_DATA: {
@@ -435,6 +449,7 @@ const char* getRegisterNameForCodeEmission(Register reg, REGISTER_SIZE size) {
                 case DI:   return "rdi";
                 case R10:  return "r10";
                 case R11:  return "r11";
+                case BP:   return "rbp";
                 case XMM0: return "xmm0";
                 case XMM1: return "xmm1";
                 case XMM2: return "xmm2";

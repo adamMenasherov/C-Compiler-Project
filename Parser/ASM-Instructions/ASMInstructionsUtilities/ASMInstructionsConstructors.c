@@ -45,6 +45,8 @@ void addASMInstructionAtEnd(ASMInstructionList* list, ASMInstruction* instructio
 }
 
 void addASMInstructionAtBeginning(ASMInstructionList* list, ASMInstruction* instruction) {
+    if (!list || !instruction) return;
+
     if (!list->head) {
         list->head = instruction;
         list->tail = instruction;
@@ -84,21 +86,23 @@ ASMOperand* createRegisterOperand(Register reg) {
     return operand;
 }
 
+ASMOperand* createMemoryOperand(ASMOperand* base, int offset) {
+    if (base->type != ASM_OP_REGISTER) return NULL;
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+
+    operand->type = ASM_OP_MEMORY;
+    operand->OperandValue.memory.base = base;
+    operand->OperandValue.memory.offset = offset;
+    return operand;
+}
+
 ASMOperand* createImmediateOperand(uint64_t value) {
     ASMOperand* operand = malloc(sizeof(ASMOperand));
     if (!operand) return NULL;
 
     operand->type = ASM_OP_IMMEDIATE;
     operand->OperandValue.immediate = value;
-    return operand;
-}
-
-ASMOperand* createStackOperand(int offset) {
-    ASMOperand* operand = malloc(sizeof(ASMOperand));
-    if (!operand) return NULL;
-
-    operand->type = ASM_OP_STACK;
-    operand->OperandValue.immediate = offset; // Using immediate to store stack offset
     return operand;
 }
 
@@ -380,6 +384,10 @@ ASMInstruction* createASMLabelInstruction(char* label) {
     return inst;
 }
 
+ASMOperand* createStackOperand(int offset) {
+    return createMemoryOperand(createRegisterOperand(BP), offset);
+}
+
 ASMInstruction* createASMReturnInstruction() {
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
@@ -388,6 +396,7 @@ ASMInstruction* createASMReturnInstruction() {
 }
 
 ASMInstruction* createASMAllocateStackInstruction(int size) {
+    if (size <= 0) return NULL; 
     ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
     if (!inst) return NULL;
     inst->type = ASM_BINARY;
@@ -418,6 +427,15 @@ ASMInstruction* createASMDeallocateStackInstruction(int size) {
     inst->instValue.binary.asmType = ASM_QUADWORD; 
     inst->instValue.binary.op2 = createRegisterOperand(SP); 
     inst->instValue.binary.op1 = createImmediateOperand(size);
+    return inst;
+}
+
+ASMInstruction* createLeaInstruction(ASMOperand* src, ASMOperand* dest) {
+    ASMInstruction* inst = calloc(1, sizeof(ASMInstruction));
+    if (!inst) return NULL;
+    inst->type = ASM_LEA;
+    inst->instValue.lea.src = src;
+    inst->instValue.lea.dest = dest;
     return inst;
 }
 

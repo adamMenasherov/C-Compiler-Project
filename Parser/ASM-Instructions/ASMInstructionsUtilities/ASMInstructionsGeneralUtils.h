@@ -21,6 +21,7 @@ typedef enum {
     ASM_CDQ,
     ASM_IDIV,
     ASM_DIV,
+    ASM_LEA,
     ASM_LABEL,
     ASM_SETCC,
     ASM_CVTTSD2SI,
@@ -71,7 +72,7 @@ typedef enum {
     ASM_OP_REGISTER,
     ASM_OP_IMMEDIATE,
     ASM_OP_PSEUDO,
-    ASM_OP_STACK,
+    ASM_OP_MEMORY,
     ASM_OP_DATA
 } OperandType;
 
@@ -94,6 +95,7 @@ typedef enum {
     DI,
     SI,
     SP,
+    BP,
     R8,
     R9,
     R10,
@@ -113,14 +115,20 @@ typedef enum {
 extern const int argResigters[];
 extern const int doubleArgRegisters[];
 
-typedef struct {
+typedef struct ASMOperand ASMOperand;
+
+struct ASMOperand {
     OperandType type;
     union {
         Register reg;
         uint64_t immediate;
         char* identifier;
+        struct {
+            ASMOperand* base;
+            int offset;
+        } memory;
     } OperandValue;
-} ASMOperand;
+};
 
 
 typedef struct ASMInstruction {
@@ -205,6 +213,10 @@ typedef struct ASMInstruction {
             ASMOperand* src;
             ASMOperand* dest;
         } cvtsi2sd;
+        struct {
+            ASMOperand* src;
+            ASMOperand* dest;
+        } lea;
     } instValue;
     struct ASMInstruction* next;
 } ASMInstruction;
@@ -217,7 +229,7 @@ typedef struct {
 typedef struct ASMFunction {
     char* function_name;
     ASMInstructionList* inst;
-    CharIntMap* pseudoTable; // Maps pseudo-register names to stack offsets
+    CharIntMap* pseudoTable; 
     int global;
 } ASMFunction;
 

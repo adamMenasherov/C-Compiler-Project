@@ -145,13 +145,13 @@ char* compileFile(char* fileName) {
     printf("----- TACKY  -----\n");
     TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
     printTACKY_AST(tacky_ast);
-    /*printf("----- ASM  -----\n");
+    printf("----- ASM  -----\n");
     ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
     ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
     freeSymbolTable(symTable);
     generateASMFile(asm_ast, asmFileName, asmSymTable);
-    commandForObjectFile(asmFileName, objectFileName);*/
+    commandForObjectFile(asmFileName, objectFileName);
 
     freeAST(ast);
     free(source); 

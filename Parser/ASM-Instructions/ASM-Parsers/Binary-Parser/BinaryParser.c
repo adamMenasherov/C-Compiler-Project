@@ -24,12 +24,13 @@ static divisionInst getDivisionInst(TACKYInstruction* instruction, ASMInstructio
 static void createASMDoubleDivision(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     ASMOperand* src1 = tackyValueToASMOperand(instruction->instValue.binaryOp.src1, symTable);
     ASMOperand* src2 = tackyValueToASMOperand(instruction->instValue.binaryOp.src2, symTable);
-    ASMOperand* dest = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
-    
-    addASMInstructionAtEnd(asmInstructionList, 
-        createMovInstruction(ASM_DOUBLE, src1, dest));
+    ASMOperand* dest1 = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
+    ASMOperand* dest2 = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
+
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_DIVDOUBLE, ASM_DOUBLE, src2, dest));
+        createMovInstruction(ASM_DOUBLE, src1, dest1));
+    addASMInstructionAtEnd(asmInstructionList,
+        createASMBinaryInstruction(ASM_BINARY_DIVDOUBLE, ASM_DOUBLE, src2, dest2));
 }
 
 static void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {

@@ -47,10 +47,22 @@ ASMOperand* createRegisterOperand(Register reg);
  */
 ASMOperand* createImmediateOperand(uint64_t value);
 
+
+
+/**
+ * @brief Create a Memory Operand object
+ * 
+ * @param base The base operand for the memory address (can only be a register)
+ * @param offset The offset to be added to the base address
+ * @return ASMOperand* pointer to the created memory operand
+ */
+ASMOperand* createMemoryOperand(ASMOperand* base, int offset);
+
+
 /**
  * @brief Create a Stack Operand object
  * 
- * @param offset The offset of the stack location
+ * @param offset The offset from RSP for the stack operand (positive for below RSP, negative for above)
  * @return ASMOperand* pointer to the created stack operand
  */
 ASMOperand* createStackOperand(int offset);
@@ -130,6 +142,16 @@ ASMInstruction* createIdivInstruction(ASMOperand* divisor, ASMType asmType);
  * @return ASMInstruction* 
  */
 ASMInstruction* createDivInstruction(ASMOperand* divisor, ASMType asmType);
+
+
+/**
+ * @brief Create a Lea Instruction object
+ * 
+ * @param src The source operand for the LEA instruction
+ * @param dest The destination operand for the LEA instruction
+ * @return ASMInstruction* pointer to the created LEA instruction
+ */
+ASMInstruction* createLeaInstruction(ASMOperand* src, ASMOperand* dest);
 
 
 /**

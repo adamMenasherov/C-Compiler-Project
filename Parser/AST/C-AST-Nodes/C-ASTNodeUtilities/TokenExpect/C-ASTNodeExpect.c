@@ -13,7 +13,7 @@ static int isConstantType(TokenType type) {
 
 static int isSpecifierType(TokenType type) {
     return type == INT_KEYWORD || type == LONG_KEYWORD || type == STATIC_KEYWORD || type == DOUBLE_KEYWORD ||
-           type == EXTERN_KEYWORD || type == UNSIGNED || type == SIGNED;
+           type == EXTERN_KEYWORD || type == UNSIGNED || type == SIGNED || type == VOID_KEYWORD;
 }
 
 static int getConstantType(TokenType type) {

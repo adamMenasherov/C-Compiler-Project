@@ -21,7 +21,9 @@ void parseForLoopInstructions(CForLoop* forLoop, TACKYInstructionList* instructi
     addInstructionToList(instructionList,
         createLabelInstruction(continueLabel));
 
-    emit_TACKYAndConvert(forLoop->post, instructionList, symTable);    
+    if (forLoop->post) {
+        emit_TACKYAndConvert(forLoop->post, instructionList, symTable);
+    }
 
     addInstructionToList(instructionList,
         createJumpInstruction(TACKY_JUMP, start, NULL));

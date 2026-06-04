@@ -49,17 +49,23 @@ CStatement* C_parseLoopStatement(TokenList* tokens) {
 
 CForInit* C_parseForInit(TokenList* tokens) {
     if (checkSpecifier(tokens)) {
-        CType* varType;
+        CType* baseType;
+        CType* declType;
         StorageClass storageClass;
-        C_parseTypeAndStorageClass(tokens, &varType, &storageClass);
+        char* identifier = NULL;
+        IdentifierArray* funcParams = IdentifierArray_create();
 
-        char* identifier = expectIdentifier(tokens);
-        if (!identifier){
-            fprintf(stderr, "Decleration: Expected identifier and got %s", TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->value);
+        C_parseTypeAndStorageClass(tokens, &baseType, &storageClass);
+        CDeclarator* declarator = C_parseDeclarator(tokens);
+        processDeclarator(declarator, baseType, &declType, &identifier, funcParams);
+        IdentifierArray_free(funcParams);
+
+        if (declType && declType->kind == CTYPE_FUN) {
+            fprintf(stderr, "Parser Error: Function declarations are not allowed in for-loop initializers\n");
             exit(1);
         }
 
-        CDeclaration* decl = C_parseVarDeclaration(tokens, identifier, varType, storageClass);
+        CDeclaration* decl = C_parseVarDeclaration(tokens, identifier, declType, storageClass);
         return C_CreateForInit(FOR_INIT_DECL, decl);
     }
     else if (!check(tokens, SEMICOLON)) {

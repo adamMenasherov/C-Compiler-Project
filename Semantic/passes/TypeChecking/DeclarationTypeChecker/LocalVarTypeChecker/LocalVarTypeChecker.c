@@ -41,12 +41,11 @@ static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
         return createInitialValue(staticInitType, INITIAL_WITH_VALUE, 0, 0.0);
 
     if (decl->decl.variableDecl.exp && decl->decl.variableDecl.exp->type == FACTOR_CONSTANT) {
-        CType* expType = decl->decl.variableDecl.exp->valueType;
-        if (expType && expType->kind == CTYPE_DOUBLE) {
-            double val = decl->decl.variableDecl.exp->exp.cnst->value.doubleValue;
-            return createDoubleInitialValue(INITIAL_WITH_VALUE, val);
+        CConstant* cnst = decl->decl.variableDecl.exp->exp.cnst;
+        if (cnst->type == CONST_FLOATING_POINT) {
+            return createDoubleInitialValue(INITIAL_WITH_VALUE, cnst->value.doubleValue);
         } else {
-            uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;
+            uint64_t val = cnst->value.intValue;
             convertValFromType(&val, decl->decl.variableDecl.varType);
             return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val, 0.0);
         }

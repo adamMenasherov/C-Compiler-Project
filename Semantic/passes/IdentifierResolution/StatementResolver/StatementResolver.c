@@ -2,7 +2,6 @@
 #include "../ExpressionResolver/ExpressionResolver.h"
 #include "../BlockResolver/BlockResolver.h"
 #include "../VariableResolver/VariableResolver.h"
-#include "../../TypeChecking/DeclarationTypeChecker/DeclarationTypeChecker.h"
 #include "../../../utils/ScopeUtils/ScopeUtils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +13,6 @@ static void handleForInitDecl(CForInit* init, SemanticIdentifierMap* varMap, Sym
         exit(1);
     }
     resolveLocalVarDeclaration(init->decl, varMap, symbolTable);
-    typeCheckLocalVariableDeclaration(init->decl, symbolTable);
 }
 
 static void handleForInitExp(CForInit* init, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {

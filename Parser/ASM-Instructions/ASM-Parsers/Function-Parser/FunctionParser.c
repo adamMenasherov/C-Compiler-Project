@@ -1,11 +1,6 @@
 #include "FunctionParser.h"
 #include <stdlib.h>
-#include "../Unary-Parser/UnaryParser.h"
-#include "../Binary-Parser/BinaryParser.h"
-#include "../CondJump-Parser/CondJumpParser.h"
-#include "../FuncCall-Parser/FuncCallParser.h"
-#include "../Cast-Parser/CastParser.h"
-#include "../FloatCast-Parser/FloatCastParser.h"
+#include "../ASMParserInclude.h"
 #include "Parser/TACKY/TACKYUtils/TACKYConstructors.h"
 
 typedef CallArgClassification ParamClassification;
@@ -45,6 +40,9 @@ static const ASMInstructionHandler instructionHandlers[] = {
     [TACKY_DOUBLE_TO_UINT]   = parseDoubleToUintInstruction,
     [TACKY_INT_TO_DOUBLE]    = parseIntToDoubleInstruction,
     [TACKY_UINT_TO_DOUBLE]   = parseUintToDoubleInstruction,
+    [TACKY_LOAD]             = parseLoadInstruction,
+    [TACKY_STORE]            = parseStoreInstruction,
+    [TACKY_GET_ADDRESS]       = parseGetAddressInstruction
 };
 
 void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {

@@ -29,8 +29,7 @@
       "program": "${workspaceFolder}/compiler",
       "preLaunchTask": "build compiler",
       "args": [
-        "testFiles/test.c",
-        "-lm"
+        "/home/adammenasherov/CompilerProject/writing-a-c-compiler-tests/tests/chapter_14/valid/libraries/static_pointer_client.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

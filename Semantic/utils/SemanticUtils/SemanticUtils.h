@@ -19,6 +19,6 @@ int isNullPointerConstant(CFactor* factor);
 int isLvalue(const CFactor* expr);
 int isArithmeticType(CType* type);
 int getFunctionParamCount(const CType* funcType);
-inline int getFunctionParamCount(const CType* funcType);
+CType* getCommonPointerType(CFactor* exp1, CFactor* exp2);
 CFactor* convertTo(CFactor* expr, CType* targetType);
 CFactor* convertByAssignment(CFactor* expr, CType* targetType);
