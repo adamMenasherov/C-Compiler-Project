@@ -1,14 +1,15 @@
 #pragma once
-
 #include "../HashTable.h"
 #include "Parser/AST/C-AST-Nodes/C-ASTNodes.h"
+#define MAX_ARRAY_SIZE 1000
 
 typedef enum {
     STATIC_INIT_INT,
     STATIC_INIT_LONG,
     STATIC_INIT_UNSIGNED_INT,
     STATIC_INIT_UNSIGNED_LONG,
-    STATIC_INIT_DOUBLE
+    STATIC_INIT_DOUBLE,
+    STATIC_INIT_ZERO_INIT
 } initialValueStaticInitType;
 
 typedef enum {
@@ -33,8 +34,9 @@ typedef struct {
 
 typedef struct {
     initialValueType type;
-    union {
-        staticInitialVal staticInitVal;
+    struct {
+        staticInitialVal *staticInitVal[MAX_ARRAY_SIZE];
+        int size;
     } value;
 } initialValue;
 
@@ -75,9 +77,8 @@ int symbolTableInsert(SymbolTable* table, const char* identifier, CType* type, i
 IdentifierTypeInfo* symbolTableLookup(SymbolTable* table, const char* identifier);
 identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global, initialValue* initValue, int defined);
 int symbolTableContains(SymbolTable* table, const char* identifier);
-initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, uint64_t intValue, double doubleValue);
-initialValue* createIntInitialValue(initialValueType type, long intValue);
-initialValue* createDoubleInitialValue(initialValueType type, double doubleValue);
+initialValue* createInitialValue(initialValueType type);
+staticInitialVal* createStaticInitialVal(initialValueStaticInitType staticInitType, uint64_t intVal, double doubleVal);
 int symbolTableRemove(SymbolTable* table, const char* identifier);
 void freeSymbolTable(SymbolTable* table);
 void symbolTablePrint(SymbolTable* table);

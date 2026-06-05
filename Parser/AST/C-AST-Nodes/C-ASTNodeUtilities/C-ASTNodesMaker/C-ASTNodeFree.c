@@ -135,12 +135,34 @@ void C_freeFunction(CDeclaration* func) {
     C_freeDeclaration(func);
 }
 
+void C_freeInitializer(CInitializer* initializer) {
+    if (!initializer) return;
+
+    switch (initializer->type) {
+        case INIT_SINGLE:
+            C_freeFactor(initializer->init.singleInit);
+            break;
+        case INIT_COMPOUND:
+            if (initializer->init.compoundInit.initializers) {
+                CInitializerList* list = initializer->init.compoundInit.initializers;
+                for (int i = 0; i < CInitializerList_size(list); i++) {
+                    CInitializer* child = CInitializerList_get(list, i);
+                    C_freeInitializer(child);
+                }
+                CInitializerList_free(list);
+            }
+            break;
+    }
+
+    free(initializer);
+}
+
 void C_freeDeclaration(CDeclaration* decl) {
     if (!decl) return;
 
     switch (decl->type) {
         case DECL_VAR:
-            C_freeFactor(decl->decl.variableDecl.exp);
+            C_freeInitializer(decl->decl.variableDecl.init);
             break;
         case DECL_FUNC:
             free(decl->decl.functionDecl.identifier);

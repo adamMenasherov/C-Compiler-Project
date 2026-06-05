@@ -8,7 +8,8 @@ typedef enum {
     CTYPE_VOID,
     CTYPE_DOUBLE,
     CTYPE_FUN,
-    CTYPE_POINTER
+    CTYPE_POINTER,
+    CTYPE_ARRAY
 } CTypeKind;
 
 typedef struct CType CType;
@@ -24,6 +25,10 @@ struct CType {
         struct {
             CType* referenced;
         } pointer;
+        struct {
+            CType* elementType;
+            int size;
+        } array;
     };
 };
 

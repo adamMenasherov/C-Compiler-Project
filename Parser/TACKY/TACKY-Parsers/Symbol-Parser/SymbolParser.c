@@ -17,20 +17,16 @@ static initialValueStaticInitType ctypeToStaticInitType(CType* type) {
 }
 
 static void handleInitialWithValue(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
-    double doubleVal;
-    uint64_t intVal;
-    if (symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.staticInitType == STATIC_INIT_DOUBLE) {
-        doubleVal = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.val.doubleVal;
+    initialValue* initVal = symbol->attrs->attrs.staticAttr.initValue;
+    for (int i = 0; i < initVal->value.size; i++) {
+        staticInitialVal* sv = initVal->value.staticInitVal[i];
+        double doubleVal = sv->staticInitType == STATIC_INIT_DOUBLE ? sv->val.doubleVal : 0.0;
+        uint64_t intVal  = sv->staticInitType != STATIC_INIT_DOUBLE ? sv->val.intVal   : 0;
+        TACKYTopLevelArray_append(
+            topLevels,
+            createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, intVal, doubleVal, sv->staticInitType))
+        );
     }
-    else {
-        intVal = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.val.intVal;
-    }
-    
-    initialValueStaticInitType staticInitType = symbol->attrs->attrs.staticAttr.initValue->value.staticInitVal.staticInitType;
-    TACKYTopLevelArray_append(
-        topLevels,
-        createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, intVal, doubleVal, staticInitType))
-    );
 }
 
 static void handleInitialTentative(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {

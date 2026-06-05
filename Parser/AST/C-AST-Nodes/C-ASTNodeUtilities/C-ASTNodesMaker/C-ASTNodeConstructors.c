@@ -77,6 +77,14 @@ CCast* C_CreateCast(CType* castType, CFactor* exp) {
     return cast;
 }
 
+CSubscript* C_CreateSubscript(CFactor* array, CFactor* index) {
+    CSubscript* subscript = malloc(sizeof(CSubscript));
+    if (!subscript) return NULL;
+    subscript->pointer = array;
+    subscript->index = index;
+    return subscript;
+}
+
 
 CUnary* C_CreateUnary(unaryType type, CFactor* exp) {
     CUnary* unary = malloc(sizeof(CUnary));
@@ -147,6 +155,12 @@ CFactor* C_CreateFactor(factorType type, void * expVal) {
             new_exp->exp.pointerOp = C_CreateCopyOfFactor((CFactor*)expVal);
             break;
         }
+        case FACTOR_SUBSCRIPT: {
+            new_exp->type = FACTOR_SUBSCRIPT;
+            new_exp->exp.subscript = C_CreateSubscript(C_CreateCopyOfFactor(((CSubscript*)expVal)->pointer),
+                                                        C_CreateCopyOfFactor(((CSubscript*)expVal)->index));
+            break;
+        }
         default: {
             fprintf(stderr, "Invalid factor type in C_CreateFactor\n");
             free(new_exp);
@@ -213,6 +227,10 @@ CFactor* C_CreateFactorFromAssignment(CAssignment* assign) {
 
 CFactor* C_CreateFactorFromConditional(CConditional* conditional) {
     return C_CreateFactor(FACTOR_CONDITIONAL, conditional);
+}
+
+CFactor* C_CreateFactorFromSubscript(CSubscript* subscript) {
+    return C_CreateFactor(FACTOR_SUBSCRIPT, subscript);
 }
 
 CIf* C_CreateIf(ifType type, CFactor* condition, CStatement* then, CStatement* else_stmt) {
@@ -360,6 +378,10 @@ CType* C_CreateTypeFromType(CType* original) {
         case CTYPE_POINTER:
             copy->pointer.referenced = C_CreateTypeFromType(original->pointer.referenced);
             break;
+        case CTYPE_ARRAY:
+            copy->array.elementType = C_CreateTypeFromType(original->array.elementType);
+            copy->array.size = original->array.size;
+            break;
         default:
             break;
     }
@@ -392,10 +414,23 @@ CType* C_CreateFunType(CParamInfo* params, int paramCnt, CType* ret) {
     return ctype;
 }
 
+CType* C_CreateArrayType(CType* elementType, int size) {
+    CType* ctype = calloc(1, sizeof(CType));
+    if (!ctype) return NULL;
+    ctype->kind = CTYPE_ARRAY;
+    ctype->array.elementType = elementType;
+    ctype->array.size = size;
+    return ctype;
+}
+
 CType* C_CreateTypeFromParamInfo(CParamInfo param) {
     CType* ctype = C_CreateTypeFromType(param.type);
     if (!ctype) return NULL;
     return ctype;
+}
+
+CFactor* C_CreateAddrOfNode(CFactor* pointer) {
+    return C_CreateFactor(FACTOR_ADDRESS_OF, pointer);
 }
 
 CFactor* C_CreateCopyOfFactor(CFactor* original) {
@@ -432,6 +467,9 @@ CFactor* C_CreateCopyOfFactor(CFactor* original) {
         case FACTOR_ADDRESS_OF:
             copy = C_CreateFactor(FACTOR_ADDRESS_OF, original->exp.pointerOp);
             break;
+        case FACTOR_SUBSCRIPT:
+            copy = C_CreateFactorFromSubscript(original->exp.subscript);
+            break;
         default:
             fprintf(stderr, "Invalid factor type in C_CreateCopyOfFactor\n");
             return NULL;
@@ -449,16 +487,31 @@ CBinary* C_CreateBinary(binType type, CFactor * left, CFactor * right) {
     return binary;
 }
 
-CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CFactor* assign, CType* varType, StorageClass storageClass) {
+CDeclaration* C_CreateVariableDeclaration(varDeclType type, char* iden, CInitializer* assign, CType* varType, StorageClass storageClass) {
     CDeclaration* decl = malloc(sizeof(CDeclaration));
     if (!decl) return NULL;
     decl->type = DECL_VAR;
     decl->decl.variableDecl.declType = type;
-    decl->decl.variableDecl.exp = assign;
+    decl->decl.variableDecl.init = assign;
     decl->decl.variableDecl.varType = varType;
     decl->decl.variableDecl.storageClass = storageClass;
     decl->decl.variableDecl.identifier = iden;
     return decl;
+}
+
+CInitializer* C_CreateSingleInit(CFactor* exp) {
+    CInitializer* init = malloc(sizeof(CInitializer));
+    if (!init) return NULL;
+    init->type = INIT_SINGLE;
+    init->init.singleInit = exp;
+    return init;
+}
+CInitializer* C_CreateCompoundInit(CInitializerList* list) {
+    CInitializer* init = malloc(sizeof(CInitializer));
+    if (!init) return NULL;
+    init->type = INIT_COMPOUND;
+    init->init.compoundInit.initializers = list;
+    return init;
 }
 
 CAssignment* C_CreateAssignment(CFactor* fact1, CFactor* fact2) {
@@ -522,7 +575,7 @@ CDeclarator* C_CreateIdentDeclarator(char* identifier) {
     CDeclarator* decl = malloc(sizeof(CDeclarator));
     if (!decl) return NULL;
     decl->type = DECLARATOR_IDENT;
-    decl->decl.identifier = strdup(identifier);
+    decl->decl.identifier = identifier ? strdup(identifier) : NULL;
     return decl;
 }
 CDeclarator* C_CreatePointerDeclarator(CDeclarator* pointed) {
@@ -532,6 +585,16 @@ CDeclarator* C_CreatePointerDeclarator(CDeclarator* pointed) {
     decl->decl.pointerDecl.pointed = pointed;
     return decl;
 }
+
+CDeclarator* C_CreateArrayDeclarator(CDeclarator* arrayDecl, int size) {
+    CDeclarator* decl = malloc(sizeof(CDeclarator));
+    if (!decl) return NULL;
+    decl->type = DECLARATOR_ARRAY;
+    decl->decl.array.arrayDecl = arrayDecl;
+    decl->decl.array.size = size;
+    return decl;
+}
+
 CDeclarator* C_CreateFunctionDeclarator(CDeclarator* funcDecl, CParamInfo* params, int paramCnt) {
     CDeclarator* decl = malloc(sizeof(CDeclarator));
     if (!decl) return NULL;

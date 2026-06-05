@@ -10,7 +10,8 @@ typedef enum {
     FACTOR_FUNCTION_CALL,
     FACTOR_CAST,
     FACTOR_DEREFERENCE,
-    FACTOR_ADDRESS_OF
+    FACTOR_ADDRESS_OF,
+    FACTOR_SUBSCRIPT
 } factorType;
 
 typedef struct {
@@ -52,6 +53,10 @@ typedef struct {
     CFactor* exp;
 } CCast;
 
+typedef struct {
+    CFactor* pointer;
+    CFactor* index;
+} CSubscript;
 
 typedef struct CFactor {
     factorType type;
@@ -66,6 +71,7 @@ typedef struct CFactor {
         CFunctionCall* funcCall;
         CCast* cast;
         CFactor* pointerOp;
+        CSubscript* subscript;
     } exp;
 } CFactor;
 

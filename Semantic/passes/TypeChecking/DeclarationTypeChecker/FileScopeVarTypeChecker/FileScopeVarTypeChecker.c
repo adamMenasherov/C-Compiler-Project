@@ -6,13 +6,14 @@
 static initialValueStaticInitType getDeclStaticInitType(CDeclaration* decl) {
     CType* t = decl->decl.variableDecl.varType;
     if (!t) { fprintf(stderr, "Semantic Error: NULL type for variable '%s'\n", decl->decl.variableDecl.identifier); exit(1); }
+    while (t->kind == CTYPE_ARRAY) t = t->array.elementType;
     switch (t->kind) {
-        case CTYPE_INT:    return STATIC_INIT_INT;
-        case CTYPE_LONG:   return STATIC_INIT_LONG;
-        case CTYPE_UINT:   return STATIC_INIT_UNSIGNED_INT;
-        case CTYPE_ULONG:  return STATIC_INIT_UNSIGNED_LONG;
-        case CTYPE_POINTER:return STATIC_INIT_UNSIGNED_LONG;
-        case CTYPE_DOUBLE: return STATIC_INIT_DOUBLE;
+        case CTYPE_INT:     return STATIC_INIT_INT;
+        case CTYPE_LONG:    return STATIC_INIT_LONG;
+        case CTYPE_UINT:    return STATIC_INIT_UNSIGNED_INT;
+        case CTYPE_ULONG:   return STATIC_INIT_UNSIGNED_LONG;
+        case CTYPE_POINTER: return STATIC_INIT_UNSIGNED_LONG;
+        case CTYPE_DOUBLE:  return STATIC_INIT_DOUBLE;
         default:
             fprintf(stderr, "Semantic Error: Unsupported file-scope declaration type for variable '%s'\n",
                 decl->decl.variableDecl.identifier);
@@ -20,17 +21,65 @@ static initialValueStaticInitType getDeclStaticInitType(CDeclaration* decl) {
     }
 }
 
-static void validateFileScopeType(CDeclaration* decl) {
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && !isBasicType(decl->decl.variableDecl.varType)) {
-        fprintf(stderr, "Semantic Error: Only constant variables can be initialized at file scope. Variable '%s' has invalid type\n",
-            decl->decl.variableDecl.identifier);
-        exit(1);
+static void validateFileScopeType(CDeclaration* decl, CInitializer* init) {
+    if (!init) return;
+    if (init->type == INIT_SINGLE) {
+        if (init->init.singleInit->type != FACTOR_CONSTANT) {
+            fprintf(stderr, "Semantic Error: Only constant expressions are allowed for file-scope variable '%s'\n",
+                decl->decl.variableDecl.identifier);
+            exit(1);
+        }
+        return;
     }
+    if (init->type == INIT_COMPOUND) {
+        for (size_t i = 0; i < (size_t)init->init.compoundInit.initializers->size; i++) {
+            validateFileScopeType(decl, init->init.compoundInit.initializers->data[i]);
+        }
+    }
+}
 
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp->type != FACTOR_CONSTANT) {
-        fprintf(stderr, "Semantic Error: Non-constant initializer for file-scope variable '%s'\n",
-            decl->decl.variableDecl.identifier);
-        exit(1);
+static size_t countScalarElements(CType* t) {
+    if (!t || t->kind != CTYPE_ARRAY) return 1;
+    return (size_t)t->array.size * countScalarElements(t->array.elementType);
+}
+
+static void getInitValue(CInitializer* init, CType* targetType, initialValueStaticInitType staticInitType, initialValue* out) {
+    if (init->type == INIT_COMPOUND) {
+        CType* elemType = targetType->array.elementType;
+        size_t elemScalars = countScalarElements(elemType);
+        for (size_t i = 0; i < (size_t)init->init.compoundInit.initializers->size; i++) {
+            int before = out->value.size;
+            getInitValue(init->init.compoundInit.initializers->data[i], elemType, staticInitType, out);
+            while ((size_t)(out->value.size - before) < elemScalars)
+                out->value.staticInitVal[out->value.size++] = createStaticInitialVal(staticInitType, 0, 0.0);
+        }
+        /* zero-pad un-provided elements at this array level */
+        for (size_t i = (size_t)init->init.compoundInit.initializers->size; i < (size_t)targetType->array.size; i++)
+            for (size_t k = 0; k < elemScalars; k++)
+                out->value.staticInitVal[out->value.size++] = createStaticInitialVal(staticInitType, 0, 0.0);
+        return;
+    }
+    if (staticInitType == STATIC_INIT_DOUBLE) {
+        CConstant* cnst = init->init.singleInit->exp.cnst;
+        double val;
+        if (cnst->type == CONST_FLOATING_POINT)
+            val = cnst->value.doubleValue;
+        else if (cnst->type == CONST_UNSIGNED_LONG)
+            val = (double)(uint64_t)cnst->value.intValue;
+        else if (cnst->type == CONST_UNSIGNED_INT)
+            val = (double)(uint32_t)cnst->value.intValue;
+        else
+            val = (double)(int64_t)cnst->value.intValue;
+        out->value.staticInitVal[out->value.size++] = createStaticInitialVal(STATIC_INIT_DOUBLE, 0, val);
+    } else {
+        uint64_t val = init->init.singleInit->exp.cnst->value.intValue;
+        switch (staticInitType) {
+            case STATIC_INIT_INT:           val = (uint64_t)(int32_t)val;  break;
+            case STATIC_INIT_UNSIGNED_INT:  val = (uint64_t)(uint32_t)val; break;
+            case STATIC_INIT_LONG:          val = (uint64_t)(int64_t)val;  break;
+            default: break;
+        }
+        out->value.staticInitVal[out->value.size++] = createStaticInitialVal(staticInitType, val, 0.0);
     }
 }
 
@@ -38,28 +87,14 @@ static initialValue* resolveFileScopeInitValue(CDeclaration* decl) {
     initialValueStaticInitType staticInitType = getDeclStaticInitType(decl);
 
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
-        if (staticInitType == STATIC_INIT_DOUBLE) {
-            CConstant* cnst = decl->decl.variableDecl.exp->exp.cnst;
-            double val;
-            if (cnst->type == CONST_FLOATING_POINT)
-                val = cnst->value.doubleValue;
-            else if (cnst->type == CONST_UNSIGNED_LONG)
-                val = (double)(uint64_t)cnst->value.intValue;
-            else if (cnst->type == CONST_UNSIGNED_INT)
-                val = (double)(uint32_t)cnst->value.intValue;
-            else
-                val = (double)(int64_t)cnst->value.intValue;
-            return createDoubleInitialValue(INITIAL_WITH_VALUE, val);
-        } else {
-            uint64_t val = decl->decl.variableDecl.exp->exp.cnst->value.intValue;
-            convertValFromType(&val, decl->decl.variableDecl.varType);
-            return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val, 0.0);
-        }
+        initialValue* initValue = createInitialValue(INITIAL_WITH_VALUE);
+        getInitValue(decl->decl.variableDecl.init, decl->decl.variableDecl.varType, staticInitType, initValue);
+        return initValue;
     }
 
     if (decl->decl.variableDecl.storageClass == STORAGE_CLASS_EXTERN)
-        return createInitialValue(staticInitType, INITIAL_NO_VALUE, 0, 0.0);
-    return createInitialValue(staticInitType, INITIAL_TENTATIVE, 0, 0.0);
+        return createInitialValue(INITIAL_NO_VALUE);
+    return createInitialValue(INITIAL_TENTATIVE);
 }
 
 static int resolveFileScopeLinkage(CDeclaration* decl, IdentifierTypeInfo* existing, int requestedGlobal) {
@@ -97,7 +132,7 @@ static initialValue* resolveFileScopeExistingInit(CDeclaration* decl, Identifier
 
 void typeCheckFileScopeVariableDeclaration(CDeclaration* decl, SymbolTable* symbolTable) {
     if (!decl || decl->type != DECL_VAR) return;
-    validateFileScopeType(decl);
+    validateFileScopeType(decl, decl->decl.variableDecl.init);
 
     initialValue* initValue = resolveFileScopeInitValue(decl);
     int global = decl->decl.variableDecl.storageClass == STORAGE_CLASS_STATIC ? 0 : 1;

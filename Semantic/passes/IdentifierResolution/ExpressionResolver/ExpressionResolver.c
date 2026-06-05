@@ -74,6 +74,11 @@ static void handleFactorDereference(CFactor* fact, SemanticIdentifierMap* varMap
     resolveExpression(fact->exp.pointerOp, varMap, symbolTable);
 }
 
+static void handleFactorSubscript(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
+    resolveExpression(fact->exp.subscript->pointer, varMap, symbolTable);
+    resolveExpression(fact->exp.subscript->index,   varMap, symbolTable);
+}
+
 typedef void (*FactorHandler)(CFactor*, SemanticIdentifierMap*, SymbolTable*);
 
 static const FactorHandler factorHandlers[] = {
@@ -87,6 +92,7 @@ static const FactorHandler factorHandlers[] = {
     [FACTOR_FUNCTION_CALL] = handleFactorFunctionCall,
     [FACTOR_ADDRESS_OF]    = handleFactorAddressOf,
     [FACTOR_DEREFERENCE]   = handleFactorDereference,
+    [FACTOR_SUBSCRIPT]     = handleFactorSubscript,
 };
 
 void resolveExpression(CFactor* fact, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {

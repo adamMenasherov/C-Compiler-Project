@@ -24,8 +24,24 @@ typedef enum {
 typedef enum {
     DECLARATOR_IDENT,
     DECLARATOR_POINTER,
-    DECLARATOR_FUNC
+    DECLARATOR_FUNC,
+    DECLARATOR_ARRAY
 } declaratorType;
+
+typedef enum {
+    INIT_SINGLE,
+    INIT_COMPOUND
+} initType;
+
+typedef struct CInitializer {
+    initType type;
+    union {
+        CFactor* singleInit;
+        struct {
+            CInitializerList* initializers;
+        } compoundInit;
+    } init;
+} CInitializer;
 
 typedef struct {
     CType* type;
@@ -44,6 +60,10 @@ typedef struct CDeclarator {
             CParamInfo params[MAX_PARAMS];
             int paramCnt;
         } func;
+        struct {
+            struct CDeclarator* arrayDecl;
+            int size;
+        } array;
     } decl;
 } CDeclarator;
 
@@ -63,7 +83,7 @@ typedef struct CDeclaration {
             CType* varType;
             StorageClass storageClass;
             char* identifier;
-            CFactor* exp;
+            CInitializer* init;
         } variableDecl;
         struct {
             funcDeclType declType;

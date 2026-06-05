@@ -8,11 +8,7 @@
 static int areFunctionTypesCompatible(const CType* left, const CType* right) {
     if (!left || !right) return 0;
     if (left->kind != CTYPE_FUN || right->kind != CTYPE_FUN) return 0;
-    if (!ctypeEqual(left->fun.ret, right->fun.ret)) return 0;
-    if (left->fun.paramCnt != right->fun.paramCnt) return 0;
-    for (int i = 0; i < left->fun.paramCnt; i++) {
-        if (!ctypeEqual(left->fun.params[i], right->fun.params[i])) return 0;
-    }
+    if (!ctypeEqual(left, right)) return 0;
     return 1;
 }
 
@@ -42,6 +38,12 @@ static void insertFunctionParams(IdentifierArray* params, CType* funcType, Symbo
     for (int i = 0; i < IdentifierArray_size(params); i++) {
         char* param = IdentifierArray_get(params, i);
         CType* paramType = (funcType && i < funcType->fun.paramCnt) ? funcType->fun.params[i] : C_CreateType(CTYPE_INT);
+        if (paramType->kind == CTYPE_ARRAY) {
+            // Convert array parameters to pointer types
+            CType* pointerType = C_CreateType(CTYPE_POINTER);
+            pointerType->pointer.referenced = paramType->array.elementType;
+            paramType = pointerType;
+        }
         symbolTableInsert(symbolTable, param, paramType, 1,
             createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
     }
@@ -58,13 +60,12 @@ void typeCheckFunctionDeclaration(CDeclaration* decl, SymbolTable* symbolTable) 
         IdentifierTypeInfo* existing = symbolTableLookup(symbolTable, decl->decl.functionDecl.identifier);
         validateFunctionRedeclaration(decl, existing, requestedGlobal, &alreadyDefined, &global);
     }
-
+    insertFunctionParams(decl->decl.functionDecl.parameters, decl->decl.functionDecl.funcType, symbolTable);
     symbolTableInsert(symbolTable, decl->decl.functionDecl.identifier,
         decl->decl.functionDecl.funcType,
         alreadyDefined || decl->decl.functionDecl.body != NULL,
         createIdentifierAttrs(IDENTIFIER_FUN_ATTR, global, NULL, alreadyDefined));
-
-    insertFunctionParams(decl->decl.functionDecl.parameters, decl->decl.functionDecl.funcType, symbolTable);
+    
     if (decl->decl.functionDecl.funcType)
         setCurrentFunctionReturnType(decl->decl.functionDecl.funcType->fun.ret);
     typeCheckBlock(decl->decl.functionDecl.body, symbolTable);

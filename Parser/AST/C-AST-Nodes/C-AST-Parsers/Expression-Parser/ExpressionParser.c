@@ -4,9 +4,19 @@
 #include <stdint.h>
 #include <limits.h>
 #include "../C-ParsersInclude.h"
+#include "../../../../Common/SharedTypeRank.h"
+
+#define PARSE_ARRAY_DIMENSIONS(tokens, decl, size)  \
+    while (check(tokens, OPEN_BRACKET)) {           \
+        expect(tokens, OPEN_BRACKET);               \
+        size = getIntegerConstant(tokens);          \
+        expect(tokens, CLOSE_BRACKET);              \
+        decl = C_CreateArrayDeclarator(decl, size); \
+    }
 
 static CDeclarator* parseAbstractDeclarator(TokenList* tokens);
 static CDeclarator* parseDirectAbstractDeclarator(TokenList* tokens);
+typedef CFactor* (*BinOpHandler)(TokenList* tokens, CFactor* left, int prec);
 
 static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
     while (checkIncrementDecrement(tokens)) {
@@ -17,10 +27,111 @@ static CFactor* parsePostfixOperators(CFactor* factor, TokenList* tokens) {
     return factor;
 }
 
+static CFactor* handle_assignment(TokenList* tokens, CFactor* left, int prec) {
+    expect(tokens, ONE_EQUAL);
+    CFactor* right = C_parseExpression(tokens, prec);
+    if (!right) return NULL;
+    CAssignment* node = C_CreateAssignment(C_CreateCopyOfFactor(left), right);
+    return C_CreateFactorFromAssignment(node);
+}
+
+static CFactor* handle_compound_assignment(TokenList* tokens, CFactor* left, int prec) {
+    binType type = compoundAssignmentToBinType(
+        TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->type);
+    expectCompoundAssignment(tokens);
+    CFactor* right = C_parseExpression(tokens, prec);
+    if (!right) return NULL;
+    CAssignment* node = C_CreateAssignment(
+        C_CreateCopyOfFactor(left),
+        C_CreateFactorFromBinary(C_CreateBinary(type, C_CreateCopyOfFactor(left), right)));
+    return C_CreateFactorFromAssignment(node);
+}
+
+static CFactor* handle_ternary(TokenList* tokens, CFactor* left, int prec) {
+    expect(tokens, QUESTION_MARK);
+    CFactor* middle = C_parseConditionalMiddle(tokens);
+    CFactor* right = C_parseExpression(tokens, prec);
+    if (!right) return NULL;
+    CConditional* node = C_CreateConditional(C_CreateCopyOfFactor(left), middle, right);
+    return C_CreateFactorFromConditional(node);
+}
+
+static CFactor* handle_binary(TokenList* tokens, CFactor* left, int prec) {
+    binType type = expectBinaryOp(tokens);
+    CFactor* right = C_parseExpression(tokens, prec + 1);
+    if (!right) return NULL;
+    CBinary* node = C_CreateBinary(type, C_CreateCopyOfFactor(left), right);
+    return C_CreateFactorFromBinary(node);
+}
+
+CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
+    CFactor* left = C_parseUnaryExpression(tokens);
+    if (!left) return NULL;
+    int prec;
+    while (checkBinaryOp(tokens) && 
+        (prec = precedence(TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array)))) >= min_prec) 
+    {
+        CFactor* new_left;
+        if (check(tokens, ONE_EQUAL))      
+            new_left = handle_assignment(tokens, left, prec);
+        else if (checkCompoundAssignment(tokens)) 
+            new_left = handle_compound_assignment(tokens, left, prec);
+        else if (check(tokens, QUESTION_MARK))   
+            new_left = handle_ternary(tokens, left, prec);
+        else
+            new_left = handle_binary(tokens, left, prec);
+        if (!new_left) 
+            return NULL;
+        left = new_left;
+    }
+    return left;
+}
+
+CInitializer* C_parseInitializer(TokenList* tokens) {
+    if (check(tokens, OPEN_BRACE)) {
+        expect(tokens, OPEN_BRACE);
+        CInitializerList* initList = CInitializerList_create();
+        while (!check(tokens, CLOSE_BRACE)) {
+            CInitializerList_append(initList, C_parseInitializer(tokens));
+            if (check(tokens, COMMA))
+                expect(tokens, COMMA);
+        }
+        expect(tokens, CLOSE_BRACE);
+        return C_CreateCompoundInit(initList);
+    }
+    CFactor* exp = C_parseExpression(tokens, 0);
+    return C_CreateSingleInit(exp);
+}
+
+
+CFactor* C_parseUnaryExpression(TokenList* tokens) {
+    if (checkUnaryOp(tokens)) {
+        unaryType type = expectUnaryOp(tokens);
+        CFactor* exp = C_parseUnaryExpression(tokens);
+        if (!exp) return NULL;
+        return C_CreateFactorFromUnary(C_CreateUnary(type, exp));
+    }
+    else if (check(tokens, OPEN_PAREN)) {
+        return parsePostfixOperators(C_CreateFactorFromCast(C_parseCast(tokens)), tokens);
+    }
+    return C_parsePostfixExpression(tokens);
+}
+
+CFactor* C_parsePostfixExpression(TokenList* tokens) {
+    CFactor* factor = C_parseFactor(tokens);
+    if (!factor) return NULL;
+    while (check(tokens, OPEN_BRACKET)) {
+        CSubscript* subscript = C_parseSubscript(tokens, factor);
+        // The factor becomes the subscript expression
+        factor = C_CreateFactorFromSubscript(subscript); 
+    }
+    return factor;
+}
+
 
 CFactor* C_parseFactor(TokenList* tokens) {
-    if (check(tokens, IDENTIFIER) && lookAheadOne(tokens, OPEN_PAREN)) // Factor is a function call
-    {
+    // Factor is a function call
+    if (check(tokens, IDENTIFIER) && lookAheadOne(tokens, OPEN_PAREN)) {
         char* identifier = expectIdentifier(tokens);
         expect(tokens, OPEN_PAREN);
 
@@ -43,16 +154,6 @@ CFactor* C_parseFactor(TokenList* tokens) {
         return parsePostfixOperators(C_CreateFactorFromVar(C_CreateVar(identifier)), tokens);
     }
 
-    else if (checkUnaryOp(tokens)) {
-        unaryType type = expectUnaryOp(tokens);
-        CFactor* inner_exp = C_parseFactor(tokens);
-        if (type == UNARY_DEREFERENCE || type == UNARY_ADDRESS_OF) {
-            factorType factType = (type == UNARY_DEREFERENCE) ? FACTOR_DEREFERENCE : FACTOR_ADDRESS_OF;
-            return C_CreateFactor(factType, inner_exp);
-        }
-        return parsePostfixOperators(C_CreateFactorFromUnary(C_CreateUnary(type, inner_exp)), tokens);
-    }
-
     else if (check(tokens, OPEN_PAREN)) {
         expect(tokens, OPEN_PAREN);
         CFactor* inner_exp = C_parseExpression(tokens, 0);
@@ -67,48 +168,6 @@ CFactor* C_parseFactor(TokenList* tokens) {
     return NULL;
 }
 
-
-CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
-    CFactor* left = C_parseFactor(tokens);
-    if (!left) return NULL;
-    int isBinary = checkBinaryOp(tokens), previous_prec; 
-    while (isBinary && (previous_prec = precedence(TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array)))) >= min_prec) {
-        if (check(tokens, ONE_EQUAL)) {
-            expect(tokens, ONE_EQUAL);
-            CFactor* right = C_parseExpression(tokens, previous_prec);
-            if (!right) return NULL;
-            CAssignment* new_left = C_CreateAssignment(C_CreateCopyOfFactor(left), right);
-            left = C_CreateFactorFromAssignment(new_left);
-        }
-        else if (checkCompoundAssignment(tokens)) {
-            binType type = compoundAssignmentToBinType(TokenArray_get(tokens->array, TokenArray_getCursor(tokens->array))->type);
-            expectCompoundAssignment(tokens);
-            CFactor* right = C_parseExpression(tokens, previous_prec);
-            if (!right) return NULL;
-            CAssignment* new_left = C_CreateAssignment(C_CreateCopyOfFactor(left), 
-                C_CreateFactorFromBinary(C_CreateBinary(type, 
-                    C_CreateCopyOfFactor(left), right)));
-            left = C_CreateFactorFromAssignment(new_left);
-        }
-        else if (check(tokens, QUESTION_MARK)) {
-            expect(tokens, QUESTION_MARK);
-            CFactor* middle = C_parseConditionalMiddle(tokens);
-            CFactor* right = C_parseExpression(tokens, previous_prec);
-            CConditional* new_left = C_CreateConditional(C_CreateCopyOfFactor(left), middle, right);
-            left = C_CreateFactorFromConditional(new_left);
-        }
-        else {
-            binType type = expectBinaryOp(tokens);
-            CFactor* right = C_parseExpression(tokens, previous_prec + 1);
-            if (!right) return NULL;
-            CBinary* new_left = C_CreateBinary(type, C_CreateCopyOfFactor(left), right);
-            left = C_CreateFactorFromBinary(new_left);
-        }
-        
-        isBinary = checkBinaryOp(tokens);
-    }
-    return left;   
-}
 
 CFactor* C_parseConditionalMiddle(TokenList* tokens) {
     CFactor* exp = C_parseExpression(tokens, 0);
@@ -159,10 +218,17 @@ CCast* C_parseCast(TokenList* tokens) {
     C_parseTypeAndStorageClass(tokens, &type, &dummySC);
     CDeclarator* decl = parseAbstractDeclarator(tokens);
     expect(tokens, CLOSE_PAREN);
-    CFactor* exp = C_parseFactor(tokens);
+    CFactor* exp = C_parseUnaryExpression(tokens);
     if (!exp) return NULL;
     processDeclarator(decl, type, &declType, NULL, NULL);
     return C_CreateCast(declType, exp);
+}
+
+CSubscript* C_parseSubscript(TokenList* tokens, CFactor* array) {
+    expect(tokens, OPEN_BRACKET);
+    CFactor* index = C_parseExpression(tokens, 0);
+    expect(tokens, CLOSE_BRACKET);
+    return C_CreateSubscript(array, index);
 }
 
 static CDeclarator* parseAbstractDeclarator(TokenList* tokens) {
@@ -174,10 +240,18 @@ static CDeclarator* parseAbstractDeclarator(TokenList* tokens) {
 }
 
 static CDeclarator* parseDirectAbstractDeclarator(TokenList* tokens) {
+    int size = 0;
     if (check(tokens, OPEN_PAREN)) {
         expect(tokens, OPEN_PAREN);
-        CDeclarator* decl = C_CreatePointerDeclarator(parseAbstractDeclarator(tokens));
+        CDeclarator* decl = parseAbstractDeclarator(tokens);
         expect(tokens, CLOSE_PAREN);
+        PARSE_ARRAY_DIMENSIONS(tokens, decl, size);
+        return decl;
+    }
+    else if (check(tokens, OPEN_BRACKET)) {
+        CDeclarator* decl = NULL;
+        PARSE_ARRAY_DIMENSIONS(tokens, decl, size);
+        return decl;
     }
     return NULL;
 }

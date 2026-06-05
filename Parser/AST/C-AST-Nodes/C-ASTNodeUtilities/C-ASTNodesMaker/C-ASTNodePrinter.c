@@ -21,6 +21,15 @@ static const char* getConstantTypeName(constantType type) {
     }
 }
 
+static const char* getStorageClassName(StorageClass storageClass) {
+    switch (storageClass) {
+        case STORAGE_CLASS_NONE: return "none";
+        case STORAGE_CLASS_STATIC: return "static";
+        case STORAGE_CLASS_EXTERN: return "extern";
+        default: return "unknown";
+    }
+}
+
 char* C_getDeclaratorIdentifier(CDeclarator* decl) {
     if (!decl) return NULL;
 
@@ -54,7 +63,13 @@ char* getCTypeName(CType* type, char* buf, size_t size) {
         case CTYPE_FUN: {
             char ret[BUF_SIZE];
             getCTypeName(type->fun.ret, ret, sizeof(ret));
-            snprintf(buf, size, "fn() -> %s", ret);
+            snprintf(buf, size, "Function(%s)", ret);
+            break;
+        }
+        case CTYPE_ARRAY: {
+            char elem[BUF_SIZE];
+            getCTypeName(type->array.elementType, elem, sizeof(elem));
+            snprintf(buf, size, "Array(%s, %d)", elem, type->array.size);
             break;
         }
         default: snprintf(buf, size, "unknown"); break;
@@ -86,9 +101,9 @@ void C_printFunction(CDeclaration* func) {
 
     printf("Function(\"%s\",", func->decl.functionDecl.identifier);
     char typeBuf[BUF_SIZE];
-    printf("Type: %s, StorageClass: %d,\n",
+    printf("Type: %s, StorageClass: %s,\n",
         func->decl.functionDecl.funcType ? getCTypeName(func->decl.functionDecl.funcType->fun.ret, typeBuf, sizeof(typeBuf)) : "null",
-        (int)func->decl.functionDecl.storageClass);
+        getStorageClassName(func->decl.functionDecl.storageClass));
     depth++;
 
     indent(); printf("Parameters([");
@@ -159,6 +174,7 @@ void C_printFactor(CFactor* exp) {
         case FACTOR_CAST:        C_printCast(exp->exp.cast);                 break;
         case FACTOR_DEREFERENCE: C_printDereference(exp->exp.pointerOp);    break;
         case FACTOR_ADDRESS_OF:  C_printAddressOf(exp->exp.pointerOp);       break;
+        case FACTOR_SUBSCRIPT:   C_printSubscript(exp->exp.subscript);       break;
     }
 }
 
@@ -172,6 +188,19 @@ void C_printCast(CCast* cast) {
     depth--;
     printf(")");
 }
+
+void C_printSubscript(CSubscript* subscript) {
+    if (!subscript) return;
+
+    printf("Subscript(");
+    depth++;
+    C_printFactor(subscript->pointer);
+    printf(", ");
+    C_printFactor(subscript->index);
+    depth--;
+    printf(")");
+}
+
 
 void C_printFunctionCall(CFunctionCall* funcCall) {
     if (!funcCall) return;
@@ -309,14 +338,34 @@ void C_printVarDeclaration(CDeclaration* decl) {
 
     printf("Declaration(\"%s\"", decl->decl.variableDecl.identifier);
     char varTypeBuf[BUF_SIZE];
-    printf(", Type: %s, StorageClass: %d", getCTypeName(decl->decl.variableDecl.varType, varTypeBuf, sizeof(varTypeBuf)),
-                (int)decl->decl.variableDecl.storageClass);
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
+    printf(", Type: %s, StorageClass: %s", getCTypeName(decl->decl.variableDecl.varType, varTypeBuf, sizeof(varTypeBuf)),
+                getStorageClassName(decl->decl.variableDecl.storageClass));
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.init) {
         printf(", ");
         depth++;
-        C_printFactor(decl->decl.variableDecl.exp);
+        C_printInitializer(decl->decl.variableDecl.init);
         depth--;
     }
+    printf(")");
+}
+
+void C_printInitializer(CInitializer* init) {
+    if (!init) return;
+
+    printf("Initializer(");
+    depth++;
+    if (init->type == INIT_SINGLE) {
+        C_printFactor(init->init.singleInit);
+    } else if (init->type == INIT_COMPOUND) {
+        printf("[\n");
+        for (int i = 0; i < init->init.compoundInit.initializers->size; i++) {
+            indent(); C_printInitializer(init->init.compoundInit.initializers->data[i]);
+            if (i < init->init.compoundInit.initializers->size - 1) printf(",\n");
+        }
+        printf("\n");
+        indent(); printf("]");
+    }
+    depth--;
     printf(")");
 }
 

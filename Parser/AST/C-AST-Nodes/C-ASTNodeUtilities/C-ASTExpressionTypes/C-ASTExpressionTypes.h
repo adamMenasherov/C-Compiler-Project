@@ -19,6 +19,7 @@ typedef struct CUnary        CUnary;
 #include "../../../../../DataStructures/DynamicArray/Wrappers/BlockItemArrayWrapper.h"
 #include "../../../../../DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
 #include "../../../../../DataStructures/DynamicArray/Wrappers/ExpressionFactorWrapper.h"
+#include "../../../../../DataStructures/DynamicArray/Wrappers/CInitializerListWrapper.h"
 
 /* Shared operator / type enums from the parser common layer */
 #include "../../../../Common/SharedNodeEnums.h"

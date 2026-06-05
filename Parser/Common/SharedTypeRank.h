@@ -10,3 +10,4 @@ int isDoubleLabel(const char* identifier);
 int isRelationBinaryOp(binType type);
 CType* constantTypeToCType(constantType type);
 TACKYStaticVarType initialStaticTypeToTACKYStaticVarType(initialValueStaticInitType type);
+int getIntegerConstant(TokenList* tokens);

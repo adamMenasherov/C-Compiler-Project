@@ -7,11 +7,11 @@
 #include "Lexer/lex.h"
 #include "Parser/Parser.h"
 #include "Semantic/semantic.h"
-#include "Parser/TACKY/TACKYProgram.h"
-#include "Parser/TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
-#include "Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
-#include "ASM-File-Generation/ASMGenerator.h"
-#include "DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
+// #include "Parser/TACKY/TACKYProgram.h"
+// #include "Parser/TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
+// #include "Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
+// #include "ASM-File-Generation/ASMGenerator.h"
+// #include "DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
 #include "DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
 
 
@@ -137,29 +137,43 @@ char* compileFile(char* fileName) {
     lex(&sourcePtr, tokenList); // TokensList is filled with tokens of the source file in the Lexer stage
     AST* ast = parse(tokenList); // Parsing the program to a AST structure
     printAST(ast);
+    printf("----- Semantic Phase -----\n");
     SymbolTable* symTable = resolveAST(ast);
+    if (!symTable) {
+        fprintf(stderr, "Semantic Error: Failed to resolve AST\n");
+        freeAST(ast);
+        free(source);
+        free(asmFileName);
+        free(preprocessFileName);
+        freeTokenList(tokenList);
+        return NULL;
+    }
     printf("----- Symbol Table -----\n");
     symbolTablePrint(symTable);
     printAST(ast);
 
-    printf("----- TACKY  -----\n");
-    TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
-    printTACKY_AST(tacky_ast);
-    printf("----- ASM  -----\n");
-    ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
-    printASM_AST(asm_ast);
-    ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
-    freeSymbolTable(symTable);
-    generateASMFile(asm_ast, asmFileName, asmSymTable);
-    commandForObjectFile(asmFileName, objectFileName);
+    // printf("----- TACKY  -----\n");
+    // TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
+    // printTACKY_AST(tacky_ast);
+    // printf("----- ASM  -----\n");
+    // ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
+    // printASM_AST(asm_ast);
+    // ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
+    // generateASMFile(asm_ast, asmFileName, asmSymTable);
+    // commandForObjectFile(asmFileName, objectFileName);
 
+    // Avoid unused-variable warnings while keeping existing ownership flow intact.
+    (void)objectFileName;
+    (void)asmFileName;
+
+    freeSymbolTable(symTable);
     freeAST(ast);
     free(source); 
     free(asmFileName);
     free(preprocessFileName);
     freeTokenList(tokenList);
 
-    return objectFileName;
+    return strdup("parser-only.o");
 }
 
 int traverseCompilerArgs(int argc, char** argv, char** finalExecutableName, int* outputSpecified, char** objectFileNames,
@@ -209,6 +223,11 @@ void startProcess(int argc, char* argv[]) {
         &isCFlagPresent, libraries);
 
     if (!isCFlagPresent) {
+#ifdef PARSER_ONLY
+        // Parser-only mode intentionally does not generate object files or link.
+        freeObjectFileNames(objectFileNames, countObject);
+        return;
+#endif
         char* derivedExecutableName = NULL;
         char* executableNameToUse = finalExecutableName;
 

@@ -83,7 +83,7 @@ int isBasicType(CType* type) {
     if (!type) return 0;
     return type->kind == CTYPE_INT || type->kind == CTYPE_LONG ||
            type->kind == CTYPE_UINT || type->kind == CTYPE_ULONG || type->kind == CTYPE_DOUBLE
-           || type->kind == CTYPE_POINTER;
+           || type->kind == CTYPE_POINTER || type->kind == CTYPE_ARRAY;
 }
 
 initialValueStaticInitType convertExpTypeToStaticInitType(CType* expType) {
@@ -172,7 +172,7 @@ int isNullPointerConstant(CFactor* factor) {
 
 
 int isLvalue(const CFactor* expr) {
-    return expr->type == FACTOR_VAR || expr->type == FACTOR_DEREFERENCE;
+    return expr->type == FACTOR_VAR || expr->type == FACTOR_DEREFERENCE || expr->type == FACTOR_SUBSCRIPT;
 }
 
 int getFunctionParamCount(const CType* funcType) {

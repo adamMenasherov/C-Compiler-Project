@@ -10,46 +10,58 @@
 static const char* getInitialValueTypeString(initialValue* initValue) {
     if (!initValue) return "null";
     switch (initValue->type) {
-        case INITIAL_TENTATIVE:
-            return "tentative";
-        case INITIAL_NO_VALUE:
-            return "no_value";
+        case INITIAL_TENTATIVE:  return "tentative";
+        case INITIAL_NO_VALUE:   return "no_value";
         case INITIAL_WITH_VALUE:
-            switch (initValue->value.staticInitVal.staticInitType) {
-                case STATIC_INIT_INT:
-                    return "int_value";
-                case STATIC_INIT_LONG:
-                    return "long_value";
-                case STATIC_INIT_UNSIGNED_INT:
-                    return "unsigned_int_value";
-                case STATIC_INIT_UNSIGNED_LONG:
-                    return "unsigned_long_value";
-                case STATIC_INIT_DOUBLE:
-                    return "double_value";
-                default:
-                    return "unknown_static_init_type";
+            if (initValue->value.size == 0) return "empty";
+            if (initValue->value.size == 1) {
+                switch (initValue->value.staticInitVal[0]->staticInitType) {
+                    case STATIC_INIT_INT:           return "int_value";
+                    case STATIC_INIT_LONG:          return "long_value";
+                    case STATIC_INIT_UNSIGNED_INT:  return "uint_value";
+                    case STATIC_INIT_UNSIGNED_LONG: return "ulong_value";
+                    case STATIC_INIT_DOUBLE:        return "double_value";
+                    case STATIC_INIT_ZERO_INIT:     return "zero_init";
+                    default:                        return "unknown_type";
+                }
             }
+            return "array_value";
         default:
-            return "unknown_initial_value_type";
+            return "unknown";
     }
 }
 
 static void getInitialValueString(initialValue* initValue, char* dest, size_t destSize) {
-    if (!initValue) {
-        snprintf(dest, destSize, "null");
-        return;
-    }
-
-    if (initValue->type != INITIAL_WITH_VALUE) {
+    if (!initValue || initValue->type != INITIAL_WITH_VALUE) {
         snprintf(dest, destSize, "n/a");
         return;
     }
 
-    if (initValue->value.staticInitVal.staticInitType == STATIC_INIT_DOUBLE) {
-        snprintf(dest, destSize, "%f", initValue->value.staticInitVal.val.doubleVal);
-    } else {
-        snprintf(dest, destSize, "%lu", initValue->value.staticInitVal.val.intVal);
+    if (initValue->value.size == 0) {
+        snprintf(dest, destSize, "[]");
+        return;
     }
+
+    if (initValue->value.size == 1) {
+        staticInitialVal* v = initValue->value.staticInitVal[0];
+        if (v->staticInitType == STATIC_INIT_DOUBLE)
+            snprintf(dest, destSize, "%g", v->val.doubleVal);
+        else
+            snprintf(dest, destSize, "%lu", v->val.intVal);
+        return;
+    }
+
+    size_t pos = 0;
+    pos += snprintf(dest + pos, destSize - pos, "[");
+    for (int i = 0; i < initValue->value.size && pos + 2 < destSize; i++) {
+        if (i > 0) pos += snprintf(dest + pos, destSize - pos, ", ");
+        staticInitialVal* v = initValue->value.staticInitVal[i];
+        if (v->staticInitType == STATIC_INIT_DOUBLE)
+            pos += snprintf(dest + pos, destSize - pos, "%g", v->val.doubleVal);
+        else
+            pos += snprintf(dest + pos, destSize - pos, "%lu", v->val.intVal);
+    }
+    snprintf(dest + pos, destSize - pos, "]");
 }
 
 
@@ -84,33 +96,25 @@ static int equalIdentifier(void* lhs, void* rhs) {
     return strcmp(left->identifier, right->identifier) == 0;
 }
 
-initialValue* createInitialValue(initialValueStaticInitType staticInitType, initialValueType type, uint64_t intValue, double doubleValue) {
+initialValue* createInitialValue(initialValueType type) {
     initialValue* value = malloc(sizeof(initialValue));
     if (!value) return NULL;
-
     value->type = type;
-    switch (type) {
-        case INITIAL_TENTATIVE:
-        case INITIAL_NO_VALUE:
-            break;
-        case INITIAL_WITH_VALUE:
-            value->value.staticInitVal.staticInitType = staticInitType;
-            if (staticInitType == STATIC_INIT_DOUBLE) {
-                value->value.staticInitVal.val.doubleVal = doubleValue;
-            } else {
-                value->value.staticInitVal.val.intVal = intValue;
-            }
-            break;
-    }
+    value->value.size = 0;
     return value;
 }
 
-initialValue* createIntInitialValue(initialValueType type, long intValue) {
-    return createInitialValue(STATIC_INIT_INT, type, intValue, 0.0);
-}
+staticInitialVal* createStaticInitialVal(initialValueStaticInitType staticInitType, uint64_t intVal, double doubleVal) {
+    staticInitialVal* val = malloc(sizeof(staticInitialVal));
+    if (!val) return NULL;
 
-initialValue* createDoubleInitialValue(initialValueType type, double doubleValue) {
-    return createInitialValue(STATIC_INIT_DOUBLE, type, 0, doubleValue);
+    val->staticInitType = staticInitType;
+    if (staticInitType == STATIC_INIT_DOUBLE) {
+        val->val.doubleVal = doubleVal;
+    } else {
+        val->val.intVal = intVal;
+    }
+    return val;
 }
 
 static IdentifierTypeInfo* createIdentifierTypeInfo(const char* identifier, CType* type, int isDefined, identifierAttrs* attrs) {
@@ -138,10 +142,6 @@ identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global,
     identifierAttrs* attrs = malloc(sizeof(identifierAttrs));
     if (!attrs) return NULL;
 
-    attrs->attrs.staticAttr.initValue = initValue
-        ? initValue
-        : createInitialValue(STATIC_INIT_INT, INITIAL_NO_VALUE, 0, 0.0);
-
     attrs->attrType = attrType;
     attrs->global = global;
     switch (attrType) {
@@ -151,7 +151,7 @@ identifierAttrs* createIdentifierAttrs(identifierAttrsType attrType, int global,
         case IDENTIFIER_STATIC_ATTR:
             attrs->attrs.staticAttr.initValue = initValue
                 ? initValue
-                : attrs->attrs.staticAttr.initValue;
+                : createInitialValue(INITIAL_NO_VALUE);
             break;
         case IDENTIFIER_LOCAL_ATTR:
             break;
@@ -174,7 +174,7 @@ void freeIdentifierTypeInfo(void* data) {
 }
 
 void printIdentifierTypeInfo(void* data) {
-    char initVal[21];
+    char initVal[1024];
     IdentifierTypeInfo* info = (IdentifierTypeInfo*)data;
     if (!info) return;
     char typeBuf[256];

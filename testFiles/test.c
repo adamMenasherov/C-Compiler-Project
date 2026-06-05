@@ -1,5 +1,1 @@
-int* main() {
-   int a = 5;
-   int *b = &a;
-   return *b;
-}
+double arr[3][2] = {{1}, {2}, {3}};

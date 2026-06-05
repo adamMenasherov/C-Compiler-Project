@@ -5,11 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static CFactor* convertInitializerToDeclType(CFactor* expr, CType* targetType) {
-    if (!expr) return expr;
-    return convertByAssignment(expr, targetType);
-}
-
 static void handleExternLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
         fprintf(stderr, "Semantic Error: Local external variable '%s' cannot have an initializer\n",
@@ -31,24 +26,31 @@ static void handleExternLocalVar(CDeclaration* decl, SymbolTable* symbolTable) {
         return;
     }
     symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, decl->decl.variableDecl.varType, 1,
-        createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, 1, createIntInitialValue(INITIAL_NO_VALUE, 0), 0));
+        createIdentifierAttrs(IDENTIFIER_STATIC_ATTR, 1, createInitialValue(INITIAL_NO_VALUE), 0));
 }
 
 static initialValue* resolveStaticLocalInitValue(CDeclaration* decl) {
     initialValueStaticInitType staticInitType = convertSpecTypeToStaticInitType(decl->decl.variableDecl.varType);
 
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITHOUT_EXP)
-        return createInitialValue(staticInitType, INITIAL_WITH_VALUE, 0, 0.0);
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITHOUT_EXP) {
+        initialValue* iv = createInitialValue(INITIAL_WITH_VALUE);
+        iv->value.staticInitVal[iv->value.size++] = createStaticInitialVal(staticInitType, 0, 0.0);
+        return iv;
+    }
 
-    if (decl->decl.variableDecl.exp && decl->decl.variableDecl.exp->type == FACTOR_CONSTANT) {
-        CConstant* cnst = decl->decl.variableDecl.exp->exp.cnst;
+    if (decl->decl.variableDecl.init &&
+        decl->decl.variableDecl.init->type == INIT_SINGLE &&
+        decl->decl.variableDecl.init->init.singleInit->type == FACTOR_CONSTANT) {
+        CConstant* cnst = decl->decl.variableDecl.init->init.singleInit->exp.cnst;
+        initialValue* iv = createInitialValue(INITIAL_WITH_VALUE);
         if (cnst->type == CONST_FLOATING_POINT) {
-            return createDoubleInitialValue(INITIAL_WITH_VALUE, cnst->value.doubleValue);
+            iv->value.staticInitVal[iv->value.size++] = createStaticInitialVal(STATIC_INIT_DOUBLE, 0, cnst->value.doubleValue);
         } else {
             uint64_t val = cnst->value.intValue;
             convertValFromType(&val, decl->decl.variableDecl.varType);
-            return createInitialValue(staticInitType, INITIAL_WITH_VALUE, val, 0.0);
+            iv->value.staticInitVal[iv->value.size++] = createStaticInitialVal(staticInitType, val, 0.0);
         }
+        return iv;
     }
 
     fprintf(stderr, "Semantic Error: Non-constant initializer for local static variable '%s'\n",
@@ -66,13 +68,8 @@ static void handleRegularLocalVar(CDeclaration* decl, SymbolTable* symbolTable) 
     symbolTableInsert(symbolTable, decl->decl.variableDecl.identifier, decl->decl.variableDecl.varType, 0,
         createIdentifierAttrs(IDENTIFIER_LOCAL_ATTR, 0, NULL, 0));
 
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.exp) {
-        CFactor* init = decl->decl.variableDecl.exp;
-        typeCheckExpression(init, symbolTable);
-        decl->decl.variableDecl.exp = convertInitializerToDeclType(
-            init,
-            decl->decl.variableDecl.varType
-        );
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP && decl->decl.variableDecl.init) {
+        typeCheckInit(decl->decl.variableDecl.varType, decl->decl.variableDecl.init, symbolTable);
     }
 }
 

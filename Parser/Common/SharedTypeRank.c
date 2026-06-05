@@ -64,3 +64,14 @@ TACKYStaticVarType initialStaticTypeToTACKYStaticVarType(initialValueStaticInitT
             exit(1);
     }
 }
+
+int getIntegerConstant(TokenList* tokens) {
+    constantType constType;
+    uint64_t intValue;
+    expectConstant(tokens, &constType, &intValue, NULL);
+    if (constType == CONST_FLOATING_POINT) {
+        fprintf(stderr, "Parser Error: Array size cannot be a floating point constant\n");
+        exit(1);
+    }
+    return (int)intValue;
+}

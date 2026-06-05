@@ -29,7 +29,7 @@
       "program": "${workspaceFolder}/compiler",
       "preLaunchTask": "build compiler",
       "args": [
-        "/home/adammenasherov/CompilerProject/writing-a-c-compiler-tests/tests/chapter_14/valid/libraries/static_pointer_client.c"
+        "testFiles/test.c"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

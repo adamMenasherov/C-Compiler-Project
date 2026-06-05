@@ -41,7 +41,9 @@ void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMa
         semanticMapPut(varMap, decl->decl.variableDecl.identifier, uniqueName, 1, 0);
         decl->decl.variableDecl.identifier = uniqueName;
     }
-    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
-        resolveExpression(decl->decl.variableDecl.exp, varMap, symbolTable);
+    if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP &&
+        decl->decl.variableDecl.init &&
+        decl->decl.variableDecl.init->type == INIT_SINGLE) {
+        resolveExpression(decl->decl.variableDecl.init->init.singleInit, varMap, symbolTable);
     }
 }

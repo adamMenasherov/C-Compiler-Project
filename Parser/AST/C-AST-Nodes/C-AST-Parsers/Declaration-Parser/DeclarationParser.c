@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "../C-ParsersInclude.h"
 #include "../../C-ASTNodeUtilities/C-ASTNodesMaker/C-ASTNodePrinter.h"
+#include "../../../../Common/SharedTypeRank.h"
 
 #define PARSE_SPECIFIER(token, flag, label) \
     if (check(tokens, token)) { \
@@ -16,24 +17,25 @@
 
 static CDeclarator* C_parseDirectDeclarator(TokenList* tokens);
 static CDeclarator* C_parseSimpleDeclarator(TokenList* tokens);
+static CDeclarator* C_parseDeclaratorSuffix(TokenList* tokens, CDeclarator* base);
 static CParamInfo*  C_parseParamList(TokenList* tokens, int* outCount);
 
 
 CDeclaration* C_parseVarDeclaration(TokenList* tokens, char* identifier, CType* varType, StorageClass storageClass) {
-    CFactor* fact = NULL;
+    CInitializer* init = NULL;
     varDeclType type = VAR_DECL_WITHOUT_EXP;
 
     if (check(tokens, ONE_EQUAL)) {
         type = VAR_DECL_WITH_EXP;
         expect(tokens, ONE_EQUAL);
-        fact = C_parseExpression(tokens, 0);
+        init = C_parseInitializer(tokens);
         expect(tokens, SEMICOLON);
     }
     else {
         expect(tokens, SEMICOLON);
     }
 
-    return C_CreateVariableDeclaration(type, identifier, fact, varType, storageClass);
+    return C_CreateVariableDeclaration(type, identifier, init, varType, storageClass);
 }
 
 
@@ -172,34 +174,67 @@ void processDeclarator(CDeclarator* decl, CType* baseType, CType** declType, cha
                 *identifier = C_getDeclaratorIdentifier(decl->decl.func.funcDecl);
             }
             return;
+        case DECLARATOR_ARRAY:
+            baseType = C_CreateArrayType(baseType, decl->decl.array.size);
+            processDeclarator(decl->decl.array.arrayDecl, baseType, declType, identifier, funcParams);
+            return;
     }
 }
 
 CDeclarator* C_parseDeclarator(TokenList* tokens) {
-    if (check(tokens, ASTERISK)) {                 
+    if (check(tokens, ASTERISK)) {
+        // Recursively parse pointer declarators, 
+        // allowing for multiple levels of pointers (e.g. int**)                 
         expect(tokens, ASTERISK);
         return C_CreatePointerDeclarator(C_parseDeclarator(tokens));
     }
+    // Parsing of direct declarator (identifier, function params) 
     return C_parseDirectDeclarator(tokens);
 }
 
 static CDeclarator* C_parseDirectDeclarator(TokenList* tokens) {
+    // Handle function declarators with parameters (e.g. int f(int x))
     CDeclarator* base = C_parseSimpleDeclarator(tokens);
-    if (check(tokens, OPEN_PAREN)) {               
-        int count;
-        CParamInfo* params = C_parseParamList(tokens, &count);
-        return C_CreateFunctionDeclarator(base, params, count);
-    }
-    return base;
+    CDeclarator* suffix = C_parseDeclaratorSuffix(tokens, base);
+    if (!suffix) return base;
+    return suffix;
 }
 
+
+static CDeclarator* C_parseDeclaratorSuffix(TokenList* tokens, CDeclarator* base) {
+    // Function parameters case
+    if (check(tokens, OPEN_PAREN)) {
+        int paramCount;
+        CParamInfo* params = C_parseParamList(tokens, &paramCount);
+        CDeclarator* funcDecl = C_CreateFunctionDeclarator(base, params, paramCount);
+        CDeclarator* next = C_parseDeclaratorSuffix(tokens, funcDecl);
+        return next ? next : funcDecl;
+    }
+    // Array declarator case
+    else if (check(tokens, OPEN_BRACKET)) {
+        expect(tokens, OPEN_BRACKET);
+        int size = 0;
+        if (!check(tokens, CLOSE_BRACKET)) {
+            size = getIntegerConstant(tokens);
+        }
+        expect(tokens, CLOSE_BRACKET);
+        CDeclarator* arrayDecl = C_CreateArrayDeclarator(base, size);
+        CDeclarator* next = C_parseDeclaratorSuffix(tokens, arrayDecl);
+        return next ? next : arrayDecl;
+    }
+    return NULL;
+}
+
+
 static CDeclarator* C_parseSimpleDeclarator(TokenList* tokens) {
+    // Parsing of simple declarator (identifier, nested declarator) 
     if (check(tokens, OPEN_PAREN)) {               
         expect(tokens, OPEN_PAREN);
         CDeclarator* inner = C_parseDeclarator(tokens);
         expect(tokens, CLOSE_PAREN);
         return inner;                              
     }
+    // Must be an identifier at this point, or it's a syntax error
     char* identifier = expectIdentifier(tokens);
     return C_CreateIdentDeclarator(identifier);
 }
