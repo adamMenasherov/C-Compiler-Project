@@ -4,6 +4,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static void resolveInitializer(CInitializer* init, SemanticIdentifierMap* varMap, SymbolTable* symbolTable) {
+    if (!init) return;
+
+    if (init->type == INIT_SINGLE) {
+        resolveExpression(init->init.singleInit, varMap, symbolTable);
+        return;
+    }
+
+    if (init->type == INIT_COMPOUND) {
+        CInitializerList* initializers = init->init.compoundInit.initializers;
+        if (!initializers) return;
+        for (int i = 0; i < initializers->size; i++) {
+            resolveInitializer((CInitializer*)initializers->data[i], varMap, symbolTable);
+        }
+    }
+}
+
 void resolveFileScopeVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMap) {
     semanticMapPut(varMap, decl->decl.variableDecl.identifier, decl->decl.variableDecl.identifier, 1, 1);
 }
@@ -42,8 +59,7 @@ void resolveLocalVarDeclaration(CDeclaration* decl, SemanticIdentifierMap* varMa
         decl->decl.variableDecl.identifier = uniqueName;
     }
     if (decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP &&
-        decl->decl.variableDecl.init &&
-        decl->decl.variableDecl.init->type == INIT_SINGLE) {
-        resolveExpression(decl->decl.variableDecl.init->init.singleInit, varMap, symbolTable);
+        decl->decl.variableDecl.init) {
+        resolveInitializer(decl->decl.variableDecl.init, varMap, symbolTable);
     }
 }

@@ -18,7 +18,7 @@ static void handleBlockItemDeclSingleInit(CBlockItem* blockItem, TACKYInstructio
         createCopyInstruction(src, dst));
 }
 
-static void handleBlockItemCompoundInitRecurse(CInitializer* init, char* varName, int offset, TACKYInstructionList* instructionList, SymbolTable* symTable) {
+static void handleBlockItemCompoundInitRecurse(CInitializer* init, CType* targetType, char* varName, int offset, TACKYInstructionList* instructionList, SymbolTable* symTable) {
     if (init->type == INIT_SINGLE) {
         CFactor* singleInit = init->init.singleInit;
         TACKYValue* src = emit_TACKYAndConvert(singleInit, instructionList, symTable);
@@ -26,11 +26,14 @@ static void handleBlockItemCompoundInitRecurse(CInitializer* init, char* varName
         addInstructionToList(instructionList,
             createCopyToOffsetInstruction(src, dst, offset));
     } else {
+        if (!targetType || targetType->kind != CTYPE_ARRAY) return;
         CInitializerList* initList = init->init.compoundInit.initializers;
+        CType* elemType = targetType->array.elementType;
+        int elemSize = size(elemType);
         for (int i = 0; i < CInitializerList_size(initList); i++) {
             CInitializer* nestedInit = CInitializerList_get(initList, i);
-            int nestedOffset = offset + i * size(getType(nestedInit));
-            handleBlockItemCompoundInitRecurse(nestedInit, varName, nestedOffset, instructionList, symTable);
+            int nestedOffset = offset + i * elemSize;
+            handleBlockItemCompoundInitRecurse(nestedInit, elemType, varName, nestedOffset, instructionList, symTable);
         }
     }
 }
@@ -39,11 +42,15 @@ static void handleBlockItemDeclCompoundInit(CBlockItem* blockItem, TACKYInstruct
     if (blockItem->item.decl->type == DECL_FUNC) return;
     if (blockItem->item.decl->decl.variableDecl.storageClass == STORAGE_CLASS_STATIC) return;
     char* varName = blockItem->item.decl->decl.variableDecl.identifier;
+    CType* varType = blockItem->item.decl->decl.variableDecl.varType;
     CInitializerList* initList = blockItem->item.decl->decl.variableDecl.init->init.compoundInit.initializers;
+    if (!varType || varType->kind != CTYPE_ARRAY) return;
+    CType* elemType = varType->array.elementType;
+    int elemSize = size(elemType);
     for (int i = 0; i < CInitializerList_size(initList); i++) {
         CInitializer* init = CInitializerList_get(initList, i);
-        int offset = i * size(getType(init));
-        handleBlockItemCompoundInitRecurse(init, varName, offset, instructionList, symTable);
+        int offset = i * elemSize;
+        handleBlockItemCompoundInitRecurse(init, elemType, varName, offset, instructionList, symTable);
     }
 }
 

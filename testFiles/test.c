@@ -1,4 +1,8 @@
-int main() {
-    int a[5] = {1, 2, 3, 4, 5};
-    return a[2];
+int bar(int x) {
+    static int y = x + 1;
+    return y;
+}
+
+int main(void) {
+    return bar(42);
 }

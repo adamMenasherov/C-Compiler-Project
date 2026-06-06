@@ -43,6 +43,9 @@ int ctypeEqual(CType* a, CType* b) {
         case CTYPE_ULONG:
         case CTYPE_DOUBLE:
             return 1;
+        case CTYPE_ARRAY:
+            return a->array.size == b->array.size &&
+                   ctypeEqual(a->array.elementType, b->array.elementType);
         case CTYPE_POINTER:
             return ctypeEqual(a->pointer.referenced, b->pointer.referenced);
         case CTYPE_FUN: {

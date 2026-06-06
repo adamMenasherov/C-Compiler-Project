@@ -88,7 +88,7 @@ CFactor* C_parseExpression(TokenList* tokens, int min_prec) {
 }
 
 CInitializer* C_parseInitializer(TokenList* tokens) {
-    if (check(tokens, OPEN_BRACE)) {
+    if (check(tokens, OPEN_BRACE)) { // Array definition
         expect(tokens, OPEN_BRACE);
         CInitializerList* initList = CInitializerList_create();
         while (!check(tokens, CLOSE_BRACE)) {

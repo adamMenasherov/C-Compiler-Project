@@ -4,6 +4,7 @@
 extern const char *tokenTypeStr[];
 extern const char *tokenTypeToSymbol[];
 
+// All the token types the lexer can produce. 
 typedef enum {
     IDENTIFIER, 
     CONSTANT,
@@ -78,6 +79,7 @@ typedef enum {
     NOT_ACCEPTING
 } TokenType;
 
+// All the keyword tokens the lexer can produce.
 typedef enum {
     KEYWORD_TOKEN_INT,
     KEYWORD_TOKEN_LONG,
@@ -101,6 +103,7 @@ typedef enum {
     KEYWORD_TOKEN_END_OF_KEYWORDS
 } KeywordTokenType;
 
+// All the single character tokens the lexer can produce.
 typedef enum {
     SINGLE_CHAR_TOKEN_OPEN_PAREN,
     SINGLE_CHAR_TOKEN_CLOSE_PAREN,
@@ -128,22 +131,92 @@ typedef enum {
     SINGLE_CHAR_END_OF_SINGLE_CHAR_TOKENS
 } SingleCharTokenType;
 
+// All the two character tokens the lexer can produce.
 typedef enum {
-    TWO_CHAR_TOKEN_TWO_AMPERSANDS,
-    TWO_CHAR_TOKEN_TWO_BARS,
-    TWO_CHAR_TOKEN_LEFT_SHIFT,
-    TWO_CHAR_TOKEN_RIGHT_SHIFT,
+    TWO_CHAR_TOKEN_TWO_AMPERSANDS, // &&
+    TWO_CHAR_TOKEN_TWO_BARS, // ||
+    TWO_CHAR_TOKEN_LEFT_SHIFT, // <<
+    TWO_CHAR_TOKEN_RIGHT_SHIFT, // >>
     TWO_CHAR_END_OF_TWO_CHAR_TOKENS
 } TwoCharTokenType;
 
+
+/**
+ * @brief Converts a keyword token type to a token type.
+ * 
+ * @param type The keyword token type to convert.
+ * @return TokenType The corresponding token type, or ERROR if the input is invalid.
+ */
 TokenType keywordTokenTypeToTokenType(KeywordTokenType type);
+
+/**
+ * @brief Converts a single character token type to a token type.
+ * 
+ * @param type The single character token type to convert.
+ * @return TokenType The corresponding token type, or ERROR if the input is invalid.
+ */
 TokenType singleCharTokenTypeToTokenType(SingleCharTokenType type);
+
+/**
+ * @brief Converts a two character token type to a token type.
+ * 
+ * @param type The two character token type to convert.
+ * @return TokenType The corresponding token type, or ERROR if the input is invalid.
+ */
 TokenType twoCharTokenTypeToTokenType(TwoCharTokenType type);
 
+/**
+ * @brief Checks if a token type is a binary operator.
+ * 
+ * @param type The token type to check.
+ * @return int 1 if the token type is a binary operator, 0 otherwise.
+ */
 int isTokenTypeBinaryOp(TokenType type);
+
+/**
+ * @brief Checks if a token type is a unary operator.
+ * 
+ * @param type The token type to check.
+ * @return int 1 if the token type is a unary operator, 0 otherwise.
+ */
 int isTokenTypeUnaryOp(TokenType type);
+
+/**
+ * @brief Converts a binary operator token type to its corresponding operator with equal token type.
+ * 
+ * @param type The binary operator token type to convert.
+ * @return TokenType The corresponding operator with equal token type, or ERROR if the input is invalid.
+ */
 TokenType binaryOpToOpWithEqual(TokenType type);
+
+/**
+ * @brief Converts a subtraction or addition token type to its corresponding double subtraction or addition token type.
+ * 
+ * @param type The subtraction or addition token type to convert.
+ * @return TokenType The corresponding double subtraction or addition token type, or ERROR if the input is invalid.
+ */
 TokenType subAddtoDoubleSubAdd(TokenType type);
+
+/**
+ * @brief Converts a token type to its corresponding token string.
+ * 
+ * @param type The token type to convert.
+ * @return char* The corresponding token string, or NULL if the input is invalid.
+ */
 char* tokenTypeToToken(TokenType type);
+
+/**
+ * @brief Converts a token type to its corresponding unary type.
+ * 
+ * @param type The token type to convert.
+ * @return unaryType The corresponding unary type, or ERROR if the input is invalid.
+ */
 unaryType tokenTypeToUnaryType(TokenType type);
+
+/**
+ * @brief Converts a prefix unary type to its corresponding postfix unary type.
+ * 
+ * @param type The prefix unary type to convert.
+ * @return unaryType The corresponding postfix unary type, or ERROR if the input is invalid.
+ */
 unaryType prefixToPostfix(unaryType type);

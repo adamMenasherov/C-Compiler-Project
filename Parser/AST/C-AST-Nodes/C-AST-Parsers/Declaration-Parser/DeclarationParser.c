@@ -73,7 +73,7 @@ CDeclaration* C_parseDeclaration(TokenList* tokens) {
     IdentifierArray* funcParams = IdentifierArray_create();
 
     C_parseTypeAndStorageClass(tokens, &baseType, &storageClass);
-    CDeclarator* decl = C_parseDeclarator(tokens);          // now includes (params)
+    CDeclarator* decl = C_parseDeclarator(tokens); // For handling pointers, arrays and function declarators
     processDeclarator(decl, baseType, &declType, &identifier, funcParams);
 
     if (declType->kind == CTYPE_FUN) {
@@ -200,6 +200,18 @@ static CDeclarator* C_parseDirectDeclarator(TokenList* tokens) {
     return suffix;
 }
 
+static CDeclarator* C_parseSimpleDeclarator(TokenList* tokens) {
+    // Parsing of simple declarator (identifier, nested declarator) 
+    if (check(tokens, OPEN_PAREN)) {               
+        expect(tokens, OPEN_PAREN);
+        CDeclarator* inner = C_parseDeclarator(tokens);
+        expect(tokens, CLOSE_PAREN);
+        return inner;                              
+    }
+    // Must be an identifier at this point, or it's a syntax error
+    char* identifier = expectIdentifier(tokens);
+    return C_CreateIdentDeclarator(identifier);
+}
 
 static CDeclarator* C_parseDeclaratorSuffix(TokenList* tokens, CDeclarator* base) {
     // Function parameters case
@@ -225,19 +237,6 @@ static CDeclarator* C_parseDeclaratorSuffix(TokenList* tokens, CDeclarator* base
     return NULL;
 }
 
-
-static CDeclarator* C_parseSimpleDeclarator(TokenList* tokens) {
-    // Parsing of simple declarator (identifier, nested declarator) 
-    if (check(tokens, OPEN_PAREN)) {               
-        expect(tokens, OPEN_PAREN);
-        CDeclarator* inner = C_parseDeclarator(tokens);
-        expect(tokens, CLOSE_PAREN);
-        return inner;                              
-    }
-    // Must be an identifier at this point, or it's a syntax error
-    char* identifier = expectIdentifier(tokens);
-    return C_CreateIdentDeclarator(identifier);
-}
 
 static CParamInfo* C_parseParamList(TokenList* tokens, int* outCount) {
     expect(tokens, OPEN_PAREN);
