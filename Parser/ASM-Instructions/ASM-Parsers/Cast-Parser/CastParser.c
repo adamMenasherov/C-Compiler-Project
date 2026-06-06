@@ -15,5 +15,5 @@ void parseZeroExtendInstruction(TACKYInstruction* instruction, ASMInstructionLis
 void parseASMTruncateInstruction(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     ASMOperand* src_op  = tackyValueToASMOperand(instruction->instValue.truncate.src, symTable);
     ASMOperand* dest_op = tackyValueToASMOperand(instruction->instValue.truncate.dest, symTable);
-    addASMInstructionAtEnd(asmInstructionList, createMovInstruction(ASM_LONGWORD, src_op, dest_op));
+    addASMInstructionAtEnd(asmInstructionList, createMovInstruction((ASMType){.kind = ASM_LONGWORD}, src_op, dest_op));
 }

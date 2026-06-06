@@ -13,8 +13,11 @@ int size(CType* type) {
             return 4;
         case CTYPE_LONG:
         case CTYPE_ULONG:
+        case CTYPE_DOUBLE:
         case CTYPE_POINTER:
             return 8;
+        case CTYPE_ARRAY:
+            return size(type->array.elementType) * type->array.size;
         default:
             fprintf(stderr, "Invalid CType kind in size function\n");
             exit(1);

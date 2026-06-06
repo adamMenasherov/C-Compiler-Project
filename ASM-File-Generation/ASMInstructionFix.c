@@ -49,11 +49,11 @@ static int isShiftBinary(ASMBinaryOperator t) {
 }
 
 static Register scratchReg1(ASMType t) {
-    return t == ASM_DOUBLE ? XMM15 : R10;
+    return t.kind == ASM_DOUBLE ? XMM15 : R10;
 }
 
 static Register scratchReg2(ASMType t) {
-    return t == ASM_DOUBLE ? XMM14 : R11;
+    return t.kind == ASM_DOUBLE ? XMM14 : R11;
 }
 
 static int getPseudoSlotSize(const char* identifier, ASMSymbolTable* asmSymTable) {
@@ -62,20 +62,28 @@ static int getPseudoSlotSize(const char* identifier, ASMSymbolTable* asmSymTable
 
     entry = asmSymbolTableLookup(asmSymTable, identifier);
     if (!entry || entry->entryType != ASM_SYMTAB_OBJ_ENTRY) return 4;
-    return entry->objEntry.assemblyType == ASM_LONGWORD ? 4 : 8;
+    ASMType t = entry->objEntry.assemblyType;
+    if (t.kind == ASM_BYTE_ARRAY) return t.byteArray.size;
+    return t.kind == ASM_LONGWORD ? 4 : 8;
 }
 
 static void insertPseudoToTable(CharIntMap* table, char* identifier,
                                 int* offset, ASMSymbolTable* asmSymTable) {
-    int val, size, alignment, used;
+    int val, slot_size, slot_align, used;
     if (charIntMapGet(table, identifier, &val)) return;
 
-    size = getPseudoSlotSize(identifier, asmSymTable);
-    alignment = size;
-    used = *offset + size;
-    if (used % alignment != 0) {          // align slot to its own size
-        used += alignment - (used % alignment);
+    ASMSymTabEntry* entry = asmSymbolTableLookup(asmSymTable, identifier);
+    if (entry && entry->entryType == ASM_SYMTAB_OBJ_ENTRY &&
+            entry->objEntry.assemblyType.kind == ASM_BYTE_ARRAY) {
+        slot_size  = entry->objEntry.assemblyType.byteArray.size;
+        slot_align = entry->objEntry.assemblyType.byteArray.alignment;
+    } else {
+        slot_size  = getPseudoSlotSize(identifier, asmSymTable);
+        slot_align = slot_size;
     }
+    used = *offset + slot_size;
+    if (used % slot_align != 0)
+        used += slot_align - (used % slot_align);
     charIntMapPut(table, identifier, -used);
     *offset = used;
 }
@@ -102,7 +110,7 @@ static void fixMov(Emitter* e, ASMInstruction* in) {
     ASMOperand* src = in->instValue.mov.operand1;
     ASMOperand* dst = in->instValue.mov.operand2;
 
-    int largeImmToMem = (t == ASM_QUADWORD) && isLargeImmediate(src) && !isRegister(dst);
+    int largeImmToMem = (t.kind == ASM_QUADWORD) && isLargeImmediate(src) && !isRegister(dst);
 
     if (isBothMemoryOps(src, dst) || largeImmToMem) {
         emit(e, createMovInstruction(t, src, reg(scratchReg1(t))));
@@ -117,12 +125,12 @@ static void fixMovsx(Emitter* e, ASMInstruction* in) {
     int memDst = isMemoryOp(dst);
 
     if (isImmediate(src)) {                 // src can't be a constant
-        emit(e, createMovInstruction(ASM_LONGWORD, src, reg(R10)));
+        emit(e, createMovInstruction((ASMType){.kind = ASM_LONGWORD}, src, reg(R10)));
         src = reg(R10);
     }
     ASMOperand* realDst = memDst ? reg(R11) : dst;
     emit(e, createASMMovsxInstruction(src, realDst));
-    if (memDst) emit(e, createMovInstruction(ASM_QUADWORD, reg(R11), dst));  // write back
+    if (memDst) emit(e, createMovInstruction((ASMType){.kind = ASM_QUADWORD}, reg(R11), dst));  // write back
 }
 
 static void fixCVTTSD2SI(Emitter* e, ASMInstruction* in) {
@@ -147,7 +155,7 @@ static void fixCVTSI2SD(Emitter* e, ASMInstruction* in) {
     }
     if (!isRegister(dst)) {
         emit(e, createCvtsi2sdInstruction(srcType, src, reg(XMM15)));
-        emit(e, createMovInstruction(ASM_DOUBLE, reg(XMM15), dst));
+        emit(e, createMovInstruction((ASMType){.kind = ASM_DOUBLE}, reg(XMM15), dst));
     } else {
         emit(e, createCvtsi2sdInstruction(srcType, src, dst));
     }
@@ -158,7 +166,7 @@ static void fixLea(Emitter* e, ASMInstruction* in) {
     ASMOperand* dst = in->instValue.lea.dest;
     if (!isRegister(dst)) {
         emit(e, createLeaInstruction(src, reg(R11)));
-        emit(e, createMovInstruction(ASM_QUADWORD, reg(R11), dst));
+        emit(e, createMovInstruction((ASMType){.kind = ASM_QUADWORD}, reg(R11), dst));
     } else {
         emit(e, createLeaInstruction(src, dst));
     }
@@ -168,10 +176,10 @@ static void fixMovZeroExtend(Emitter* e, ASMInstruction* in) {
     ASMOperand* src = in->instValue.movZeroExtend.operand1;
     ASMOperand* dst = in->instValue.movZeroExtend.operand2;
     if (isRegister(dst)) {
-        emit(e, createMovInstruction(ASM_LONGWORD, src, dst));
+        emit(e, createMovInstruction((ASMType){.kind = ASM_LONGWORD}, src, dst));
     } else {
-        emit(e, createMovInstruction(ASM_LONGWORD, src, reg(R11)));
-        emit(e, createMovInstruction(ASM_QUADWORD, reg(R11), dst));
+        emit(e, createMovInstruction((ASMType){.kind = ASM_LONGWORD}, src, reg(R11)));
+        emit(e, createMovInstruction((ASMType){.kind = ASM_QUADWORD}, reg(R11), dst));
     }
 }
 
@@ -215,7 +223,7 @@ static void fixShift(Emitter* e, ASMInstruction* in) {
 
     if (countNeedsCx) {
         emit(e, createASMPushInstruction(reg(CX)));
-        emit(e, createMovInstruction(ASM_LONGWORD, count, reg(CX)));
+        emit(e, createMovInstruction((ASMType){.kind = ASM_LONGWORD}, count, reg(CX)));
         count = reg(CX);
     }
     if (isImmediate(dst)) {                 // dst can't be a constant: use R11, write back
@@ -237,15 +245,15 @@ static void fixBinary(Emitter* e, ASMInstruction* in) {
     ASMOperand* op1 = in->instValue.binary.op1;
     ASMOperand* op2 = in->instValue.binary.op2;
 
-    if (t == ASM_QUADWORD && isLargeImmediate(op1)) {   // 64-bit imm must go via reg
-        emit(e, createMovInstruction(ASM_QUADWORD, op1, reg(R10)));
+    if (t.kind == ASM_QUADWORD && isLargeImmediate(op1)) {   // 64-bit imm must go via reg
+        emit(e, createMovInstruction((ASMType){.kind = ASM_QUADWORD}, op1, reg(R10)));
         op1 = reg(R10);
     }
     if (isBothMemoryOps(op1, op2)) {        // no mem,mem form
         emit(e, createMovInstruction(t, op1, reg(scratchReg1(t))));
         op1 = reg(scratchReg1(t));
     }
-    if ((op == ASM_BINARY_MULTIPLY || t == ASM_DOUBLE) && isMemoryOp(op2)) {
+    if ((op == ASM_BINARY_MULTIPLY || t.kind == ASM_DOUBLE) && isMemoryOp(op2)) {
         emit(e, createMovInstruction(t, op2, reg(scratchReg2(t))));
         emit(e, createASMBinaryInstruction(op, t, op1, reg(scratchReg2(t))));
         emit(e, createMovInstruction(t, reg(scratchReg2(t)), op2));
@@ -259,8 +267,8 @@ static void fixCmp(Emitter* e, ASMInstruction* in) {
     ASMOperand* op1 = in->instValue.cmp.op1;
     ASMOperand* op2 = in->instValue.cmp.op2;
 
-    if (t == ASM_QUADWORD && isLargeImmediate(op1)) {   // 64-bit imm must go via reg
-        emit(e, createMovInstruction(ASM_QUADWORD, op1, reg(R10)));
+    if (t.kind == ASM_QUADWORD && isLargeImmediate(op1)) {   // 64-bit imm must go via reg
+        emit(e, createMovInstruction((ASMType){.kind = ASM_QUADWORD}, op1, reg(R10)));
         op1 = reg(R10);
     }
     if (isBothMemoryOps(op1, op2)) {        // no mem,mem form

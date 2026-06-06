@@ -7,11 +7,7 @@
 #include "Lexer/lex.h"
 #include "Parser/Parser.h"
 #include "Semantic/semantic.h"
-// #include "Parser/TACKY/TACKYProgram.h"
-// #include "Parser/TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
-// #include "Parser/ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
-// #include "ASM-File-Generation/ASMGenerator.h"
-// #include "DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
+#include "DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
 #include "DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
 
 
@@ -152,17 +148,13 @@ char* compileFile(char* fileName) {
     symbolTablePrint(symTable);
     printAST(ast);
 
-    // printf("----- TACKY  -----\n");
-    // TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
-    // printTACKY_AST(tacky_ast);
-    // printf("----- ASM  -----\n");
-    // ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
-    // printASM_AST(asm_ast);
-    // ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
-    // generateASMFile(asm_ast, asmFileName, asmSymTable);
-    // commandForObjectFile(asmFileName, objectFileName);
+    printf("----- TACKY  -----\n");
+    TACKY* tacky_ast = astToTACKY_AST(ast, symTable);
+    printTACKY_AST(tacky_ast);
+    printf("----- ASM  -----\n");
+    ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
+    printASM_AST(asm_ast);
 
-    // Avoid unused-variable warnings while keeping existing ownership flow intact.
     (void)objectFileName;
     (void)asmFileName;
 

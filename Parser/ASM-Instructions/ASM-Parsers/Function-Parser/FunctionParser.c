@@ -42,7 +42,9 @@ static const ASMInstructionHandler instructionHandlers[] = {
     [TACKY_UINT_TO_DOUBLE]   = parseUintToDoubleInstruction,
     [TACKY_LOAD]             = parseLoadInstruction,
     [TACKY_STORE]            = parseStoreInstruction,
-    [TACKY_GET_ADDRESS]       = parseGetAddressInstruction
+    [TACKY_GET_ADDRESS]       = parseGetAddressInstruction,
+    [TACKY_ADD_PTR]          = parseAddPtrInstruction,
+    [TACKY_COPY_TO_OFFSET]   = parseCopyToOffsetInstruction,
 };
 
 void parseASMInstruction(TACKYInstructionList* tackyInstList, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
@@ -60,10 +62,10 @@ static ParamClassification classifyFuncParams(CType* funcType, int paramCount) {
     ParamClassification cls = {0};
     cls.stackIdxs = malloc(paramCount * sizeof(int));
     for (int i = 0; i < paramCount; i++) {
-        ASMType t = ASM_LONGWORD;
+        ASMType t = {.kind = ASM_LONGWORD};
         if (funcType && funcType->kind == CTYPE_FUN && i < funcType->fun.paramCnt && funcType->fun.params[i])
             t = convertCTypeToASMType(funcType->fun.params[i]);
-        if (t == ASM_DOUBLE) {
+        if (t.kind == ASM_DOUBLE) {
             if (cls.doubleRegCount < 8)
                 cls.doubleRegIdxs[cls.doubleRegCount++] = i;
             else
@@ -83,7 +85,7 @@ static void emitIntRegParams(IdentifierArray* params, CType* funcType,
     for (int i = 0; i < cls->intRegCount; i++) {
         int idx = cls->intRegIdxs[i];
         char* arg = IdentifierArray_get(params, idx);
-        ASMType paramType = ASM_LONGWORD;
+        ASMType paramType = {.kind = ASM_LONGWORD};
         if (funcType && funcType->kind == CTYPE_FUN && idx < funcType->fun.paramCnt && funcType->fun.params[idx])
             paramType = convertCTypeToASMType(funcType->fun.params[idx]);
         addASMInstructionAtEnd(list,
@@ -99,7 +101,7 @@ static void emitDoubleRegParams(IdentifierArray* params, ParamClassification* cl
         int idx = cls->doubleRegIdxs[i];
         char* arg = IdentifierArray_get(params, idx);
         addASMInstructionAtEnd(list,
-            createMovInstruction(ASM_DOUBLE,
+            createMovInstruction((ASMType){.kind = ASM_DOUBLE},
                 createRegisterOperand(doubleArgRegisters[i]),
                 tackyValueToASMOperand(createVarValue(arg), symTable)));
     }
@@ -111,7 +113,7 @@ static void emitStackParams(IdentifierArray* params, CType* funcType,
     for (int j = 0; j < cls->stackCount; j++) {
         int idx = cls->stackIdxs[j];
         char* arg = IdentifierArray_get(params, idx);
-        ASMType paramType = ASM_LONGWORD;
+        ASMType paramType = {.kind = ASM_LONGWORD};
         if (funcType && funcType->kind == CTYPE_FUN && idx < funcType->fun.paramCnt && funcType->fun.params[idx])
             paramType = convertCTypeToASMType(funcType->fun.params[idx]);
         addASMInstructionAtEnd(list,

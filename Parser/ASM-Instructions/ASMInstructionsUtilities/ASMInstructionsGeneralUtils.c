@@ -20,17 +20,25 @@ ASMCondCode getCondCodeForRelationalOp(binType type, int isSigned) {
     }
 }
 
+ASMType asmByteArray(int sz, int al) {
+    ASMType t;
+    t.kind = ASM_BYTE_ARRAY;
+    t.byteArray.size = sz;
+    t.byteArray.alignment = al;
+    return t;
+}
 
 ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable) {
-    if (!val) return ASM_LONGWORD;
+    ASMType longword = {ASM_LONGWORD};
+    if (!val) return longword;
 
     if (val->type == TACKY_CONSTANT && val->constant) {
         if (val->constant->type == CONST_FLOATING_POINT)
-            return ASM_DOUBLE;
+            return (ASMType){ASM_DOUBLE};
         if (val->constant->type == CONST_INT || val->constant->type == CONST_UNSIGNED_INT)
-            return ASM_LONGWORD;
+            return longword;
         if (val->constant->type == CONST_LONG || val->constant->type == CONST_UNSIGNED_LONG)
-            return ASM_QUADWORD;
+            return (ASMType){ASM_QUADWORD};
     }
 
     if ((val->type == TACKY_VAR || val->type == TACKY_STATIC) && val->identifier && symTable) {
@@ -38,27 +46,35 @@ ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable) {
         if (info) return convertIdentifierTypeToASMType(info);
     }
 
-    return ASM_LONGWORD;
+    return longword;
 }
 
 ASMType convertCTypeToASMType(CType* type) {
-    if (!type) return ASM_LONGWORD;
+    ASMType longword = {ASM_LONGWORD};
+    if (!type) return longword;
     switch (type->kind) {
         case CTYPE_INT:
         case CTYPE_UINT:
-             return ASM_LONGWORD;
+             return longword;
         case CTYPE_LONG:
         case CTYPE_ULONG:
         case CTYPE_POINTER:
-             return ASM_QUADWORD;
+             return (ASMType){ASM_QUADWORD};
         case CTYPE_DOUBLE:
-             return ASM_DOUBLE;
-        default: return ASM_LONGWORD;
+             return (ASMType){ASM_DOUBLE};
+        case CTYPE_ARRAY: {
+            int total_size = size(type);
+            int elem_size = size(type->array.elementType);
+            int arr_align = (total_size >= 16) ? 16 : elem_size;
+            return asmByteArray(total_size, arr_align);
+        }
+        default: return longword;
     }
 }
 
 ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info) {
-    if (!info || !info->type) return ASM_LONGWORD;
+    ASMType longword = {.kind = ASM_LONGWORD};
+    if (!info || !info->type) return longword;
     return convertCTypeToASMType(info->type);
 }
 
@@ -114,7 +130,7 @@ int isDoubleOperand(TACKYValue* val, SymbolTable* symTable) {
         IdentifierTypeInfo* info = symbolTableLookup(symTable, val->identifier);
         if (info) {
             ASMType asmType = convertIdentifierTypeToASMType(info);
-            return asmType == ASM_DOUBLE; 
+            return asmType.kind == ASM_DOUBLE;
         }
     }
 

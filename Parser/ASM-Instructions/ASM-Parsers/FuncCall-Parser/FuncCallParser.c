@@ -40,7 +40,7 @@ static void emitDoubleRegArgs(TACKYValueArray* args, CallArgClassification* cls,
                               ASMInstructionList* list, SymbolTable* symTable) {
     for (int i = 0; i < cls->doubleRegCount; i++) {
         TACKYValue* arg = TACKYValueArray_get(args, cls->doubleRegIdxs[i]);
-        addASMInstructionAtEnd(list, createMovInstruction(ASM_DOUBLE,
+        addASMInstructionAtEnd(list, createMovInstruction((ASMType){.kind = ASM_DOUBLE},
             tackyValueToASMOperand(arg, symTable),
             createRegisterOperand(doubleArgRegisters[i])));
     }
@@ -52,10 +52,10 @@ static void emitStackArgs(TACKYValueArray* args, CallArgClassification* cls,
         TACKYValue* arg = TACKYValueArray_get(args, cls->stackIdxs[j]);
         ASMOperand* argOp = tackyValueToASMOperand(arg, symTable);
         ASMType argType = isDoubleOperand(arg, symTable)
-            ? ASM_DOUBLE
+            ? (ASMType){.kind = ASM_DOUBLE}
             : convertTACKYTypeToASMType(arg, symTable);
         if (argOp->type == ASM_OP_IMMEDIATE || argOp->type == ASM_OP_REGISTER
-                || argType == ASM_QUADWORD || argType == ASM_DOUBLE) {
+                || argType.kind == ASM_QUADWORD || argType.kind == ASM_DOUBLE) {
             addASMInstructionAtEnd(list, createASMPushInstruction(argOp));
         } else {
             addASMInstructionAtEnd(list, createMovInstruction(argType, argOp, createRegisterOperand(AX)));
@@ -83,13 +83,13 @@ void parseFunctionCallInstruction(TACKYInstruction* instruction, ASMInstructionL
     if (bytesToRemove)
         addASMInstructionAtEnd(asmInstructionList, createASMDeallocateStackInstruction(bytesToRemove));
 
-    ASMType retAsmType = ASM_LONGWORD;
+    ASMType retAsmType = {.kind = ASM_LONGWORD};
     IdentifierTypeInfo* calledFunction = symbolTableLookup(symTable, instruction->instValue.funCall.functionName);
     if (calledFunction && calledFunction->type && calledFunction->type->kind == CTYPE_FUN && calledFunction->type->fun.ret) {
         retAsmType = convertCTypeToASMType(calledFunction->type->fun.ret);
     }
     ASMOperand* retDest = tackyValueToASMOperand(instruction->instValue.funCall.resultVar, symTable);
-    Register retReg = (retAsmType == ASM_DOUBLE) ? XMM0 : AX;
+    Register retReg = (retAsmType.kind == ASM_DOUBLE) ? XMM0 : AX;
     addASMInstructionAtEnd(asmInstructionList,
         createMovInstruction(retAsmType, createRegisterOperand(retReg), retDest));
     free(cls.stackIdxs);

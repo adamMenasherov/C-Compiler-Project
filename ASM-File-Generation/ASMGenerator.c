@@ -19,7 +19,7 @@ static char* turnStaticInitTypeToAsm(initialValueStaticInitType type) {
 }
 
 static char* turnASMTypeToAsm(ASMType type) {
-    switch (type) {
+    switch (type.kind) {
         case ASM_LONGWORD: return "l";
         case ASM_QUADWORD: return "q";
         default: return "<unknown asm type>";
@@ -145,13 +145,13 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
         
         case ASM_MOV:
         {
-            if (inst->instValue.mov.asmType == ASM_DOUBLE) {
+            if (inst->instValue.mov.asmType.kind == ASM_DOUBLE) {
                 fprintf(fp, "\tmovsd ");
                 printOperandToASMFile(inst->instValue.mov.operand1, fp, REGISTER_64_BIT);
                 fputs(", ", fp);
                 printOperandToASMFile(inst->instValue.mov.operand2, fp, REGISTER_64_BIT);
             } else {
-                REGISTER_SIZE size = inst->instValue.mov.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+                REGISTER_SIZE size = inst->instValue.mov.asmType.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
                 fprintf(fp, "\tmov%s ", turnASMTypeToAsm(inst->instValue.mov.asmType));
                 printOperandToASMFile(inst->instValue.mov.operand1, fp, size);
                 fputs(", ", fp);
@@ -161,11 +161,11 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
             break;
         }
         case ASM_UNARY: {
-            if (inst->instValue.unary.asmType == ASM_DOUBLE) {
+            if (inst->instValue.unary.asmType.kind == ASM_DOUBLE) {
                 fprintf(fp, "\t%ssd ", asmUnaryOperatorToString(inst->instValue.unary.type));
                 printOperandToASMFile(inst->instValue.unary.op, fp, REGISTER_64_BIT);
             } else {
-                REGISTER_SIZE size = inst->instValue.unary.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+                REGISTER_SIZE size = inst->instValue.unary.asmType.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
                 fprintf(fp, "\t%s%s ", asmUnaryOperatorToString(inst->instValue.unary.type),
                         turnASMTypeToAsm(inst->instValue.unary.asmType));
                 printOperandToASMFile(inst->instValue.unary.op, fp, size);
@@ -194,13 +194,13 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
         }
 
         case ASM_CMP: {
-            if (inst->instValue.cmp.asmType == ASM_DOUBLE) {
+            if (inst->instValue.cmp.asmType.kind == ASM_DOUBLE) {
                 fprintf(fp, "\tcomisd ");
                 printOperandToASMFile(inst->instValue.cmp.op1, fp, REGISTER_64_BIT);
                 fputs(", ", fp);
                 printOperandToASMFile(inst->instValue.cmp.op2, fp, REGISTER_64_BIT);
             } else {
-                REGISTER_SIZE size = inst->instValue.cmp.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+                REGISTER_SIZE size = inst->instValue.cmp.asmType.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
                 fprintf(fp, "\tcmp%s ", turnASMTypeToAsm(inst->instValue.cmp.asmType));
                 printOperandToASMFile(inst->instValue.cmp.op1, fp, size);
                 fputs(", ", fp);
@@ -217,7 +217,7 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
             ASMOperand* op2 = inst->instValue.binary.op2;
             int isShift = binOp == ASM_BINARY_SHIFT_LEFT || binOp == ASM_BINARY_SHIFT_RIGHT;
 
-            if (!isShift && asmType == ASM_DOUBLE) {
+            if (!isShift && asmType.kind == ASM_DOUBLE) {
                 fprintf(fp, "\t%s ", asmDoubleBinaryOpToString(binOp));
                 printOperandToASMFile(op1, fp, REGISTER_64_BIT);
                 fputs(", ", fp);
@@ -226,14 +226,14 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
                 const char* mnemonic;
                 const char* typeSuffix;
                 REGISTER_SIZE opSize;
-                if (binOp == ASM_BINARY_SHIFT_RIGHT && asmType == ASM_DOUBLE) {
+                if (binOp == ASM_BINARY_SHIFT_RIGHT && asmType.kind == ASM_DOUBLE) {
                     mnemonic   = "shr";
                     typeSuffix = "q";
                     opSize     = REGISTER_64_BIT;
                 } else {
                     mnemonic   = asmBinaryOperatorToString(binOp);
                     typeSuffix = turnASMTypeToAsm(asmType);
-                    opSize     = asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+                    opSize     = asmType.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
                 }
                 fprintf(fp, "\t%s%s ", mnemonic, typeSuffix);
                 printOperandToASMFile(op1, fp, isShift ? REGISTER_8_BIT : opSize);
@@ -254,7 +254,7 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
         }
 
         case ASM_CVTTSD2SI: {
-            REGISTER_SIZE dstSize = inst->instValue.cvttsd2si.dst_type == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            REGISTER_SIZE dstSize = inst->instValue.cvttsd2si.dst_type.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
             fprintf(fp, "\tcvttsd2si%s ", turnASMTypeToAsm(inst->instValue.cvttsd2si.dst_type));
             printOperandToASMFile(inst->instValue.cvttsd2si.src, fp, REGISTER_64_BIT);
             fputs(", ", fp);
@@ -264,7 +264,7 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
         }
 
         case ASM_CVTSI2SD: {
-            REGISTER_SIZE srcSize = inst->instValue.cvtsi2sd.src_type == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            REGISTER_SIZE srcSize = inst->instValue.cvtsi2sd.src_type.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
             fprintf(fp, "\tcvtsi2sd%s ", turnASMTypeToAsm(inst->instValue.cvtsi2sd.src_type));
             printOperandToASMFile(inst->instValue.cvtsi2sd.src, fp, srcSize);
             fputs(", ", fp);
@@ -274,14 +274,14 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
         }
     
         case ASM_IDIV: {
-            REGISTER_SIZE size = inst->instValue.idiv.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            REGISTER_SIZE size = inst->instValue.idiv.asmType.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
             fprintf(fp, "\tidiv%s ", turnASMTypeToAsm(inst->instValue.idiv.asmType));
             printOperandToASMFile(inst->instValue.idiv.divisor, fp, size);
             fputc('\n', fp);
             break;
         }
         case ASM_DIV: {
-            REGISTER_SIZE size = inst->instValue.div.asmType == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
+            REGISTER_SIZE size = inst->instValue.div.asmType.kind == ASM_LONGWORD ? REGISTER_32_BIT : REGISTER_64_BIT;
             fprintf(fp, "\tdiv%s ", turnASMTypeToAsm(inst->instValue.div.asmType));
             printOperandToASMFile(inst->instValue.div.divisor, fp, size);
             fputc('\n', fp);
@@ -322,7 +322,7 @@ void printInstructionsToASMFile(ASMInstruction* inst, FILE *fp, ASMSymbolTable* 
         }
         
         case ASM_CDQ: {
-            if (inst->instValue.cdq.asmType == ASM_LONGWORD) 
+            if (inst->instValue.cdq.asmType.kind == ASM_LONGWORD)
                 fputs("\tcdq\n", fp);
             else
                 fputs("\tcqo\n", fp);

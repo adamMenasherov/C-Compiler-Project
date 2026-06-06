@@ -171,7 +171,6 @@ static void handleTypeCheckSubscript(CFactor* expr, SymbolTable* symbolTable) {
         exit(1);
     }
     setType(expr, ptrType->pointer.referenced);
-
 }
 
 static void handleTypeCheckBinary(CFactor* expr, SymbolTable* symbolTable) {

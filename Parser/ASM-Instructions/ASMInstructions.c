@@ -12,7 +12,7 @@ void parseASMReturn(TACKYInstruction* instruction, ASMInstructionList* asmInstru
     ASMType ret_type  = convertTACKYTypeToASMType(tacky_ret, symTable);
     ASMOperand* ret_op = tackyValueToASMOperand(tacky_ret, symTable);
 
-    if (ret_type == ASM_DOUBLE) {
+    if (ret_type.kind == ASM_DOUBLE) {
         addASMInstructionAtEnd(asmInstructionList, createMovInstruction(ret_type, ret_op, createRegisterOperand(XMM0)));
     } else {
         addASMInstructionAtEnd(asmInstructionList, createMovInstruction(ret_type, ret_op, createRegisterOperand(AX)));
@@ -47,7 +47,7 @@ ASMFunction* parseASMfunction(TACKYFunction* tacky_func, SymbolTable* symTable) 
     }
     addASMInstructionAtEnd(
         asm_func->inst,
-        createMovInstruction(ASM_LONGWORD, createImmediateOperand(0), createRegisterOperand(AX))
+        createMovInstruction((ASMType){.kind = ASM_LONGWORD}, createImmediateOperand(0), createRegisterOperand(AX))
     );
     addASMInstructionAtEnd(asm_func->inst, createASMReturnInstruction());
     ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);

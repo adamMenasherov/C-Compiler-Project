@@ -7,10 +7,12 @@
 #include "Parser/Common/SharedTypeRank.h"
 
 static const char* getAsmTypeString(ASMType type) {
-    switch (type) {
-        case ASM_LONGWORD: return "longword";
-        case ASM_QUADWORD: return "quadword";
-        default:           return "unknown";
+    switch (type.kind) {
+        case ASM_LONGWORD:   return "longword";
+        case ASM_QUADWORD:   return "quadword";
+        case ASM_DOUBLE:     return "double";
+        case ASM_BYTE_ARRAY: return "bytearray";
+        default:             return "unknown";
     }
 }
 
@@ -185,7 +187,7 @@ ASMSymbolTable* convertFrontEndSymTableToASMSymTable(SymbolTable* symTable) {
             ASMType asmType = convertIdentifierTypeToASMType(info);
             char* identifier = strdup(info->identifier);
             if (isFunc) {
-                asmSymbolTableInsert(asmSymTable, identifier, ASM_SYMTAB_FUN_ENTRY, 0, 0, 0, isDefined);
+                asmSymbolTableInsert(asmSymTable, identifier, ASM_SYMTAB_FUN_ENTRY, (ASMType){.kind = ASM_LONGWORD}, 0, 0, isDefined);
             } else {
                 int isConstant = (info->type && info->type->kind == CTYPE_DOUBLE) && isDoubleLabel(info->identifier);
                 asmSymbolTableInsert(asmSymTable, identifier, ASM_SYMTAB_OBJ_ENTRY, asmType, isStatic, isConstant, 0);

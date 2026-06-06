@@ -97,6 +97,28 @@ ASMOperand* createMemoryOperand(ASMOperand* base, int offset) {
     return operand;
 }
 
+ASMOperand* createPsuedoMemoryOperand(char* identifier, int offset) {
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+
+    operand->type = ASM_OP_PSEUDO_MEMORY;
+    operand->OperandValue.psueodoMemory.identifier = strdup(identifier);
+    operand->OperandValue.psueodoMemory.offset = offset;
+    return operand;
+}
+
+ASMOperand* createIndexedMemoryOperand(ASMOperand* base, ASMOperand* index, int scale) {
+    if (base->type != ASM_OP_REGISTER || index->type != ASM_OP_REGISTER) return NULL;
+    ASMOperand* operand = malloc(sizeof(ASMOperand));
+    if (!operand) return NULL;
+
+    operand->type = ASM_OP_INDEXED;
+    operand->OperandValue.indexed.base = base->OperandValue.reg;
+    operand->OperandValue.indexed.index = index->OperandValue.reg;
+    operand->OperandValue.indexed.scale = scale;
+    return operand;
+}
+
 ASMOperand* createImmediateOperand(uint64_t value) {
     ASMOperand* operand = malloc(sizeof(ASMOperand));
     if (!operand) return NULL;
@@ -154,11 +176,16 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
             
         }
         case TACKY_VAR: {
-            if ((info = symbolTableLookup(symTable, val->identifier)) &&
-                info->attrs &&
-                info->attrs->attrType == IDENTIFIER_STATIC_ATTR) {
+            info = symbolTableLookup(symTable, val->identifier);
+            if (info->attrs && info->attrs->attrType == IDENTIFIER_STATIC_ATTR) {
                 operand->type = ASM_OP_DATA;
                 operand->OperandValue.identifier = strdup(val->identifier);
+                return operand;
+            }
+            else if (info->type && info->type->kind == CTYPE_ARRAY) {
+                operand->type = ASM_OP_PSEUDO_MEMORY;
+                operand->OperandValue.psueodoMemory.identifier = strdup(val->identifier);
+                operand->OperandValue.psueodoMemory.offset = 0;
                 return operand;
             }
             operand->type = ASM_OP_PSEUDO;
@@ -402,7 +429,7 @@ ASMInstruction* createASMAllocateStackInstruction(int size) {
     if (!inst) return NULL;
     inst->type = ASM_BINARY;
     inst->instValue.binary.type = ASM_BINARY_SUBTRACT; // Use SUBTRACT to represent stack allocation (e.g., SUB RSP, size)
-    inst->instValue.binary.asmType = ASM_QUADWORD; 
+    inst->instValue.binary.asmType = (ASMType){.kind = ASM_QUADWORD};
     inst->instValue.binary.op2 = createRegisterOperand(SP); 
     inst->instValue.binary.op1 = createImmediateOperand(size);
     return inst;
@@ -425,7 +452,7 @@ ASMInstruction* createASMDeallocateStackInstruction(int size) {
     if (!inst) return NULL;
     inst->type = ASM_BINARY;
     inst->instValue.binary.type = ASM_BINARY_ADD; // Use ADD to represent stack deallocation (e.g., ADD RSP, size)
-    inst->instValue.binary.asmType = ASM_QUADWORD; 
+    inst->instValue.binary.asmType = (ASMType){.kind = ASM_QUADWORD};
     inst->instValue.binary.op2 = createRegisterOperand(SP); 
     inst->instValue.binary.op1 = createImmediateOperand(size);
     return inst;

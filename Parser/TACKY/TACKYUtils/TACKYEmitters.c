@@ -24,35 +24,57 @@ static CType* getCastSourceType(CFactor* sourceExpr, SymbolTable* symTable) {
     }
 }
 
+typedef ExpResult* (*EmitHandler)(CFactor*, TACKYInstructionList*, SymbolTable*);
+
+static ExpResult* handleConstant(CFactor* exp, TACKYInstructionList* il, SymbolTable* sym) {
+    return createExpResult(EXP_RESULT_PLAIN_OP, createTackyValueFromConstantNode(exp->exp.cnst));
+}
+static ExpResult* handleVar(CFactor* exp, TACKYInstructionList* il, SymbolTable* sym) {
+    return createExpResult(EXP_RESULT_PLAIN_OP, createTackyValueFromVar(exp->exp.var));
+}
+
+static ExpResult* handleSubscript(CFactor* exp, TACKYInstructionList* il, SymbolTable* sym) {
+    return emit_TACKYSubscript(exp, il, sym);
+}
+
+static const EmitHandler emitHandlers[] = {
+    [FACTOR_CONSTANT] = handleConstant,
+    [FACTOR_BINARY] = emit_TACKYBinary,
+    [FACTOR_VAR] = handleVar,
+    [FACTOR_ASSIGNMENT] = emit_TACKYAssignment,
+    [FACTOR_CONDITIONAL] = emit_TACKYConditional,
+    [FACTOR_FUNCTION_CALL] = emit_TACKYFunctionCall,
+    [FACTOR_CAST] = emit_TACKYCast,
+    [FACTOR_DEREFERENCE] = emit_TACKYDereference,
+    [FACTOR_ADDRESS_OF] = emit_TACKYAddressOf,
+    [FACTOR_SUBSCRIPT] = handleSubscript
+};
+
 ExpResult* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable) {
     if (!exp) return NULL;
-    switch(exp->type) {
-        case FACTOR_CONSTANT:
-            return createExpResult(EXP_RESULT_PLAIN_OP, createTackyValueFromConstantNode(exp->exp.cnst));
-        case FACTOR_VAR:
-            return createExpResult(EXP_RESULT_PLAIN_OP, createTackyValueFromVar(exp->exp.var));
-        case FACTOR_UNARY:
-            return emit_TACKYUnary(exp, instruction_list, isPostfixUnary, symTable);
-        case FACTOR_BINARY:
-            return emit_TACKYBinary(exp, instruction_list, symTable);
-        case FACTOR_ASSIGNMENT:
-            return emit_TACKYAssignment(exp, instruction_list, symTable);
-        case FACTOR_CONDITIONAL:
-            return emit_TACKYConditional(exp, instruction_list, symTable);
-        case FACTOR_FUNCTION_CALL:
-             return emit_TACKYFunctionCall(exp, instruction_list, symTable);
-        case FACTOR_CAST:
-             return emit_TACKYCast(exp, instruction_list, symTable);
-        case FACTOR_ADDRESS_OF: {
-            return emit_TACKYAddressOf(exp, instruction_list, symTable);
-        }
-        case FACTOR_DEREFERENCE: {
-            return emit_TACKYDereference(exp, instruction_list, symTable);
-        }
-        default:
-            return NULL;
-    }
+    if (exp->type == FACTOR_UNARY) return emit_TACKYUnary(exp, instruction_list, isPostfixUnary, symTable);
+    EmitHandler handler = emitHandlers[exp->type];
+    if (!handler) return NULL;
+    return handler(exp, instruction_list, symTable);
 }
+
+ExpResult* emit_TACKYSubscript(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
+    CSubscript* sub = exp->exp.subscript;
+    int pointerIsLeft = sub->pointer->valueType && sub->pointer->valueType->kind == CTYPE_POINTER;
+    CFactor* ptrFactor = pointerIsLeft ? sub->pointer : sub->index;
+    CFactor* intFactor = pointerIsLeft ? sub->index   : sub->pointer;
+
+    TACKYValue* ptrVal = emit_TACKYAndConvert(ptrFactor, instruction_list, symTable);
+    TACKYValue* intVal = emit_TACKYAndConvert(intFactor, instruction_list, symTable);
+    int scale = size(getType(exp));
+
+    TACKYValue* offsetDst = makeTACKYVariable(ptrFactor->valueType, symTable);
+    addInstructionToList(instruction_list,
+        createAddPtrInstruction(ptrVal, intVal, scale, offsetDst));
+
+    return createExpResult(EXP_RESULT_DEREF_POINTER_OP, copyTackyValue(offsetDst));
+}
+
 
 ExpResult* emit_TACKYAddressOf(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     ExpResult* op = emit_TACKY(exp->exp.pointerOp, instruction_list, NULL, symTable);
@@ -90,14 +112,50 @@ ExpResult* emit_TACKYUnary(CFactor* exp, TACKYInstructionList* instruction_list,
     return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
 }
 
+ExpResult* emit_TACKYPointerArithmetic(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable, 
+    TACKYValue* src1, TACKYValue* src2, TACKYValue* dst) {
+    binType op = exp->exp.binary->type;
+    int leftIsPtr = exp->exp.binary->left->valueType && exp->exp.binary->left->valueType->kind == CTYPE_POINTER;
+    int rightIsPtr = exp->exp.binary->right->valueType && exp->exp.binary->right->valueType->kind == CTYPE_POINTER;
+    if (leftIsPtr && rightIsPtr) { // Just a regular pointer arithmetic operation, no scaling needed
+        addInstructionToList(instruction_list,
+            createBinaryInstruction(op, src1, src2, dst));
+        return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
+    }
+    TACKYValue* ptrVal = leftIsPtr ? src1 : src2;
+    TACKYValue* intVal = leftIsPtr ? src2 : src1;
+    CFactor* ptrFactor = leftIsPtr ? exp->exp.binary->left : exp->exp.binary->right;
+
+    if (op == BIN_SUBTRACT) { // Negating the integer value for subtraction if the pointer is on the left side
+        addInstructionToList(instruction_list,
+            createUnaryInstruction(UNARY_NEGATE, intVal, intVal));
+    }
+
+    // the third param is the "scale" - how much to multiply the integer value by, which is the size of the pointed-to type
+    addInstructionToList(instruction_list,
+        createAddPtrInstruction(ptrVal, intVal, size(getType(ptrFactor)), dst));
+    return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
+}
+
+
+
 ExpResult* emit_TACKYBinary(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable) {
     if (exp->exp.binary->type == BIN_AND || exp->exp.binary->type == BIN_OR) {
         return shortCircuitTACKYInstruction(exp, instruction_list, symTable);
     }
 
+    int leftIsPtr = exp->exp.binary->left->valueType && exp->exp.binary->left->valueType->kind == CTYPE_POINTER;
+    int rightIsPtr = exp->exp.binary->right->valueType && exp->exp.binary->right->valueType->kind == CTYPE_POINTER;
     TACKYValue* src1 = emit_TACKYAndConvert(exp->exp.binary->left, instruction_list, symTable);
     TACKYValue* src2 = emit_TACKYAndConvert(exp->exp.binary->right, instruction_list, symTable);
     TACKYValue* dst = makeTACKYVariable(getType(exp), symTable);
+
+    if (leftIsPtr || rightIsPtr) // Handling pointer arithmetic cases 
+    {
+        emit_TACKYPointerArithmetic(exp, instruction_list, symTable, src1, src2, dst);
+        return createExpResult(EXP_RESULT_PLAIN_OP, copyTackyValue(dst));
+    }
+
     binType op = exp->exp.binary->type;
     addInstructionToList(instruction_list,
         createBinaryInstruction(op, src1, src2, dst));

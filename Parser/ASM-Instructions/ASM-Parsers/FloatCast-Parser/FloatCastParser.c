@@ -26,11 +26,11 @@ void parseUintToDoubleInstruction(TACKYInstruction* instruction, ASMInstructionL
     TACKYValue* dest_val = instruction->instValue.doubleIntCast.dest;
     ASMType src_type = convertTACKYTypeToASMType(src_val, symTable);
 
-    if (src_type == ASM_LONGWORD) {
+    if (src_type.kind == ASM_LONGWORD) {
         addASMInstructionAtEnd(asmInstructionList,
             createASMMovZeroExtendInstruction(tackyValueToASMOperand(src_val, symTable), createRegisterOperand(AX)));
         addASMInstructionAtEnd(asmInstructionList,
-            createCvtsi2sdInstruction(ASM_QUADWORD, createRegisterOperand(AX), tackyValueToASMOperand(dest_val, symTable)));
+            createCvtsi2sdInstruction((ASMType){.kind = ASM_QUADWORD}, createRegisterOperand(AX), tackyValueToASMOperand(dest_val, symTable)));
         return;
     }
 
@@ -38,26 +38,26 @@ void parseUintToDoubleInstruction(TACKYInstruction* instruction, ASMInstructionL
     char* label2 = generateEndLabel();
 
     addASMInstructionAtEnd(asmInstructionList,
-        createASMCmpInstruction(ASM_QUADWORD, createImmediateOperand(0), tackyValueToASMOperand(src_val, symTable)));
+        createASMCmpInstruction((ASMType){.kind = ASM_QUADWORD}, createImmediateOperand(0), tackyValueToASMOperand(src_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList, createASMJumpCCInstruction(ASM_COND_CODE_L, label1));
     addASMInstructionAtEnd(asmInstructionList,
-        createCvtsi2sdInstruction(ASM_QUADWORD, tackyValueToASMOperand(src_val, symTable), tackyValueToASMOperand(dest_val, symTable)));
+        createCvtsi2sdInstruction((ASMType){.kind = ASM_QUADWORD}, tackyValueToASMOperand(src_val, symTable), tackyValueToASMOperand(dest_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList, createASMJumpInstruction(label2));
     addASMInstructionAtEnd(asmInstructionList, createASMLabelInstruction(label1));
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_QUADWORD, tackyValueToASMOperand(src_val, symTable), createRegisterOperand(DX)));
+        createMovInstruction((ASMType){.kind = ASM_QUADWORD}, tackyValueToASMOperand(src_val, symTable), createRegisterOperand(DX)));
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_QUADWORD, createRegisterOperand(DX), createRegisterOperand(AX)));
+        createMovInstruction((ASMType){.kind = ASM_QUADWORD}, createRegisterOperand(DX), createRegisterOperand(AX)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_SHIFT_RIGHT, ASM_DOUBLE, createImmediateOperand(1), createRegisterOperand(AX)));
+        createASMBinaryInstruction(ASM_BINARY_SHIFT_RIGHT, (ASMType){.kind = ASM_DOUBLE}, createImmediateOperand(1), createRegisterOperand(AX)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_AND, ASM_QUADWORD, createImmediateOperand(1), createRegisterOperand(DX)));
+        createASMBinaryInstruction(ASM_BINARY_AND, (ASMType){.kind = ASM_QUADWORD}, createImmediateOperand(1), createRegisterOperand(DX)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_OR, ASM_QUADWORD, createRegisterOperand(DX), createRegisterOperand(AX)));
+        createASMBinaryInstruction(ASM_BINARY_OR, (ASMType){.kind = ASM_QUADWORD}, createRegisterOperand(DX), createRegisterOperand(AX)));
     addASMInstructionAtEnd(asmInstructionList,
-        createCvtsi2sdInstruction(ASM_QUADWORD, createRegisterOperand(AX), tackyValueToASMOperand(dest_val, symTable)));
+        createCvtsi2sdInstruction((ASMType){.kind = ASM_QUADWORD}, createRegisterOperand(AX), tackyValueToASMOperand(dest_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_ADD, ASM_DOUBLE, tackyValueToASMOperand(dest_val, symTable), tackyValueToASMOperand(dest_val, symTable)));
+        createASMBinaryInstruction(ASM_BINARY_ADD, (ASMType){.kind = ASM_DOUBLE}, tackyValueToASMOperand(dest_val, symTable), tackyValueToASMOperand(dest_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList, createASMLabelInstruction(label2));
 }
 
@@ -70,11 +70,11 @@ void parseDoubleToUintInstruction(TACKYInstruction* instruction, ASMInstructionL
     TACKYValue* dest_val = instruction->instValue.doubleIntCast.dest;
     ASMType dest_type = convertTACKYTypeToASMType(dest_val, symTable);
 
-    if (dest_type == ASM_LONGWORD) {
+    if (dest_type.kind == ASM_LONGWORD) {
         addASMInstructionAtEnd(asmInstructionList,
-            createCvttsd2siInstruction(ASM_QUADWORD, tackyValueToASMOperand(src_val, symTable), createRegisterOperand(AX)));
+            createCvttsd2siInstruction((ASMType){.kind = ASM_QUADWORD}, tackyValueToASMOperand(src_val, symTable), createRegisterOperand(AX)));
         addASMInstructionAtEnd(asmInstructionList,
-            createMovInstruction(ASM_LONGWORD, createRegisterOperand(AX), tackyValueToASMOperand(dest_val, symTable)));
+            createMovInstruction((ASMType){.kind = ASM_LONGWORD}, createRegisterOperand(AX), tackyValueToASMOperand(dest_val, symTable)));
         return;
     }
 
@@ -82,30 +82,30 @@ void parseDoubleToUintInstruction(TACKYInstruction* instruction, ASMInstructionL
     char* label2 = generateEndLabel();
 
     addASMInstructionAtEnd(asmInstructionList,
-        createASMCmpInstruction(ASM_DOUBLE,
+        createASMCmpInstruction((ASMType){.kind = ASM_DOUBLE},
             createAsmConstantOperand(9223372036854775808.0, symTable),
             tackyValueToASMOperand(src_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList, createASMJumpCCInstruction(ASM_COND_CODE_AE, label1));
     addASMInstructionAtEnd(asmInstructionList,
-        createCvttsd2siInstruction(ASM_QUADWORD,
+        createCvttsd2siInstruction((ASMType){.kind = ASM_QUADWORD},
             tackyValueToASMOperand(src_val, symTable),
             tackyValueToASMOperand(dest_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList, createASMJumpInstruction(label2));
     addASMInstructionAtEnd(asmInstructionList, createASMLabelInstruction(label1));
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_DOUBLE, tackyValueToASMOperand(src_val, symTable), createRegisterOperand(XMM1)));
+        createMovInstruction((ASMType){.kind = ASM_DOUBLE}, tackyValueToASMOperand(src_val, symTable), createRegisterOperand(XMM1)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_SUBTRACT, ASM_DOUBLE,
+        createASMBinaryInstruction(ASM_BINARY_SUBTRACT, (ASMType){.kind = ASM_DOUBLE},
             createAsmConstantOperand(9223372036854775808.0, symTable),
             createRegisterOperand(XMM1)));
     addASMInstructionAtEnd(asmInstructionList,
-        createCvttsd2siInstruction(ASM_QUADWORD,
+        createCvttsd2siInstruction((ASMType){.kind = ASM_QUADWORD},
             createRegisterOperand(XMM1),
             tackyValueToASMOperand(dest_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_QUADWORD, createImmediateOperand((uint64_t)1 << 63), createRegisterOperand(AX)));
+        createMovInstruction((ASMType){.kind = ASM_QUADWORD}, createImmediateOperand((uint64_t)1 << 63), createRegisterOperand(AX)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_ADD, ASM_QUADWORD,
+        createASMBinaryInstruction(ASM_BINARY_ADD, (ASMType){.kind = ASM_QUADWORD},
             createRegisterOperand(AX),
             tackyValueToASMOperand(dest_val, symTable)));
     addASMInstructionAtEnd(asmInstructionList, createASMLabelInstruction(label2));

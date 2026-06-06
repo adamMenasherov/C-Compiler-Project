@@ -52,6 +52,17 @@ TACKYInstruction* createJumpInstruction(TACKYInstructionType jumpType, char* lab
     return inst;
 }
 
+TACKYInstruction* createCopyToOffsetInstruction(TACKYValue* src, TACKYValue* dest, int offset) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_COPY_TO_OFFSET;
+    inst->instValue.copyToOffset.src = src;
+    inst->instValue.copyToOffset.dest = dest;
+    inst->instValue.copyToOffset.offset = offset;
+    return inst;
+}
+
+
 TACKYInstruction* createCopyInstruction(TACKYValue* src, TACKYValue* dest) {
     TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
     if (!inst) return NULL;
@@ -128,6 +139,17 @@ TACKYConstant* CreateTackyConstantNode(uint64_t intValue, double doubleValue, co
     }
     constantNode->type = type;
     return constantNode;
+}
+
+TACKYInstruction* createAddPtrInstruction(TACKYValue* base, TACKYValue* offset, int scale, TACKYValue* dest) {
+    TACKYInstruction* inst = malloc(sizeof(TACKYInstruction));
+    if (!inst) return NULL;
+    inst->type = TACKY_ADD_PTR;
+    inst->instValue.addPtr.src_ptr = base;
+    inst->instValue.addPtr.index = offset;
+    inst->instValue.addPtr.scale = scale;
+    inst->instValue.addPtr.dest = dest;
+    return inst;
 }
 
 TACKYValue* createTackyValueFromConstantNode(CConstant* const_node) {
@@ -284,8 +306,8 @@ TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar) {
     return topLevel;
 }
 
-TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, uint64_t intVal, double doubleVal, initialValueStaticInitType staticInitType) {
-    TACKYStaticVar* staticVar = malloc(sizeof(TACKYStaticVar));
+TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, initialValueStaticInitType staticInitType) {
+    TACKYStaticVar* staticVar = calloc(1, sizeof(TACKYStaticVar));
     if (!staticVar) return NULL;
 
     staticVar->identifier = strdup(identifier);
@@ -296,12 +318,6 @@ TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, uint64_t intV
 
     staticVar->global = global;
     staticVar->type = initialStaticTypeToTACKYStaticVarType(staticInitType);
-    if (staticVar->type == TACKY_DOUBLE) {
-        staticVar->initVal.val.doubleVal = doubleVal;
-    } else {
-        staticVar->initVal.val.intVal = intVal;
-    }
-    staticVar->initVal.staticInitType = staticInitType;
     return staticVar;
 }
 

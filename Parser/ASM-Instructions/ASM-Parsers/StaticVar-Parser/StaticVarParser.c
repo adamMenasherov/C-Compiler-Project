@@ -1,4 +1,5 @@
 #include "StaticVarParser.h"
+#include <string.h>
 
 ASMTopLevel* createASMStaticVarFromTACKYStaticVar(TACKYStaticVar* tackyStaticVar) {
     ASMStaticVar* asmStaticVar = malloc(sizeof(ASMStaticVar));
@@ -10,13 +11,12 @@ ASMTopLevel* createASMStaticVarFromTACKYStaticVar(TACKYStaticVar* tackyStaticVar
         return NULL;
     }
     asmStaticVar->global = tackyStaticVar->global;
-    asmStaticVar->initVal.val = tackyStaticVar->initVal.val;
-    asmStaticVar->initVal.staticInitType = tackyStaticVar->initVal.staticInitType;
-    if (tackyStaticVar->initVal.staticInitType == STATIC_INIT_INT
-        || tackyStaticVar->initVal.staticInitType == STATIC_INIT_UNSIGNED_INT) {
+    memcpy(asmStaticVar->initVal, tackyStaticVar->initVal, sizeof(staticInitialVal*) * MAX_STATIC_SIZE);
+    if (tackyStaticVar->initVal[0]->staticInitType == STATIC_INIT_INT
+        || tackyStaticVar->initVal[0]->staticInitType == STATIC_INIT_UNSIGNED_INT) {
         asmStaticVar->alignment = 4;
-    } else if (tackyStaticVar->initVal.staticInitType == STATIC_INIT_LONG
-               || tackyStaticVar->initVal.staticInitType == STATIC_INIT_UNSIGNED_LONG) {
+    } else if (tackyStaticVar->initVal[0]->staticInitType == STATIC_INIT_LONG
+               || tackyStaticVar->initVal[0]->staticInitType == STATIC_INIT_UNSIGNED_LONG) {
         asmStaticVar->alignment = 8;
     } else {
         asmStaticVar->alignment = 4;

@@ -271,7 +271,7 @@ void printASMInstructionList(const ASMInstructionList* list) {
 }
 
 void printASMType(ASMType type) {
-    switch (type) {
+    switch (type.kind) {
         case ASM_LONGWORD:
             printf("LongWord");
             break;
@@ -280,6 +280,9 @@ void printASMType(ASMType type) {
             break;
         case ASM_DOUBLE:
             printf("Double");
+            break;
+        case ASM_BYTE_ARRAY:
+            printf("ByteArray(%d, %d)", type.byteArray.size, type.byteArray.alignment);
             break;
         default:
             printf("UnknownType");
@@ -304,11 +307,9 @@ static void printASMStaticVar(const ASMStaticVar* staticVar) {
         return;
     }
 
-        printf("StaticVar(%s, global=%d, initVal=%ld, initType=%s)\n",
+        printf("StaticVar(%s, global=%d)\n",
            staticVar->identifier ? staticVar->identifier : "<unnamed>",
-           staticVar->global,
-           staticVar->initVal.val,
-            getStaticInitTypeName(staticVar->initVal.staticInitType));
+           staticVar->global);
 }
 
 static void printASMTopLevel(const ASMTopLevel* topLevel) {

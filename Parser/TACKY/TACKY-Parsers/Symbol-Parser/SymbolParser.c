@@ -18,22 +18,19 @@ static initialValueStaticInitType ctypeToStaticInitType(CType* type) {
 
 static void handleInitialWithValue(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
     initialValue* initVal = symbol->attrs->attrs.staticAttr.initValue;
+    TACKYStaticVar* staticVar = createTACKYStaticVar(symbol->identifier, symbol->attrs->global, initVal->type);
     for (int i = 0; i < initVal->value.size; i++) {
         staticInitialVal* sv = initVal->value.staticInitVal[i];
-        double doubleVal = sv->staticInitType == STATIC_INIT_DOUBLE ? sv->val.doubleVal : 0.0;
-        uint64_t intVal  = sv->staticInitType != STATIC_INIT_DOUBLE ? sv->val.intVal   : 0;
-        TACKYTopLevelArray_append(
-            topLevels,
-            createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, intVal, doubleVal, sv->staticInitType))
-        );
+        staticVar->initVal[staticVar->size++] = createStaticInitialVal(sv->staticInitType, sv->val.intVal, sv->val.doubleVal);
     }
+    TACKYTopLevelArray_append(topLevels, createTACKYTopLevelFromStaticVar(staticVar));
 }
 
 static void handleInitialTentative(IdentifierTypeInfo* symbol, TACKYTopLevelArray* topLevels) {
     initialValueStaticInitType staticInitType = ctypeToStaticInitType(symbol->type);
     TACKYTopLevelArray_append(
         topLevels,
-        createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, 0, 0.0, staticInitType))
+        createTACKYTopLevelFromStaticVar(createTACKYStaticVar(symbol->identifier, symbol->attrs->global, staticInitType))
     );
 }
 

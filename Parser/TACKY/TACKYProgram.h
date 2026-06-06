@@ -6,6 +6,7 @@
 #include "../../DataStructures/DynamicArray/Wrappers/TACKYTopLevelArrayWrapper.h"
 #include "../../DataStructures/DynamicArray/Wrappers/TACKYValueArrayWrapper.h"
 #include "../../DataStructures/HashTable/Wrappers/SymbolTableWrapper.h"
+#define MAX_STATIC_INIT_LEN 1000
 
 typedef enum {
     TACKY_UNARY,
@@ -26,7 +27,9 @@ typedef enum {
     TACKY_GET_ADDRESS,
     TACKY_LOAD,
     TACKY_STORE,
-    TACKY_TRUNCATE
+    TACKY_TRUNCATE,
+    TACKY_ADD_PTR,
+    TACKY_COPY_TO_OFFSET
 } TACKYInstructionType;
 
 typedef enum {
@@ -124,6 +127,17 @@ typedef struct TACKYInstruction {
             TACKYValue* src;
             TACKYValue* dst_ptr;
         } store;
+        struct {
+            TACKYValue* src_ptr;
+            TACKYValue* index;
+            int scale;
+            TACKYValue* dest;
+        } addPtr;
+        struct {
+            TACKYValue* src;
+            TACKYValue* dest;
+            int offset;
+        } copyToOffset;
     } instValue;
 } TACKYInstruction;
 
@@ -145,7 +159,8 @@ typedef struct {
     char* identifier;
     int global;
     TACKYStaticVarType type;
-    staticInitialVal initVal;
+    staticInitialVal *initVal[MAX_STATIC_INIT_LEN];
+    int size;
 } TACKYStaticVar;
 
 typedef struct TACKYTopLevel {

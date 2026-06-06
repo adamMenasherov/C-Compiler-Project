@@ -6,8 +6,10 @@
 #ifndef PARSER_ONLY
 #include "TACKY/TACKYUtils/TACKYProgram_FREE.h"
 #include "TACKY/TACKYUtils/TACKYProgram_PRINTER.h"
+#ifndef TACKY_ONLY
 #include "ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsFree.h"
 #include "ASM-Instructions/ASMInstructionsUtilities/ASMInstructionsPrinter.h"
+#endif
 #endif
 
 
@@ -46,6 +48,7 @@ void printTACKY_AST(TACKY* tacky_ast) {
     }
 }
 
+#ifndef TACKY_ONLY
 ASM* tackyAstToASM_AST(TACKY* ast, SymbolTable* symTable) {
     ASM* asm_ast = malloc(sizeof(ASM));
     if (!asm_ast) return NULL;
@@ -67,6 +70,7 @@ void freeASM_AST(ASM* asm_ast) {
 void printASM_AST(ASM* asm_ast) {
     printASMProgram(asm_ast->prog);
 }
+#endif
 
 #endif
 

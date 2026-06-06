@@ -28,9 +28,9 @@ static void createASMDoubleDivision(TACKYInstruction* instruction, ASMInstructio
     ASMOperand* dest2 = tackyValueToASMOperand(instruction->instValue.binaryOp.dest, symTable);
 
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_DOUBLE, src1, dest1));
+        createMovInstruction((ASMType){.kind = ASM_DOUBLE}, src1, dest1));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_DIVDOUBLE, ASM_DOUBLE, src2, dest2));
+        createASMBinaryInstruction(ASM_BINARY_DIVDOUBLE, (ASMType){.kind = ASM_DOUBLE}, src2, dest2));
 }
 
 static void handleDivideModuloCase(TACKYInstruction* instruction, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
@@ -69,7 +69,7 @@ static void handleBinaryRelationalOp(TACKYInstruction* instruction, ASMInstructi
             tackyValueToASMOperand(src2, symTable),
             tackyValueToASMOperand(src1, symTable)));
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_LONGWORD, createImmediateOperand(0), tackyValueToASMOperand(dest, symTable)));
+        createMovInstruction((ASMType){.kind = ASM_LONGWORD}, createImmediateOperand(0), tackyValueToASMOperand(dest, symTable)));
     addASMInstructionAtEnd(asmInstructionList,
         createASMSetCCInstruction(cond, tackyValueToASMOperand(dest, symTable)));
 }

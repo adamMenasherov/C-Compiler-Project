@@ -13,6 +13,7 @@ TACKYInstruction* createSignExtendInstruction(TACKYValue* src, TACKYValue* dest)
 TACKYInstruction* createZeroExtendInstruction(TACKYValue* src, TACKYValue* dest);
 TACKYInstruction* createTruncateInstruction(TACKYValue* src, TACKYValue* dest);
 TACKYInstruction* createDoubleIntCastInstruction(TACKYValue* src, TACKYValue* dest, TACKYInstructionType instType);
+TACKYInstruction* createAddPtrInstruction(TACKYValue* base, TACKYValue* offset, int scale, TACKYValue* dest);
 TACKYValue* createTackyValueFromConstant(uint64_t intValue, double doubleValue, constantType type);
 TACKYValue* createTackyValueFromVar(CVar* var);
 TACKYValue* createTackyValueFromConstantNode(CConstant* const_node);
@@ -30,5 +31,6 @@ TACKYProgram* createTACKYProgram();
 TACKYFunction* createTACKYFunction(char* function_name, IdentifierArray* parameters, TACKYInstructionList* instruction_list, int global);
 TACKYTopLevel* createTACKYTopLevelFromFunction(TACKYFunction* tackyFunc, SymbolTable* symTable);
 TACKYTopLevel* createTACKYTopLevelFromStaticVar(TACKYStaticVar* staticVar);
-TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, uint64_t intVal, double doubleVal, initialValueStaticInitType staticInitType);
+TACKYInstruction* createCopyToOffsetInstruction(TACKYValue* src, TACKYValue* dest, int offset);
+TACKYStaticVar* createTACKYStaticVar(char* identifier, int global, initialValueStaticInitType staticInitType);
 ExpResult* createExpResult(expResultType type, TACKYValue* val);

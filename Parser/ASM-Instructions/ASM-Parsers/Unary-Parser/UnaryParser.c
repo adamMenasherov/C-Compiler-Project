@@ -6,14 +6,14 @@ static void handleUnaryNot(TACKYInstruction* instruction, ASMInstructionList* as
     TACKYValue* dest = instruction->instValue.unaryOp.dest;
     ASMType src_type = convertTACKYTypeToASMType(src, symTable);
 
-    ASMOperand* cmp_zero = (src_type == ASM_DOUBLE)
+    ASMOperand* cmp_zero = (src_type.kind == ASM_DOUBLE)
         ? createAsmConstantOperand(0.0, symTable)
         : createImmediateOperand(0);
 
     addASMInstructionAtEnd(asmInstructionList,
         createASMCmpInstruction(src_type, cmp_zero, tackyValueToASMOperand(src, symTable)));
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_LONGWORD, createImmediateOperand(0), tackyValueToASMOperand(dest, symTable)));
+        createMovInstruction((ASMType){.kind = ASM_LONGWORD}, createImmediateOperand(0), tackyValueToASMOperand(dest, symTable)));
     addASMInstructionAtEnd(asmInstructionList,
         createASMSetCCInstruction(ASM_COND_CODE_E, tackyValueToASMOperand(dest, symTable)));
 }
@@ -23,11 +23,11 @@ static void handleDoubleNegation(TACKYInstruction* instruction, ASMInstructionLi
     TACKYValue* dest = instruction->instValue.unaryOp.dest;
 
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(ASM_DOUBLE,
+        createMovInstruction((ASMType){.kind = ASM_DOUBLE},
             tackyValueToASMOperand(src, symTable),
             tackyValueToASMOperand(dest, symTable)));
     addASMInstructionAtEnd(asmInstructionList,
-        createASMBinaryInstruction(ASM_BINARY_XOR, ASM_DOUBLE,
+        createASMBinaryInstruction(ASM_BINARY_XOR, (ASMType){.kind = ASM_DOUBLE},
             createAsmConstantOperand(-0.0, symTable),
             tackyValueToASMOperand(dest, symTable)));
 }
@@ -48,7 +48,7 @@ void parseASMUnaryInstruction(TACKYInstruction* instruction, ASMInstructionList*
     ASMOperand* dest_op = tackyValueToASMOperand(dest, symTable);
     unaryType unType = instruction->instValue.unaryOp.type;
 
-    if (unType == UNARY_NEGATE && src_type == ASM_DOUBLE) {
+    if (unType == UNARY_NEGATE && src_type.kind == ASM_DOUBLE) {
         handleDoubleNegation(instruction, asmInstructionList, symTable);
         return;
     }

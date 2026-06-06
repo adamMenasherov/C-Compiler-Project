@@ -51,9 +51,14 @@ void parseForLoopInitInstructions(CForInit* init, TACKYInstructionList* instruct
     if (!init) return;
     switch (init->type) {
         case FOR_INIT_DECL:
-            if (init->decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP) {
+            if (init->decl->decl.variableDecl.declType == VAR_DECL_WITH_EXP &&
+                init->decl->decl.variableDecl.init &&
+                init->decl->decl.variableDecl.init->type == INIT_SINGLE) {
                 char* varName = init->decl->decl.variableDecl.identifier;
-                TACKYValue* src = emit_TACKYAndConvert(init->decl->decl.variableDecl.exp, instructionList, symTable);
+                TACKYValue* src = emit_TACKYAndConvert(
+                    init->decl->decl.variableDecl.init->init.singleInit,
+                    instructionList,
+                    symTable);
                 TACKYValue* dst = createVarValue(varName);
                 addInstructionToList(instructionList,
                     createCopyInstruction(src, dst));

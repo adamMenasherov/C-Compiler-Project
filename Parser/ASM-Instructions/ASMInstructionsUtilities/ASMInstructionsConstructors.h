@@ -48,6 +48,24 @@ ASMOperand* createRegisterOperand(Register reg);
 ASMOperand* createImmediateOperand(uint64_t value);
 
 
+/**
+ * @brief Converts a TACKYValue into an ASMOperand, handling both constants and variables.
+ * 
+ * @param val The TACKY value to convert
+ * @return ASMOperand* pointer to the created ASMOperand
+ */
+ASMOperand* createPsuedoMemoryOperand(char* identifier, int offset);
+
+
+/**
+ * @brief Create an Indexed Memory Operand object
+ * 
+ * @param base The base register operand
+ * @param index The index register operand
+ * @param scale The scale factor for the index
+ * @return ASMOperand* pointer to the created indexed memory operand
+ */
+ASMOperand* createIndexedMemoryOperand(ASMOperand* base, ASMOperand* index, int scale);
 
 /**
  * @brief Create a Memory Operand object

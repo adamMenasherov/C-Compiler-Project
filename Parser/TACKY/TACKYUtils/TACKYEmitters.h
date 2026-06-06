@@ -22,9 +22,11 @@ typedef struct {
 ExpResult* emit_TACKY(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable);
 ExpResult* emit_TACKYUnary(CFactor* exp, TACKYInstructionList* instruction_list, int *isPostfixUnary, SymbolTable* symTable);
 ExpResult* emit_TACKYBinary(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
+ExpResult* emit_TACKYPointerArithmetic(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable, TACKYValue* src1, TACKYValue* src2, TACKYValue* dst);
 ExpResult* emit_TACKYAssignment(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 ExpResult* emit_TACKYConditional(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 ExpResult* emit_TACKYFunctionCall(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
+ExpResult* emit_TACKYSubscript(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 ExpResult* emit_TACKYCast(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 TACKYValue* emit_TACKYAndConvert(CFactor* val, TACKYInstructionList* instruction_list, SymbolTable* symTable);
 ExpResult* emit_TACKYDereference(CFactor* exp, TACKYInstructionList* instruction_list, SymbolTable* symTable);

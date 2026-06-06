@@ -109,9 +109,15 @@ CFactor* C_parseUnaryExpression(TokenList* tokens) {
         unaryType type = expectUnaryOp(tokens);
         CFactor* exp = C_parseUnaryExpression(tokens);
         if (!exp) return NULL;
+        if (type == UNARY_ADDRESS_OF) {
+            return C_CreateFactor(FACTOR_ADDRESS_OF, exp);
+        }
+        if (type == UNARY_DEREFERENCE) {
+            return C_CreateFactor(FACTOR_DEREFERENCE, exp);
+        }
         return C_CreateFactorFromUnary(C_CreateUnary(type, exp));
     }
-    else if (check(tokens, OPEN_PAREN)) {
+    else if (check(tokens, OPEN_PAREN) && lookAheadOneType(tokens)) {
         return parsePostfixOperators(C_CreateFactorFromCast(C_parseCast(tokens)), tokens);
     }
     return C_parsePostfixExpression(tokens);

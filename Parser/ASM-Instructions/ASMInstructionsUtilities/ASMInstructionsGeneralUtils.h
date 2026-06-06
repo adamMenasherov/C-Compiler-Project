@@ -5,6 +5,7 @@
 #include "../../../DataStructures/Map/Wrappers/CharIntMap.h"
 #include "../../../DataStructures/Map/Wrappers/DoubleStringMap.h"
 #include "../../../DataStructures/DynamicArray/Wrappers/ASMTopLevelArrayWrapper.h"
+#define MAX_STATIC_SIZE 1000
 
 /* ============================================================
  * Enum Definitions
@@ -72,14 +73,25 @@ typedef enum {
     ASM_OP_REGISTER,
     ASM_OP_IMMEDIATE,
     ASM_OP_PSEUDO,
+    ASM_OP_PSEUDO_MEMORY,
     ASM_OP_MEMORY,
-    ASM_OP_DATA
+    ASM_OP_DATA,
+    ASM_OP_INDEXED
 } OperandType;
 
 typedef enum {
     ASM_LONGWORD,
     ASM_QUADWORD,
-    ASM_DOUBLE
+    ASM_DOUBLE,
+    ASM_BYTE_ARRAY
+} ASMTypeKind;
+
+typedef struct {
+    ASMTypeKind kind;
+    struct {
+        int size;
+        int alignment;
+    } byteArray;  /* populated only when kind == ASM_BYTE_ARRAY */
 } ASMType;
 
 typedef enum {
@@ -127,6 +139,15 @@ struct ASMOperand {
             ASMOperand* base;
             int offset;
         } memory;
+        struct {
+            char* identifier;
+            int offset;
+        } psueodoMemory;
+        struct {
+            Register base;
+            Register index;
+            int scale;
+        } indexed;
     } OperandValue;
 };
 
@@ -237,7 +258,7 @@ typedef struct {
     char* identifier;
     int global; 
     int alignment;
-    staticInitialVal initVal;   
+    staticInitialVal *initVal[MAX_STATIC_SIZE];   
 } ASMStaticVar;
 
 typedef struct {
@@ -268,6 +289,7 @@ typedef struct {
  * @return ASMCondCode The condition code corresponding to the given relational operator type
  */
 ASMCondCode getCondCodeForRelationalOp(binType type, int isSigned);
+ASMType asmByteArray(int size, int alignment);
 ASMType convertTACKYTypeToASMType(TACKYValue* val, SymbolTable* symTable);
 ASMType convertCTypeToASMType(CType* type);
 ASMType convertIdentifierTypeToASMType(IdentifierTypeInfo* info);

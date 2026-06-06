@@ -5,6 +5,7 @@
 
 /* Returns storage size in bytes for scalar C types. */
 int size(CType* type);
+int alignmentOfType(CType* type);
 int isSignedType(CType* type);
 int isDoubleLabel(const char* identifier);
 int isRelationBinaryOp(binType type);

@@ -186,6 +186,22 @@ void printTACKYInstruction(const TACKYInstruction* inst) {
             printTACKYValue(inst->instValue.store.dst_ptr);
             printf(")");
             break;
+        case TACKY_ADD_PTR:
+            printf("AddPtr(");
+            printTACKYValue(inst->instValue.addPtr.src_ptr);
+            printf(", ");
+            printTACKYValue(inst->instValue.addPtr.index);
+            printf(", scale=%d, ", inst->instValue.addPtr.scale);
+            printTACKYValue(inst->instValue.addPtr.dest);
+            printf(")");
+            break;
+        case TACKY_COPY_TO_OFFSET:
+            printf("CopyToOffset(");
+            printTACKYValue(inst->instValue.copyToOffset.src);
+            printf(", ");
+            printTACKYValue(inst->instValue.copyToOffset.dest);
+            printf(", offset=%d)", inst->instValue.copyToOffset.offset);
+            break;
         default:
             printf("<unknown instruction type>");
             break;
@@ -198,11 +214,26 @@ void printTACKYStaticVar(const TACKYStaticVar* staticVar) {
         return;
     }
 
-    printf("StaticVar(\"%s\", global=%d, init=%ld, static_init_type = %s)\n",
+    printf("StaticVar(\"%s\", global=%d, init=[",
            staticVar->identifier ? staticVar->identifier : "<unnamed>",
-           staticVar->global,
-            staticVar->initVal.val,
-            getStaticInitTypeName(staticVar->initVal.staticInitType));
+           staticVar->global);
+
+    for (int i = 0; i < staticVar->size; i++) {
+        staticInitialVal* init = staticVar->initVal[i];
+        if (!init) {
+            printf("<null>");
+        } else if (init->staticInitType == STATIC_INIT_DOUBLE) {
+            printf("%f:%s", init->val.doubleVal, getStaticInitTypeName(init->staticInitType));
+        } else {
+            printf("%llu:%s", (unsigned long long)init->val.intVal, getStaticInitTypeName(init->staticInitType));
+        }
+
+        if (i < staticVar->size - 1) {
+            printf(", ");
+        }
+    }
+
+    printf("])\n");
 }
 
 void printTACKYTopLevel(const TACKYTopLevel* topLevel) {
