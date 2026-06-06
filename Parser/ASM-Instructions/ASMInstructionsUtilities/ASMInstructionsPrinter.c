@@ -106,6 +106,19 @@ void printASMOperand(const ASMOperand* operand) {
                 printf("Data(<null>)");
             }
             break;
+        case ASM_OP_INDEXED:
+            printf("Indexed(Reg(%s), Reg(%s), %d)",
+                getRegisterNameForASM_AST(operand->OperandValue.indexed.base),
+                getRegisterNameForASM_AST(operand->OperandValue.indexed.index),
+                operand->OperandValue.indexed.scale);
+            break;
+        case ASM_OP_PSEUDO_MEMORY:
+            if (operand->OperandValue.pseudoMemory.identifier) {
+                printf("PseudoMemory(\"%s\", %d)", operand->OperandValue.pseudoMemory.identifier, operand->OperandValue.pseudoMemory.offset);
+            } else {
+                printf("PseudoMemory(<null>, %d)", operand->OperandValue.pseudoMemory.offset);
+            }
+            break;
         default: break;
     }
 }

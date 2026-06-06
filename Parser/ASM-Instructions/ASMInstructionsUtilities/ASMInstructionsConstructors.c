@@ -102,8 +102,8 @@ ASMOperand* createPsuedoMemoryOperand(char* identifier, int offset) {
     if (!operand) return NULL;
 
     operand->type = ASM_OP_PSEUDO_MEMORY;
-    operand->OperandValue.psueodoMemory.identifier = strdup(identifier);
-    operand->OperandValue.psueodoMemory.offset = offset;
+    operand->OperandValue.pseudoMemory.identifier = strdup(identifier);
+    operand->OperandValue.pseudoMemory.offset = offset;
     return operand;
 }
 
@@ -184,8 +184,8 @@ ASMOperand* tackyValueToASMOperand(TACKYValue* val, SymbolTable* symTable) {
             }
             else if (info->type && info->type->kind == CTYPE_ARRAY) {
                 operand->type = ASM_OP_PSEUDO_MEMORY;
-                operand->OperandValue.psueodoMemory.identifier = strdup(val->identifier);
-                operand->OperandValue.psueodoMemory.offset = 0;
+                operand->OperandValue.pseudoMemory.identifier = strdup(val->identifier);
+                operand->OperandValue.pseudoMemory.offset = 0;
                 return operand;
             }
             operand->type = ASM_OP_PSEUDO;

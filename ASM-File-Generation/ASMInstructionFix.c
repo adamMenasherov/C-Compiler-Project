@@ -90,14 +90,29 @@ static void insertPseudoToTable(CharIntMap* table, char* identifier,
 
 static ASMOperand* resolvePseudo(ASMOperand* operand, CharIntMap* table,
                                  int* offset, ASMSymbolTable* asmSymTable) {
-    if (!operand || operand->type != ASM_OP_PSEUDO) return NULL;
+    if (!operand) return NULL;
 
-    insertPseudoToTable(table, operand->OperandValue.identifier, offset, asmSymTable);
-    int stackOffset;
-    charIntMapGet(table, operand->OperandValue.identifier, &stackOffset);
-    ASMOperand* stackOp = createStackOperand(stackOffset);
-    freeASMOperand(operand);
-    return stackOp;
+    if (operand->type == ASM_OP_PSEUDO) {
+        insertPseudoToTable(table, operand->OperandValue.identifier, offset, asmSymTable);
+        int stackOffset;
+        charIntMapGet(table, operand->OperandValue.identifier, &stackOffset);
+        ASMOperand* stackOp = createStackOperand(stackOffset);
+        freeASMOperand(operand);
+        return stackOp;
+    }
+
+    if (operand->type == ASM_OP_PSEUDO_MEMORY) {
+        char* identifier = operand->OperandValue.pseudoMemory.identifier;
+        int fieldOffset  = operand->OperandValue.pseudoMemory.offset;
+        insertPseudoToTable(table, identifier, offset, asmSymTable);
+        int stackOffset;
+        charIntMapGet(table, identifier, &stackOffset);
+        ASMOperand* stackOp = createStackOperand(stackOffset + fieldOffset);
+        freeASMOperand(operand);
+        return stackOp;
+    }
+
+    return NULL;
 }
 
 #define RESOLVE(field) do {                                                  \

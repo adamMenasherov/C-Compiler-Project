@@ -35,12 +35,12 @@ void parseGetAddressInstruction(TACKYInstruction* inst, ASMInstructionList* asmI
 
 void parseCopyToOffsetInstruction(TACKYInstruction* inst, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {
     ASMOperand* src = tackyValueToASMOperand(inst->instValue.copyToOffset.src, symTable);
-    ASMOperand* dest = tackyValueToASMOperand(inst->instValue.copyToOffset.dest, symTable);
+    char* destIdentifier = inst->instValue.copyToOffset.dest->identifier;
     int offset = inst->instValue.copyToOffset.offset;
     ASMType valType = convertTACKYTypeToASMType(inst->instValue.copyToOffset.src, symTable);
 
     addASMInstructionAtEnd(asmInstructionList,
-        createMovInstruction(valType, src, createPsuedoMemoryOperand(dest, offset)));
+        createMovInstruction(valType, src, createPsuedoMemoryOperand(destIdentifier, offset)));
 }
 
 void parseAddPtrInstruction(TACKYInstruction* inst, ASMInstructionList* asmInstructionList, SymbolTable* symTable) {

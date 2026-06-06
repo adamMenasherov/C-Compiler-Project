@@ -26,6 +26,31 @@ static char* turnASMTypeToAsm(ASMType type) {
     }
 }
 
+static int staticInitTypeSize(initialValueStaticInitType type, int fallbackAlignment) {
+    switch (type) {
+        case STATIC_INIT_INT:
+        case STATIC_INIT_UNSIGNED_INT:
+            return 4;
+        case STATIC_INIT_LONG:
+        case STATIC_INIT_UNSIGNED_LONG:
+        case STATIC_INIT_DOUBLE:
+            return 8;
+        case STATIC_INIT_ZERO_INIT:
+            return fallbackAlignment > 0 ? fallbackAlignment : 1;
+        default:
+            return fallbackAlignment > 0 ? fallbackAlignment : 1;
+    }
+}
+
+static int isStaticInitZero(const staticInitialVal* initVal) {
+    if (!initVal) return 1;
+    if (initVal->staticInitType == STATIC_INIT_ZERO_INIT) return 1;
+    if (initVal->staticInitType == STATIC_INIT_DOUBLE) {
+        return initVal->val.doubleVal == 0.0;
+    }
+    return initVal->val.intVal == 0;
+}
+
 
 void generateASMFile(ASM* ast, char* asm_file_name, ASMSymbolTable* symbolTable) {
     FILE* fp = fopen(asm_file_name, "w");
@@ -77,17 +102,32 @@ void printStaticConstToASMFile(ASMStaticConst* staticConst, FILE *fp) {
 void printStaticVarToASMFile(ASMStaticVar* staticVar, FILE *fp) {
     if (!staticVar || !staticVar->identifier) return;
 
-    int isZero = staticVar->initVal.staticInitType == STATIC_INIT_DOUBLE
-        ? staticVar->initVal.val.doubleVal == 0.0
-        : staticVar->initVal.val.intVal == 0;
+    int initCount = 0;
+    for (int i = 0; i < MAX_STATIC_SIZE && staticVar->initVal[i]; i++) {
+        initCount++;
+    }
 
-    if (isZero) {
+    int totalBytes = 0;
+    int allZero = 1;
+    for (int i = 0; i < initCount; i++) {
+        staticInitialVal* initVal = staticVar->initVal[i];
+        totalBytes += staticInitTypeSize(initVal->staticInitType, staticVar->alignment);
+        if (!isStaticInitZero(initVal)) {
+            allZero = 0;
+        }
+    }
+
+    if (initCount == 0) {
+        totalBytes = staticVar->alignment;
+    }
+
+    if (allZero) {
         fprintf(fp, "   .bss\n   .align %d\n", staticVar->alignment);
         if (staticVar->global) {
             fprintf(fp, "   .globl %s\n", staticVar->identifier);
         }
         fprintf(fp, "%s:\n", staticVar->identifier);
-        fprintf(fp, "\t.zero %d\n", staticVar->alignment);
+        fprintf(fp, "\t.zero %d\n", totalBytes);
         return;
     }
 
@@ -97,12 +137,29 @@ void printStaticVarToASMFile(ASMStaticVar* staticVar, FILE *fp) {
         fprintf(fp, "   .globl %s\n", staticVar->identifier);
     }
     fprintf(fp, "%s:\n", staticVar->identifier);
-    if (staticVar->initVal.staticInitType == STATIC_INIT_DOUBLE) {
-        uint64_t bits;
-        memcpy(&bits, &staticVar->initVal.val.doubleVal, sizeof(bits));
-        fprintf(fp, "\t.quad %lu\n", bits);
-    } else {
-        fprintf(fp, "\t.%s %ld\n", turnStaticInitTypeToAsm(staticVar->initVal.staticInitType), (long)staticVar->initVal.val.intVal);
+
+    int i = 0;
+    while (i < initCount) {
+        if (isStaticInitZero(staticVar->initVal[i])) {
+            int zeroBytes = 0;
+            while (i < initCount && isStaticInitZero(staticVar->initVal[i])) {
+                zeroBytes += staticInitTypeSize(staticVar->initVal[i]->staticInitType, staticVar->alignment);
+                i++;
+            }
+            fprintf(fp, "\t.zero %d\n", zeroBytes);
+            continue;
+        }
+
+        if (staticVar->initVal[i]->staticInitType == STATIC_INIT_DOUBLE) {
+            uint64_t bits;
+            memcpy(&bits, &staticVar->initVal[i]->val.doubleVal, sizeof(bits));
+            fprintf(fp, "\t.quad %lu\n", bits);
+        } else {
+            fprintf(fp, "\t.%s %ld\n",
+                turnStaticInitTypeToAsm(staticVar->initVal[i]->staticInitType),
+                (long)staticVar->initVal[i]->val.intVal);
+        }
+        i++;
     }
 }
 
@@ -357,6 +414,16 @@ void printOperandToASMFile(ASMOperand* op, FILE *fp, REGISTER_SIZE size)
         }
         case ASM_OP_DATA: {
             fprintf(fp, "%s(%%rip)", op->OperandValue.identifier);
+            break;
+        }
+        case ASM_OP_INDEXED: {
+            Register base  = op->OperandValue.indexed.base;
+            Register index = op->OperandValue.indexed.index;
+            int scale = op->OperandValue.indexed.scale;
+            fprintf(fp, "(%%%s,%%%s,%d)",
+                getRegisterNameForCodeEmission(base, REGISTER_64_BIT),
+                getRegisterNameForCodeEmission(index, REGISTER_64_BIT),
+                scale);
             break;
         }
         default: break;

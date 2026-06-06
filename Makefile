@@ -28,7 +28,8 @@ PARSER_SOURCES = Parser/Parser.c Parser/generateUtils.c \
 TACKY_SOURCES = $(shell find Parser/TACKY -type f -name '*.c' | sort)
 SEMANTIC_SOURCES = $(shell find Semantic -type f -name '*.c' | sort)
 ASM_SOURCES = $(shell find Parser/ASM-Instructions -type f -name '*.c' | sort) \
-	ASM-File-Generation/ASMInstructionFix.c
+	ASM-File-Generation/ASMInstructionFix.c \
+	ASM-File-Generation/ASMGenerator.c
 SOURCES = $(DATA_STRUCTURE_SOURCES) $(ENTRYPOINT_SOURCES) $(LEXER_SOURCES) $(PARSER_SOURCES)
 SOURCES += $(TACKY_SOURCES)
 SOURCES += $(SEMANTIC_SOURCES)

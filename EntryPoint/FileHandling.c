@@ -9,6 +9,7 @@
 #include "Semantic/semantic.h"
 #include "DataStructures/HashTable/Wrappers/AsmSymbolTableWrapper.h"
 #include "DataStructures/DynamicArray/Wrappers/IdentifierWrapper.h"
+#include "ASM-File-Generation/ASMGenerator.h"
 
 
 char* generateLibraryStrings(IdentifierArray* libraries) {
@@ -154,18 +155,19 @@ char* compileFile(char* fileName) {
     printf("----- ASM  -----\n");
     ASM* asm_ast = tackyAstToASM_AST(tacky_ast, symTable);
     printASM_AST(asm_ast);
-
-    (void)objectFileName;
-    (void)asmFileName;
+    ASMSymbolTable* asmSymTable = convertFrontEndSymTableToASMSymTable(symTable);
+    generateASMFile(asm_ast, asmFileName, asmSymTable);
+    freeAsmSymbolTable(asmSymTable);
+    commandForObjectFile(asmFileName, objectFileName);
 
     freeSymbolTable(symTable);
     freeAST(ast);
-    free(source); 
+    free(source);
     free(asmFileName);
     free(preprocessFileName);
     freeTokenList(tokenList);
 
-    return strdup("parser-only.o");
+    return objectFileName;
 }
 
 int traverseCompilerArgs(int argc, char** argv, char** finalExecutableName, int* outputSpecified, char** objectFileNames,

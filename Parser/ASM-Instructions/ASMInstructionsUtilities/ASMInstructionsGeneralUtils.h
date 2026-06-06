@@ -142,7 +142,7 @@ struct ASMOperand {
         struct {
             char* identifier;
             int offset;
-        } psueodoMemory;
+        } pseudoMemory;
         struct {
             Register base;
             Register index;
