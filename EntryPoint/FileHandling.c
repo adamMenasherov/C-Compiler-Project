@@ -217,11 +217,6 @@ void startProcess(int argc, char* argv[]) {
         &isCFlagPresent, libraries);
 
     if (!isCFlagPresent) {
-#ifdef PARSER_ONLY
-        // Parser-only mode intentionally does not generate object files or link.
-        freeObjectFileNames(objectFileNames, countObject);
-        return;
-#endif
         char* derivedExecutableName = NULL;
         char* executableNameToUse = finalExecutableName;
 
